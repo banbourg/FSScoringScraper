@@ -178,7 +178,7 @@ def main():
                     print 'segment judges: ', segment_judges
                     event_judges.extend(segment_judges)
 
-            all_judges.extend(event_judges)
+        all_judges.extend(event_judges)
 
     labels = ['season', 'year', 'event', 'sub_event', 'discipline', 'category', 'segment', 'role', 'name', 'country']
 
