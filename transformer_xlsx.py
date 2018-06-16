@@ -9,6 +9,8 @@ import math
 from openpyxl import load_workbook
 import numpy as np
 
+# TO DOs: (1) Fix missing deductions
+
 
 def return_isu_abbrev(s):
     temp = filter(None, re.split(r'(\d+)', s))
