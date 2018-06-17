@@ -56,8 +56,8 @@ def main():
 
             for l in all_links:
                 link = l.get_text()
-
-                # Set up tests to make sure google result points to right thing
+                # Check that the top google result is for the right year (avoids 'OWG 2016' search returning pyeongchang)
+                # Note: Using the google search method bc url construction is not uniform over time.
                 if 'isuresults' in link or 'jsfresults' in link:
                     if (isu_name in link or wtt_name in link) and 'pdf' not in link:
                         print 'google link passed tests:', link
@@ -76,9 +76,6 @@ def main():
         response = requests.get(link, stream=True)
         event_page = BeautifulSoup(response.text, 'html.parser')
 
-        # Check that the top google result is for the right year (avoids 'OWG 2016' search returning pyeongchang)
-        # Note: Using the google search method bc url construction is not uniform over time.
-
         event_judges = []
         for a in event_page.find_all('a'):
             event_domain = link.replace('index.htm', '')
@@ -89,7 +86,6 @@ def main():
                     'index' not in segment_page:
 
                 url_to_test = event_domain + segment_page
-
                 page_resp = requests.get(url_to_test)
                 html = BeautifulSoup(page_resp.text, 'html.parser')
 
@@ -135,11 +131,7 @@ def main():
                     indices = [raw_roles.index(r) for r in [u'Referee', u'Technical Controller',
                                                             u'Technical Controller']]
                     first_entry = min(indices)
-                    if raw_roles[first_entry+2] == raw_roles[first_entry+3]:
-                        incr = 4
-                    else:
-                        incr = 3
-
+                    incr = 4 if (raw_roles[first_entry+2] == raw_roles[first_entry+3]) else 3
                     last = 16 * incr
 
                     try:
