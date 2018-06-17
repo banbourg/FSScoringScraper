@@ -12,6 +12,8 @@ import itertools
 # in cp1252, can't get an overall solution to work (2) Automatically check for judges who are variously listed as
 # repping one country and the ISU, and find and replace the ISU with the country -- version below is too inefficient
 
+def remove_newlines(str):
+    return str.replace('\r', '').replace('\n', '')
 
 def main():
     # STEP 1: Find links to all event pages since ISU website is not mappable. Judges stopped being anonymous in 2016-17
@@ -67,7 +69,6 @@ def main():
 
     # STEP 2: On each page, locate the 4 (or 8 at OWG) links to the singles judging panels
     all_judges = []
-
     for (event, year, season, link) in google_link_list:
         # Clean link
         if 'http' not in link:
@@ -90,11 +91,9 @@ def main():
                 html = BeautifulSoup(page_resp.text, 'html.parser')
 
                 # Check we're on a judging panel page
-                caption2 = [cap2.get_text().replace('\r', '').replace('\n', '') for cap2
-                            in html.find_all('tr', 'caption2')]
-                caption3 = [cap3.get_text().replace('\r', '').replace('\n', '')for cap3
-                            in html.find_all('tr', 'caption3')]
-                words = [p.get_text().replace('\r', '').replace('\n', '')for p in html.find_all('p', 'Font14')]
+                caption2 = [remove_newlines(cap2.get_text()) for cap2 in html.find_all('tr', 'caption2')]
+                caption3 = [remove_newlines(cap3.get_text()) for cap3 in html.find_all('tr', 'caption3')]
+                words = [remove_newlines(p.get_text()) for p in html.find_all('p', 'Font14')]
 
                 if caption2:
                     title = caption2[0]
@@ -159,7 +158,7 @@ def main():
                                 last_name = ' '.join(last_name_list)
                                 name = first_name + ' ' + last_name
                             else:
-                                name = unicode(temp_name)
+                                name = temp_name
 
                             # Construct and append tuple
                             segment_judges.append((season, year, event, sub_event, discipline, category, segment,

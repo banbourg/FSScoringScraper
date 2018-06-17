@@ -5,7 +5,6 @@ import os
 import glob
 import re
 import pandas as pd
-import math
 from openpyxl import load_workbook
 import numpy as np
 
@@ -29,6 +28,22 @@ def clean_elt_name(cur_string, replace_list):
     for cur_word in replace_list:
         cur_string = cur_string.replace(cur_word, '')
     return cur_string
+
+def add_segment_identifiers(df, identifiers, segment_competitors_list):
+    df['discipline'] = identifiers[0]
+    df.set_index('discipline', append=True, inplace=True)
+    df['category'] = identifiers[1]
+    df.set_index('category', append=True, inplace=True)
+    df['season'] = identifiers[2]
+    df.set_index('season', append=True, inplace=True)
+    df['event'] = identifiers[3]
+    df.set_index('event', append=True, inplace=True)
+    df['team_event'] = identifiers[4]
+    df.set_index('team_event', append=True, inplace=True)
+    df['skater'] = segment_competitors_list[-1][3]
+    df.set_index('skater', append=True, inplace=True)
+    df['segment'] = identifiers[5]
+    df.set_index('segment', append=True, inplace=True)
 
 def main():
     read_path = os.path.expanduser('~/Desktop/bias/pdftoxls/')
@@ -88,6 +103,8 @@ def main():
         category = 'Jr' if 'Junior' in filename else 'Sr'
         dc_short = category + discipline[0]
 
+        identifiers = [discipline, category, season, event, team_event, segment]
+
         print 'SUMMARY: ', filename, season, event, team_event, event_year, discipline, category, segment
 
         wb = load_workbook(f)
@@ -114,15 +131,16 @@ def main():
                     if raw_df.iloc[i, j] == 'Name':
                         name_row = []
                         for k in range(i + 2, i + 5):
-                            min = max(j-2, 0)
-                            for l in range(min, j + 2):
+                            start = max(j-2, 0)
+                            for l in range(start, j + 2):
                                 namelike_regex = re.search(r'[A-Z]{2,}', unicode(raw_df.iloc[k, l]))
                                 if namelike_regex is not None:
                                     return_row_list(k, 0, raw_df, name_row)
                                     break
                             if name_row:
                                 break
-                        assert(name_row)
+                        assert name_row
+
                         # The 'fuck your names, Dutch people' exception - they break the pdf conversion
                         spaced_patronym_regex = re.search(r'^\d+\s+\D+', unicode(name_row[0]))
                         if spaced_patronym_regex is not None:
@@ -143,7 +161,6 @@ def main():
 
                         segment_competitors_list.append((season, discipline, category, competitor_name, country))
                         segment_exploded_names.append((first_name, short_last_name))
-                        #print segment_competitors_list
 
                     # SCRAPE PCS SCORES
                     elif 'Skating Skills' in unicode(raw_df.iloc[i, j]):
@@ -167,23 +184,8 @@ def main():
                                                      columns=['j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'j7', 'j8', 'j9'])
                         single_pcs_df.rename_axis('judge', axis='columns', inplace=True)
                         single_pcs_df.rename_axis('component', axis='index', inplace=True)
-                        # print single_pcs_df
 
-                        single_pcs_df['discipline'] = discipline
-                        single_pcs_df.set_index('discipline', append=True, inplace=True)
-                        single_pcs_df['category'] = category
-                        single_pcs_df.set_index('category', append=True, inplace=True)
-                        single_pcs_df['season'] = season
-                        single_pcs_df.set_index('season', append=True, inplace=True)
-                        single_pcs_df['event'] = event
-                        single_pcs_df.set_index('event', append=True, inplace=True)
-                        single_pcs_df['team_event'] = team_event
-                        single_pcs_df.set_index('team_event', append=True, inplace=True)
-                        single_pcs_df['skater'] = segment_competitors_list[-1][3]
-                        single_pcs_df.set_index('skater', append=True, inplace=True)
-                        single_pcs_df['segment'] = segment
-                        single_pcs_df.set_index('segment', append=True, inplace=True)
-
+                        add_segment_identifiers(single_pcs_df, identifiers, segment_competitors_list)
                         segment_pcs_list.extend([single_pcs_df])
 
                     # SCRAPE DEDUCTIONS
@@ -344,18 +346,12 @@ def main():
                             single_calls_list.append(calls_row)
                             single_goe_list.append(goe_row)
 
-                        single_calls_df = pd.DataFrame(single_calls_list, index=elt_id_list,
-                                                       columns=['elt_no', 'elt_name', 'level', 'invalid', 'h2',
-                                                                'combo_flag', 'ur_flag', 'downgrade_flag',
-                                                                'severe_edge_flag', 'unclear_edge_flag', 'rep_flag',
-                                                                'jump_1', 'j1_sev_edge', 'j1_unc_edge', 'j1_ur',
-                                                                'j1_down', 'jump_2', 'j2_sev_edge', 'j2_unc_edge',
-                                                                'j2_ur',
-                                                                'j2_down', 'jump_3', 'j3_sev_edge', 'j3_unc_edge',
-                                                                'j3_ur',
-                                                                'j3_down', 'jump_4', 'j4_sev_edge', 'j4_unc_edge',
-                                                                'j4_ur',
-                                                                'j4_down', 'failed_spin'])
+                        call_cols = ['elt_no', 'elt_name', 'level', 'invalid', 'h2', 'combo_flag', 'ur_flag',
+                                     'downgrade_flag', 'severe_edge_flag', 'unclear_edge_flag', 'rep_flag', 'jump_1',
+                                     'j1_sev_edge', 'j1_unc_edge', 'j1_ur', 'j1_down', 'jump_2', 'j2_sev_edge',
+                                     'j2_unc_edge', 'j2_ur', 'j2_down', 'jump_3', 'j3_sev_edge', 'j3_unc_edge', 'j3_ur',
+                                     'j3_down', 'jump_4', 'j4_sev_edge', 'j4_unc_edge', 'j4_ur','j4_down', 'failed_spin']
+                        single_calls_df = pd.DataFrame(single_calls_list, index=elt_id_list, columns=call_cols)
                         print single_calls_df
 
                         single_scores_df = pd.DataFrame(single_scores_list, index=elt_id_list,
@@ -370,66 +366,9 @@ def main():
                         print single_goe_df
 
                         # ADD THE OTHER INFO COLUMNS - Figure how to loop through the dfs without python thinking
-                        # they're lists
-                        single_scores_df['discipline'] = discipline
-                        single_scores_df.set_index('discipline', append=True, inplace=True)
-                        single_scores_df['category'] = category
-                        single_scores_df.set_index('category', append=True, inplace=True)
-                        single_scores_df['season'] = season
-                        single_scores_df.set_index('season', append=True, inplace=True)
-                        single_scores_df['event'] = event
-                        single_scores_df.set_index('event', append=True, inplace=True)
-                        single_scores_df['team_event'] = team_event
-                        single_scores_df.set_index('team_event', append=True, inplace=True)
-                        single_scores_df['skater'] = segment_competitors_list[-1][3]
-                        single_scores_df.set_index('skater', append=True, inplace=True)
-                        single_scores_df['segment'] = segment
-                        single_scores_df.set_index('segment', append=True, inplace=True)
-
-                        single_goe_df['discipline'] = discipline
-                        single_goe_df.set_index('discipline', append=True, inplace=True)
-                        single_goe_df['category'] = category
-                        single_goe_df.set_index('category', append=True, inplace=True)
-                        single_goe_df['season'] = season
-                        single_goe_df.set_index('season', append=True, inplace=True)
-                        single_goe_df['event'] = event
-                        single_goe_df.set_index('event', append=True, inplace=True)
-                        single_goe_df['team_event'] = team_event
-                        single_goe_df.set_index('team_event', append=True, inplace=True)
-                        single_goe_df['skater'] = segment_competitors_list[-1][3]
-                        single_goe_df.set_index('skater', append=True, inplace=True)
-                        single_goe_df['segment'] = segment
-                        single_goe_df.set_index('segment', append=True, inplace=True)
-
-                        single_calls_df['discipline'] = discipline
-                        single_calls_df.set_index('discipline', append=True, inplace=True)
-                        single_calls_df['category'] = category
-                        single_calls_df.set_index('category', append=True, inplace=True)
-                        single_calls_df['season'] = season
-                        single_calls_df.set_index('season', append=True, inplace=True)
-                        single_calls_df['event'] = event
-                        single_calls_df.set_index('event', append=True, inplace=True)
-                        single_calls_df['team_event'] = team_event
-                        single_calls_df.set_index('team_event', append=True, inplace=True)
-                        single_calls_df['skater'] = segment_competitors_list[-1][3]
-                        single_calls_df.set_index('skater', append=True, inplace=True)
-                        single_calls_df['segment'] = segment
-                        single_calls_df.set_index('segment', append=True, inplace=True)
-
-                        # single_dfs = [single_calls_df, single_goe_list, single_calls_df]
-                        # for df in single_dfs:
-                        #     df['discipline'] = discipline
-                        #     df.set_index('discipline', append=True, inplace=True)
-                        #     df['category'] = category
-                        #     df.set_index('category', append=True, inplace=True)
-                        #     df['season'] = season
-                        #     df.set_index('season', append=True, inplace=True)
-                        #     df['event'] = event
-                        #     df.set_index('event', append=True, inplace=True)
-                        #     df['skater'] = competitors[-1][3]
-                        #     df.set_index('skater', append=True, inplace=True)
-                        #     df['segment'] = segment
-                        #     df.set_index('segment', append=True, inplace=True)
+                        add_segment_identifiers(single_scores_df, identifiers, segment_competitors_list)
+                        add_segment_identifiers(single_goe_df, identifiers, segment_competitors_list)
+                        add_segment_identifiers(single_calls_df, identifiers, segment_competitors_list)
 
                         segment_scores_list.append(single_scores_df)
                         segment_goe_list.append(single_goe_df)

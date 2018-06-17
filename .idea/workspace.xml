@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="015d0eec-5d23-4579-9378-fecb3e3d294f" name="Default" comment="">
-      <change beforePath="" afterPath="$PROJECT_DIR$/db_builder.py" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change beforePath="$PROJECT_DIR$/isu_judge_scraper.py" afterPath="$PROJECT_DIR$/isu_judge_scraper.py" />
+      <change beforePath="$PROJECT_DIR$/transformer_xlsx.py" afterPath="$PROJECT_DIR$/transformer_xlsx.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -19,11 +18,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="transformer_xlsx.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="transformer_xlsx.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/transformer_xlsx.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-3473">
-              <caret line="237" column="41" lean-forward="false" selection-start-line="237" selection-start-column="36" selection-end-line="237" selection-end-column="41" />
+            <state relative-caret-position="5340">
+              <caret line="356" column="94" lean-forward="true" selection-start-line="356" selection-start-column="94" selection-end-line="356" selection-end-column="94" />
               <folding>
                 <element signature="e#35#44#0" expanded="true" />
               </folding>
@@ -39,16 +38,6 @@
               <folding>
                 <element signature="e#0#15#0" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="isu_judge_scraper.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/isu_judge_scraper.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1995">
-              <caret line="138" column="0" lean-forward="true" selection-start-line="138" selection-start-column="0" selection-end-line="138" selection-end-column="0" />
-              <folding />
             </state>
           </provider>
         </entry>
@@ -74,9 +63,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>event</find>
-      <find>filter</find>
-      <find>passer</find>
       <find>OWG</find>
       <find>ABELE A</find>
       <find>str(</find>
@@ -104,6 +90,9 @@
       <find>too few</find>
       <find>drop</find>
       <find>combo</find>
+      <find>ident</find>
+      <find>is_nan</find>
+      <find>identifiers =</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -113,9 +102,9 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$APPLICATION_CONFIG_DIR$/scratches/scratch.py" />
-        <option value="$PROJECT_DIR$/transformer_xlsx.py" />
         <option value="$PROJECT_DIR$/db_builder.py" />
         <option value="$PROJECT_DIR$/isu_judge_scraper.py" />
+        <option value="$PROJECT_DIR$/transformer_xlsx.py" />
       </list>
     </option>
   </component>
@@ -301,6 +290,14 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/isu_judge_scraper.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="166" column="55" lean-forward="false" selection-start-line="166" selection-start-column="55" selection-end-line="166" selection-end-column="55" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$APPLICATION_CONFIG_DIR$/scratches/scratch.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="60">
@@ -313,19 +310,11 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/transformer_xlsx.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-3473">
-          <caret line="237" column="41" lean-forward="false" selection-start-line="237" selection-start-column="36" selection-end-line="237" selection-end-column="41" />
+        <state relative-caret-position="5340">
+          <caret line="356" column="94" lean-forward="true" selection-start-line="356" selection-start-column="94" selection-end-line="356" selection-end-column="94" />
           <folding>
             <element signature="e#35#44#0" expanded="true" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/isu_judge_scraper.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1995">
-          <caret line="138" column="0" lean-forward="true" selection-start-line="138" selection-start-column="0" selection-end-line="138" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
