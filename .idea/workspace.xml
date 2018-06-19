@@ -3,6 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="015d0eec-5d23-4579-9378-fecb3e3d294f" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/db_builder.py" afterPath="$PROJECT_DIR$/db_builder.py" />
+      <change beforePath="$PROJECT_DIR$/transformer_xlsx.py" afterPath="$PROJECT_DIR$/transformer_xlsx.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -14,15 +15,16 @@
   <component name="CoverageDataManager">
     <SUITE FILE_PATH="coverage/scripts$scratch.coverage" NAME="scratch Coverage Results" MODIFIED="1529049614552" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$APPLICATION_CONFIG_DIR$/scratches" />
     <SUITE FILE_PATH="coverage/scripts$isu_judge_scraper.coverage" NAME="isu_judge_scraper Coverage Results" MODIFIED="1529419979884" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/scripts$db_builder.coverage" NAME="db_builder Coverage Results" MODIFIED="1529429231191" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/scripts$db_builder.coverage" NAME="db_builder Coverage Results" MODIFIED="1529429974560" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/scripts$transformer_xlsx.coverage" NAME="transformer_xlsx Coverage Results" MODIFIED="1529429990891" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file leaf-file-name="transformer_xlsx.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/transformer_xlsx.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="168">
-              <caret line="48" column="29" lean-forward="false" selection-start-line="48" selection-start-column="24" selection-end-line="48" selection-end-column="29" />
+            <state relative-caret-position="118">
+              <caret line="317" column="46" lean-forward="false" selection-start-line="317" selection-start-column="46" selection-end-line="317" selection-end-column="46" />
               <folding>
                 <element signature="e#35#44#0" expanded="true" />
               </folding>
@@ -45,21 +47,17 @@
       <file leaf-file-name="db_builder.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/db_builder.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1771">
-              <caret line="52" column="14" lean-forward="false" selection-start-line="52" selection-start-column="14" selection-end-line="52" selection-end-column="14" />
+            <state relative-caret-position="-522">
+              <caret line="16" column="19" lean-forward="true" selection-start-line="16" selection-start-column="19" selection-end-line="16" selection-end-column="19" />
               <folding>
-                <element signature="e#0#15#0" expanded="true" />
-                <marker date="1529429231184" expanded="true" signature="429:440" ph="DROP TABLE t... " />
-                <marker date="1529429231184" expanded="true" signature="429:453" ph="DROP TABLE j... " />
-                <marker date="1529429231184" expanded="true" signature="471:539" ph="CREATE TABLE... test" />
-                <marker date="1529429231184" expanded="true" signature="560:805" ph="CREATE TABLE... us" />
-                <marker date="1529429231184" expanded="true" signature="560:811" ph="CREATE TABLE... users" />
-                <marker date="1529429231184" expanded="true" signature="1037:1354" ph="CREATE TABLE... scores_180619" />
-                <marker date="1529429231184" expanded="true" signature="1586:1837" ph="CREATE TABLE... pcs_180619" />
-                <marker date="1529429231184" expanded="true" signature="2058:2284" ph="CREATE TABLE... goe_180619" />
-                <marker date="1529429231184" expanded="true" signature="2505:2673" ph="CREATE TABLE... competitors_180619" />
-                <marker date="1529429231184" expanded="true" signature="2926:3850" ph="CREATE TABLE... calls_180619" />
-                <marker date="1529429231184" expanded="true" signature="4074:4321" ph="CREATE TABLE... deductions_180619" />
+                <marker date="1529430132531" expanded="true" signature="280:525" ph="CREATE TABLE... us" />
+                <marker date="1529430132531" expanded="true" signature="280:531" ph="CREATE TABLE... users" />
+                <marker date="1529430132531" expanded="true" signature="759:1076" ph="CREATE TABLE... scores_180619" />
+                <marker date="1529430132531" expanded="true" signature="1309:1560" ph="CREATE TABLE... pcs_180619" />
+                <marker date="1529430132531" expanded="true" signature="1781:2007" ph="CREATE TABLE... goe_180619" />
+                <marker date="1529430132531" expanded="true" signature="2228:2396" ph="CREATE TABLE... competitors_180619" />
+                <marker date="1529430132531" expanded="true" signature="2649:3573" ph="CREATE TABLE... calls_180619" />
+                <marker date="1529430132531" expanded="true" signature="3797:4044" ph="CREATE TABLE... deductions_180619" />
               </folding>
             </state>
           </provider>
@@ -76,7 +74,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>ABELE</find>
       <find>birg</find>
       <find>WTT</find>
       <find>jsfr</find>
@@ -106,6 +103,7 @@
       <find>expan</find>
       <find>level</find>
       <find>elt_name</find>
+      <find>MISSING_E</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -182,7 +180,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.db_builder">
+  <component name="RunManager" selected="Python.transformer_xlsx">
     <configuration name="db_builder" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -240,16 +238,37 @@
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
     </configuration>
-    <list size="3">
+    <configuration name="transformer_xlsx" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="scripts" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/transformer_xlsx.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+    </configuration>
+    <list size="4">
       <item index="0" class="java.lang.String" itemvalue="Python.isu_judge_scraper" />
       <item index="1" class="java.lang.String" itemvalue="Python.scratch" />
       <item index="2" class="java.lang.String" itemvalue="Python.db_builder" />
+      <item index="3" class="java.lang.String" itemvalue="Python.transformer_xlsx" />
     </list>
     <recent_temporary>
-      <list size="3">
-        <item index="0" class="java.lang.String" itemvalue="Python.db_builder" />
-        <item index="1" class="java.lang.String" itemvalue="Python.isu_judge_scraper" />
-        <item index="2" class="java.lang.String" itemvalue="Python.scratch" />
+      <list size="4">
+        <item index="0" class="java.lang.String" itemvalue="Python.transformer_xlsx" />
+        <item index="1" class="java.lang.String" itemvalue="Python.db_builder" />
+        <item index="2" class="java.lang.String" itemvalue="Python.isu_judge_scraper" />
+        <item index="3" class="java.lang.String" itemvalue="Python.scratch" />
       </list>
     </recent_temporary>
   </component>
@@ -275,7 +294,7 @@
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="false" weight="0.317139" sideWeight="0.21319444" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.537112" sideWeight="0.78680557" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.43589744" sideWeight="0.78680557" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
@@ -348,8 +367,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/transformer_xlsx.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="168">
-          <caret line="48" column="29" lean-forward="false" selection-start-line="48" selection-start-column="24" selection-end-line="48" selection-end-column="29" />
+        <state relative-caret-position="118">
+          <caret line="317" column="46" lean-forward="false" selection-start-line="317" selection-start-column="46" selection-end-line="317" selection-end-column="46" />
           <folding>
             <element signature="e#35#44#0" expanded="true" />
           </folding>
@@ -358,21 +377,17 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/db_builder.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1771">
-          <caret line="52" column="14" lean-forward="false" selection-start-line="52" selection-start-column="14" selection-end-line="52" selection-end-column="14" />
+        <state relative-caret-position="-522">
+          <caret line="16" column="19" lean-forward="true" selection-start-line="16" selection-start-column="19" selection-end-line="16" selection-end-column="19" />
           <folding>
-            <element signature="e#0#15#0" expanded="true" />
-            <marker date="1529429231184" expanded="true" signature="429:440" ph="DROP TABLE t... " />
-            <marker date="1529429231184" expanded="true" signature="429:453" ph="DROP TABLE j... " />
-            <marker date="1529429231184" expanded="true" signature="471:539" ph="CREATE TABLE... test" />
-            <marker date="1529429231184" expanded="true" signature="560:805" ph="CREATE TABLE... us" />
-            <marker date="1529429231184" expanded="true" signature="560:811" ph="CREATE TABLE... users" />
-            <marker date="1529429231184" expanded="true" signature="1037:1354" ph="CREATE TABLE... scores_180619" />
-            <marker date="1529429231184" expanded="true" signature="1586:1837" ph="CREATE TABLE... pcs_180619" />
-            <marker date="1529429231184" expanded="true" signature="2058:2284" ph="CREATE TABLE... goe_180619" />
-            <marker date="1529429231184" expanded="true" signature="2505:2673" ph="CREATE TABLE... competitors_180619" />
-            <marker date="1529429231184" expanded="true" signature="2926:3850" ph="CREATE TABLE... calls_180619" />
-            <marker date="1529429231184" expanded="true" signature="4074:4321" ph="CREATE TABLE... deductions_180619" />
+            <marker date="1529430132531" expanded="true" signature="280:525" ph="CREATE TABLE... us" />
+            <marker date="1529430132531" expanded="true" signature="280:531" ph="CREATE TABLE... users" />
+            <marker date="1529430132531" expanded="true" signature="759:1076" ph="CREATE TABLE... scores_180619" />
+            <marker date="1529430132531" expanded="true" signature="1309:1560" ph="CREATE TABLE... pcs_180619" />
+            <marker date="1529430132531" expanded="true" signature="1781:2007" ph="CREATE TABLE... goe_180619" />
+            <marker date="1529430132531" expanded="true" signature="2228:2396" ph="CREATE TABLE... competitors_180619" />
+            <marker date="1529430132531" expanded="true" signature="2649:3573" ph="CREATE TABLE... calls_180619" />
+            <marker date="1529430132531" expanded="true" signature="3797:4044" ph="CREATE TABLE... deductions_180619" />
           </folding>
         </state>
       </provider>

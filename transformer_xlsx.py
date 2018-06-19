@@ -315,7 +315,7 @@ def main():
                                 #print 'goe_row: ', goe_row
 
                             else:
-                                elt_no = k - i - 1
+                                elt_no = k - i
                                 elt_name = 'MISSING_ELEMENT'
                                 level, h2, combo_flag, ur_flag = 0, 0, 0, 0
                                 downgrade_flag, severe_edge_flag, unclear_edge_flag = 0, 0, 0
@@ -419,12 +419,15 @@ def main():
 
     all_competitors_df.drop_duplicates(subset=['category', 'name', 'country'], keep='last', inplace=True)
 
-    all_scores_df.to_csv(write_path + 'scores_H20910-1718.csv', mode='a', encoding='utf-8', header=True)
-    all_pcs_df.to_csv(write_path + 'pcs_H20910to1718.csv', mode='a', encoding='utf-8', header=True)
-    all_goe_df.to_csv(write_path + 'goe_H20910to1718.csv', mode='a', encoding='utf-8',header=True)
-    all_calls_df.to_csv(write_path + 'calls_H20910to1718.csv', mode='a', encoding='utf-8', header=True)
-    all_deductions_df.to_csv(write_path + 'deductions_H20910to1718.csv', mode='a', encoding='utf-8', header=True)
-    all_competitors_df.to_csv(write_path + 'competitors_H20910to1718.csv', mode='a', encoding='utf-8', header=True)
+
+    date = '180619'
+    ver = '1'
+    all_scores_df.to_csv(write_path + 'scores_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
+    all_pcs_df.to_csv(write_path + 'pcs_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
+    all_goe_df.to_csv(write_path + 'goe_'+date+ver+'.csv', mode='a', encoding='utf-8',header=True)
+    all_calls_df.to_csv(write_path + 'calls_'+date+ver+'.ccsv', mode='a', encoding='utf-8', header=True)
+    all_deductions_df.to_csv(write_path + 'deductions_'+date+ver+'.ccsv', mode='a', encoding='utf-8', header=True)
+    all_competitors_df.to_csv(write_path + 'competitors_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
 
 
 main()
