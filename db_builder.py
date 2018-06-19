@@ -163,7 +163,7 @@ CREATE TABLE calls_180619(
 """)
 print 'created calls table'
 f = open(r'/users/clarapouletty/desktop/bias/output/calls_'+date+ver+'.csv', 'r')
-next(f)
+f.readline()
 cur.copy_from(f, 'calls_180619', sep=',')
 f.close()
 print 'populated calls table'
