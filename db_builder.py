@@ -16,7 +16,7 @@ cur.execute("""
 CREATE TABLE judges_180619(
     elt_id text PRIMARY KEY,
     season text,
-    year integer,
+    year smallint,
     event text,
     sub_event text,
     discipline text,
@@ -46,11 +46,11 @@ CREATE TABLE scores_180619(
     skater_name text,
     segment text,
     elt_name text,
-    level integer,
-    h2 integer,
-    elt_bv float,
-    elt_sov_goe float,
-    elt_total float
+    level text,
+    h2 smallint,
+    elt_bv float(1),
+    elt_sov_goe float(1),
+    elt_total float(1)
     );
 """)
 print 'created scores table'
@@ -62,7 +62,7 @@ print 'populated scores table'
 
 cur.execute("""
 CREATE TABLE pcs_180619(
-    line_id integer PRIMARY KEY,
+    line_id smallint PRIMARY KEY,
     component text,
     discipline text,
     category text,
@@ -72,7 +72,7 @@ CREATE TABLE pcs_180619(
     skater_name text,
     segment text,
     judge text,
-    pcs float 
+    pcs float(1) 
     );
 """)
 print 'created pcs table'
@@ -93,7 +93,7 @@ CREATE TABLE goe_180619(
     skater_name text,
     segment text,
     judge text,
-    goe integer 
+    goe smallint 
     );
 """)
 print 'created goe table'
@@ -105,7 +105,7 @@ print 'populated goe table'
 
 cur.execute("""
 CREATE TABLE competitors_180619(
-    line_id integer PRIMARY KEY,
+    line_id smallint PRIMARY KEY,
     season text,
     discipline text,
     category text,
@@ -130,38 +130,38 @@ CREATE TABLE calls_180619(
     sub_event text,
     skater_name text,
     segment text,
-    elt_no integer,
+    elt_no smallint,
     elt_name text,
-    level integer,
-    invalid integer,
-    h2 integer,
-    combo_flag integer,
-    ur_flag integer,
-    downgrade_flag integer,
-    severe_edge_flag integer,
-    unclear_edge_flag integer,
-    rep_flag integer,
+    level text,
+    invalid smallint,
+    h2 smallint,
+    combo_flag smallint,
+    ur_flag smallint,
+    downgrade_flag smallint,
+    severe_edge_flag smallint,
+    unclear_edge_flag smallint,
+    rep_flag smallint,
     jump_1 text,
-    j1_sev_edge integer,
-    j1_unc_edge	integer,
-    j1_ur integer,	
-    j1_down integer,
+    j1_sev_edge smallint,
+    j1_unc_edge	smallint,
+    j1_ur smallint,	
+    j1_down smallint,
     jump_2 text,
-    j2_sev_edge integer,
-    j2_unc_edge	integer,
-    j2_ur integer,	
-    j2_down integer,
+    j2_sev_edge smallint,
+    j2_unc_edge	smallint,
+    j2_ur smallint,	
+    j2_down smallint,
     jump_3 text,
-    j3_sev_edge integer,
-    j3_unc_edge	integer,
-    j3_ur integer,	
-    j3_down integer,
+    j3_sev_edge smallint,
+    j3_unc_edge	smallint,
+    j3_ur smallint,	
+    j3_down smallint,
     jump_4 text,
-    j4_sev_edge integer,
-    j4_unc_edge	integer,
-    j4_ur integer,	
-    j4_down integer,
-    failed_spin integer
+    j4_sev_edge smallint,
+    j4_unc_edge	smallint,
+    j4_ur smallint,	
+    j4_down smallint,
+    failed_spin smallint
     );
 """)
 print 'created calls table'
@@ -173,7 +173,7 @@ print 'populated calls table'
 
 cur.execute("""
 CREATE TABLE deductions_180619(
-    line_id integer PRIMARY KEY,
+    line_id smallint PRIMARY KEY,
     discipline text,
     category text,
     season text,
@@ -182,7 +182,7 @@ CREATE TABLE deductions_180619(
     skater_name text,
     segment text,
     ded_type text,
-    ded_points integer
+    ded_points smallint
     );
 """)
 print 'created deductions table'
