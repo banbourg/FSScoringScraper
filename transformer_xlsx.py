@@ -66,7 +66,7 @@ def main():
     all_competitors_list = []
 
     for f in files:
-        filename = f[43:]  # 48
+        filename = f[43:]  # 43
 
         # 1. DERIVE YEAR
         year_list = [int(x) for x in year_regex.findall(filename)]
@@ -168,15 +168,16 @@ def main():
                         for k in range(i, i + 5):
                             raw_row_data = []
                             return_row_list(k, j + 1, raw_df, raw_row_data)
-
                             row_data = []
-                            for cell in raw_row_data:
-                                try:
-                                    clean = float(cell)
-                                except:
-                                    clean = ''
-                                row_data.append(clean)
-                                row_data = [x for x in row_data if x is not None]
+                            for raw_cell in raw_row_data:
+                                cleaner = [u.replace(u',',u'.') for u in str(raw_cell).split()]
+                                for v in cleaner:
+                                    try:
+                                        cleanest_cell = float(v)
+                                    except:
+                                        cleanest_cell = ''
+                                row_data.append(cleanest_cell)
+                            row_data = filter(None, row_data)
 
                             single_pcs_list.append(row_data[1:-1])
 
@@ -417,7 +418,7 @@ def main():
 
 
     date = '180619'
-    ver = '5'
+    ver = '4'
     all_scores_df.to_csv(write_path + 'scores_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
     all_pcs_df.to_csv(write_path + 'pcs_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
     all_goe_df.to_csv(write_path + 'goe_'+date+ver+'.csv', mode='a', encoding='utf-8',header=True)

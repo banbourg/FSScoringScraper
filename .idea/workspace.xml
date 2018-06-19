@@ -2,6 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="015d0eec-5d23-4579-9378-fecb3e3d294f" name="Default" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" afterPath="$PROJECT_DIR$/.idea/modules.xml" />
+      <change beforePath="$PROJECT_DIR$/.idea/scripts.iml" afterPath="$PROJECT_DIR$/.idea/scripts.iml" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change beforePath="$PROJECT_DIR$/db_builder.py" afterPath="$PROJECT_DIR$/db_builder.py" />
       <change beforePath="$PROJECT_DIR$/transformer_xlsx.py" afterPath="$PROJECT_DIR$/transformer_xlsx.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -14,19 +18,29 @@
   <component name="CoverageDataManager">
     <SUITE FILE_PATH="coverage/scripts$scratch.coverage" NAME="scratch Coverage Results" MODIFIED="1529049614552" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$APPLICATION_CONFIG_DIR$/scratches" />
     <SUITE FILE_PATH="coverage/scripts$isu_judge_scraper.coverage" NAME="isu_judge_scraper Coverage Results" MODIFIED="1529419979884" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/scripts$db_builder.coverage" NAME="db_builder Coverage Results" MODIFIED="1529438110497" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/scripts$transformer_xlsx.coverage" NAME="transformer_xlsx Coverage Results" MODIFIED="1529440530739" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/scripts$db_builder.coverage" NAME="db_builder Coverage Results" MODIFIED="1529444680169" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/scripts$transformer_xlsx.coverage" NAME="transformer_xlsx Coverage Results" MODIFIED="1529445638352" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file leaf-file-name="transformer_xlsx.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/transformer_xlsx.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="244">
+            <state relative-caret-position="127">
               <caret line="68" column="23" lean-forward="false" selection-start-line="68" selection-start-column="23" selection-end-line="68" selection-end-column="23" />
               <folding>
                 <element signature="e#35#44#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="transformer.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../old_scrips/transformer.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-1015">
+              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -46,17 +60,17 @@
       <file leaf-file-name="db_builder.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/db_builder.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="240">
-              <caret line="16" column="19" lean-forward="true" selection-start-line="16" selection-start-column="19" selection-end-line="16" selection-end-column="19" />
+            <state relative-caret-position="330">
+              <caret line="22" column="16" lean-forward="false" selection-start-line="22" selection-start-column="16" selection-end-line="22" selection-end-column="16" />
               <folding>
-                <marker date="1529438244589" expanded="true" signature="280:525" ph="CREATE TABLE... us" />
-                <marker date="1529438244589" expanded="true" signature="280:531" ph="CREATE TABLE... users" />
-                <marker date="1529438244589" expanded="true" signature="759:1076" ph="CREATE TABLE... scores_180619" />
-                <marker date="1529438244589" expanded="true" signature="1309:1560" ph="CREATE TABLE... pcs_180619" />
-                <marker date="1529438244589" expanded="true" signature="1781:2007" ph="CREATE TABLE... goe_180619" />
-                <marker date="1529438244589" expanded="true" signature="2228:2396" ph="CREATE TABLE... competitors_180619" />
-                <marker date="1529438244589" expanded="true" signature="2649:3573" ph="CREATE TABLE... calls_180619" />
-                <marker date="1529438244589" expanded="true" signature="3797:4044" ph="CREATE TABLE... deductions_180619" />
+                <marker date="1529441661974" expanded="true" signature="280:525" ph="CREATE TABLE... us" />
+                <marker date="1529441661974" expanded="true" signature="280:531" ph="CREATE TABLE... users" />
+                <marker date="1529441661974" expanded="true" signature="759:1076" ph="CREATE TABLE... scores_180619" />
+                <marker date="1529441661974" expanded="true" signature="1309:1559" ph="CREATE TABLE... pcs_180619" />
+                <marker date="1529441661974" expanded="true" signature="1780:2027" ph="CREATE TABLE... goe_180619" />
+                <marker date="1529441661974" expanded="true" signature="2248:2416" ph="CREATE TABLE... competitors_180619" />
+                <marker date="1529441661974" expanded="true" signature="2669:3593" ph="CREATE TABLE... calls_180619" />
+                <marker date="1529441661974" expanded="true" signature="3817:4064" ph="CREATE TABLE... deductions_180619" />
               </folding>
             </state>
           </provider>
@@ -73,8 +87,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>wtt</find>
-      <find>any</find>
       <find>[A-</find>
       <find>search</find>
       <find>re.</find>
@@ -97,12 +109,14 @@
       <find>elt_name</find>
       <find>MISSING_E</find>
       <find>calls</find>
-      <find>goe</find>
-      <find>pcs</find>
       <find>index=</find>
       <find>prin</find>
       <find>print</find>
       <find>set_index</find>
+      <find>goe</find>
+      <find>deduction</find>
+      <find>\d,</find>
+      <find>pcs</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -124,9 +138,10 @@
     <detection-done>true</detection-done>
     <sorting>DEFINITION_ORDER</sorting>
   </component>
-  <component name="ProjectFrameBounds">
+  <component name="ProjectFrameBounds" fullScreen="true">
+    <option name="x" value="549" />
     <option name="y" value="23" />
-    <option name="width" value="1440" />
+    <option name="width" value="891" />
     <option name="height" value="813" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
@@ -151,7 +166,24 @@
           <expand>
             <path>
               <item name="scripts" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Desktop" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="scripts" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Desktop" type="462c0819:PsiDirectoryNode" />
+              <item name="bias" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="scripts" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Desktop" type="462c0819:PsiDirectoryNode" />
+              <item name="bias" type="462c0819:PsiDirectoryNode" />
               <item name="scripts" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="scripts" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Desktop" type="462c0819:PsiDirectoryNode" />
+              <item name="bias" type="462c0819:PsiDirectoryNode" />
+              <item name="old_scrips" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -288,12 +320,12 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="23" width="1440" height="813" extended-state="0" />
+    <frame x="0" y="0" width="1440" height="900" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="false" weight="0.317139" sideWeight="0.21319444" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.43589744" sideWeight="0.78680557" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.38" sideWeight="0.21736111" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.38" sideWeight="0.7826389" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
@@ -302,6 +334,7 @@
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="SciView" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Concurrent Activities Diagram" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32941177" sideWeight="0.49722221" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3994602" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -366,24 +399,32 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/db_builder.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="240">
-          <caret line="16" column="19" lean-forward="true" selection-start-line="16" selection-start-column="19" selection-end-line="16" selection-end-column="19" />
+        <state relative-caret-position="330">
+          <caret line="22" column="16" lean-forward="false" selection-start-line="22" selection-start-column="16" selection-end-line="22" selection-end-column="16" />
           <folding>
-            <marker date="1529438244589" expanded="true" signature="280:525" ph="CREATE TABLE... us" />
-            <marker date="1529438244589" expanded="true" signature="280:531" ph="CREATE TABLE... users" />
-            <marker date="1529438244589" expanded="true" signature="759:1076" ph="CREATE TABLE... scores_180619" />
-            <marker date="1529438244589" expanded="true" signature="1309:1560" ph="CREATE TABLE... pcs_180619" />
-            <marker date="1529438244589" expanded="true" signature="1781:2007" ph="CREATE TABLE... goe_180619" />
-            <marker date="1529438244589" expanded="true" signature="2228:2396" ph="CREATE TABLE... competitors_180619" />
-            <marker date="1529438244589" expanded="true" signature="2649:3573" ph="CREATE TABLE... calls_180619" />
-            <marker date="1529438244589" expanded="true" signature="3797:4044" ph="CREATE TABLE... deductions_180619" />
+            <marker date="1529441661974" expanded="true" signature="280:525" ph="CREATE TABLE... us" />
+            <marker date="1529441661974" expanded="true" signature="280:531" ph="CREATE TABLE... users" />
+            <marker date="1529441661974" expanded="true" signature="759:1076" ph="CREATE TABLE... scores_180619" />
+            <marker date="1529441661974" expanded="true" signature="1309:1559" ph="CREATE TABLE... pcs_180619" />
+            <marker date="1529441661974" expanded="true" signature="1780:2027" ph="CREATE TABLE... goe_180619" />
+            <marker date="1529441661974" expanded="true" signature="2248:2416" ph="CREATE TABLE... competitors_180619" />
+            <marker date="1529441661974" expanded="true" signature="2669:3593" ph="CREATE TABLE... calls_180619" />
+            <marker date="1529441661974" expanded="true" signature="3817:4064" ph="CREATE TABLE... deductions_180619" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../old_scrips/transformer.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1015">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/transformer_xlsx.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="244">
+        <state relative-caret-position="127">
           <caret line="68" column="23" lean-forward="false" selection-start-line="68" selection-start-column="23" selection-end-line="68" selection-end-column="23" />
           <folding>
             <element signature="e#35#44#0" expanded="true" />

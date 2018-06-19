@@ -58,7 +58,7 @@ print 'populated scores table'
 
 cur.execute("""
 CREATE TABLE pcs_180619(
-    line_id smallint PRIMARY KEY,
+    line_id integer PRIMARY KEY,
     component text,
     discipline text,
     category text,
@@ -80,7 +80,8 @@ print 'populated pcs table'
 
 cur.execute("""
 CREATE TABLE goe_180619(
-    elt_id text PRIMARY KEY,
+    line_id integer PRIMARY KEY,
+    elt_id text,
     discipline text,
     category text,
     season text,
