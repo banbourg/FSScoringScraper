@@ -117,7 +117,7 @@ def main():
         segment_exploded_names = []
 
         for sheet in wb.sheetnames:
-            print sheet
+            # print sheet
             ws = wb[sheet]
 
             length = {'JrLSP': 7, 'JrMSP': 7, 'SrLSP': 7, 'SrMSP': 7, 'JrLFS': 11, 'JrMFS': 12, 'SrLFS': 12,
@@ -312,7 +312,7 @@ def main():
                                     except:
                                         clean = 0
                                     goe_row.append(clean)
-                                #print 'goe_row: ', goe_row
+                                # print 'goe_row: ', goe_row
 
                             else:
                                 elt_no = k - i
@@ -332,7 +332,7 @@ def main():
                             elt_id = 'SB' + season[-2:] + event + team_event[:1].upper() + dc_short \
                                      + competitor_short_name + segment + str(elt_no)
                             elt_id_list.append(elt_id)
-                            #print elt_id
+                            # print elt_id
 
                             calls_row = (elt_no, elt_name, level, invalid, h2, combo_flag, ur_flag, downgrade_flag,
                                          severe_edge_flag, unclear_edge_flag, rep_flag, jump_1, j1_sev_edge,
@@ -352,18 +352,17 @@ def main():
                                      'j2_unc_edge', 'j2_ur', 'j2_down', 'jump_3', 'j3_sev_edge', 'j3_unc_edge', 'j3_ur',
                                      'j3_down', 'jump_4', 'j4_sev_edge', 'j4_unc_edge', 'j4_ur','j4_down', 'failed_spin']
                         single_calls_df = pd.DataFrame(single_calls_list, index=elt_id_list, columns=call_cols)
-                        print single_calls_df
+                        # print single_calls_df
 
                         single_scores_df = pd.DataFrame(single_scores_list, index=elt_id_list,
                                                         columns=['elt_name', 'level', 'h2', 'elt_bv', 'elt_sov_goe',
                                                                  'elt_total'])
-                        print single_scores_df
+                        # print single_scores_df
 
-                        single_goe_df = pd.DataFrame(single_goe_list, index=elt_id_list, columns=['j1', 'j2', 'j3',
-                                                                                                  'j4', 'j5', 'j6',
+                        single_goe_df = pd.DataFrame(single_goe_list, index=elt_id_list, columns=['j1', 'j2', 'j3', 'j4', 'j5', 'j6',
                                                                                                   'j7', 'j8', 'j9'])
                         single_goe_df.rename_axis('judge', axis='columns', inplace=True)
-                        print single_goe_df
+                        # print single_goe_df
 
                         # ADD THE OTHER INFO COLUMNS - Figure how to loop through the dfs without python thinking
                         add_segment_identifiers(single_scores_df, identifiers, segment_competitors_list)
@@ -402,31 +401,36 @@ def main():
         all_calls_list.append(segment_calls_df)
         all_deductions_list.append(segment_deductions_df)
         all_competitors_list.append(segment_competitors_df)
-        print '        loaded full segment df into overall summary list'
+        # print '        loaded full segment df into overall summary list'
 
     all_scores_df = pd.concat(all_scores_list)
+    all_scores_df.reindex()
     print 'scores df concatenated'
     all_pcs_df = pd.concat(all_pcs_list)
+    all_pcs_df.reindex()
     print 'pcs df concatenated'
     all_goe_df = pd.concat(all_goe_list)
+    all_goe_df.reindex()
     print 'goe df concatenated'
     all_calls_df = pd.concat(all_calls_list)
     print 'calls df concatenated'
-    all_deductions_df = pd.concat(all_deductions_list).reindex()
+    all_deductions_df = pd.concat(all_deductions_list)
+    all_deductions_df.reindex()
     print 'deductions df concatenated'
-    all_competitors_df = pd.concat(all_competitors_list).reindex()
+    all_competitors_df = pd.concat(all_competitors_list)
+    all_competitors_df.drop_duplicates(subset=['category', 'name', 'country'], keep='last', inplace=True)
+    all_competitors_df.reindex()
     print 'competitors df concatenated'
 
-    all_competitors_df.drop_duplicates(subset=['category', 'name', 'country'], keep='last', inplace=True)
 
 
     date = '180619'
-    ver = '1'
+    ver = '3'
     all_scores_df.to_csv(write_path + 'scores_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
     all_pcs_df.to_csv(write_path + 'pcs_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
     all_goe_df.to_csv(write_path + 'goe_'+date+ver+'.csv', mode='a', encoding='utf-8',header=True)
-    all_calls_df.to_csv(write_path + 'calls_'+date+ver+'.ccsv', mode='a', encoding='utf-8', header=True)
-    all_deductions_df.to_csv(write_path + 'deductions_'+date+ver+'.ccsv', mode='a', encoding='utf-8', header=True)
+    all_calls_df.to_csv(write_path + 'calls_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
+    all_deductions_df.to_csv(write_path + 'deductions_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
     all_competitors_df.to_csv(write_path + 'competitors_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
 
 

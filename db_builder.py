@@ -1,7 +1,7 @@
 import psycopg2
 
 date = '180619'
-ver = '1'
+ver = '2'
 conn = psycopg2.connect(database="fsscores_2010", user="cpouletty", password="Ins1d10us",
         host="fsdb.c3ldus0yxoex.eu-west-1.rds.amazonaws.com", port="5432")
 
