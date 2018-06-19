@@ -380,13 +380,6 @@ def main():
         segment_deductions_df = pd.DataFrame(segment_deductions_list,
                                              columns=['discipline', 'category', 'season', 'event', 'team_event',
                                                       'skater', 'segment', 'ded_type', 'ded_points'])
-        segment_deductions_df.set_index('discipline', append=True, inplace=True)
-        segment_deductions_df.set_index('category', append=True, inplace=True)
-        segment_deductions_df.set_index('season', append=True, inplace=True)
-        segment_deductions_df.set_index('event', append=True, inplace=True)
-        segment_deductions_df.set_index('team_event', append=True, inplace=True)
-        segment_deductions_df.set_index('skater', append=True, inplace=True)
-        segment_deductions_df.set_index('segment', append=True, inplace=True)
 
         segment_scores_df = pd.concat(segment_scores_list)  # .stack()
         segment_pcs_df = pd.concat(segment_pcs_list).stack()
@@ -404,22 +397,21 @@ def main():
         # print '        loaded full segment df into overall summary list'
 
     all_scores_df = pd.concat(all_scores_list)
-    all_scores_df.reset_index(inplace=True)
     print 'scores df concatenated'
     all_pcs_df = pd.concat(all_pcs_list)
-    all_pcs_df.reset_index(inplace=True)
+    all_pcs_df = all_pcs_df.reset_index()
     print 'pcs df concatenated'
     all_goe_df = pd.concat(all_goe_list)
-    all_goe_df.reset_index(inplace=True)
+    all_goe_df = all_goe_df.reset_index()
     print 'goe df concatenated'
     all_calls_df = pd.concat(all_calls_list)
     print 'calls df concatenated'
     all_deductions_df = pd.concat(all_deductions_list)
-    all_deductions_df.reset_index(inplace=True, drop=True)
+    all_deductions_df = all_deductions_df.reset_index(drop=True)
     print 'deductions df concatenated'
     all_competitors_df = pd.concat(all_competitors_list)
     all_competitors_df.drop_duplicates(subset=['category', 'name', 'country'], keep='last', inplace=True)
-    all_competitors_df.reset_index(inplace=True, drop=True)
+    all_competitors_df = all_competitors_df.reset_index(drop=True)
     print 'competitors df concatenated'
 
 
