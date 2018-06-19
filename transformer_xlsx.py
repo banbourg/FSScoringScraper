@@ -404,28 +404,28 @@ def main():
         # print '        loaded full segment df into overall summary list'
 
     all_scores_df = pd.concat(all_scores_list)
-    all_scores_df.reindex()
+    all_scores_df.reset_index(inplace=True)
     print 'scores df concatenated'
     all_pcs_df = pd.concat(all_pcs_list)
-    all_pcs_df.reindex()
+    all_pcs_df.reset_index(inplace=True)
     print 'pcs df concatenated'
     all_goe_df = pd.concat(all_goe_list)
-    all_goe_df.reindex()
+    all_goe_df.reset_index(inplace=True)
     print 'goe df concatenated'
     all_calls_df = pd.concat(all_calls_list)
     print 'calls df concatenated'
     all_deductions_df = pd.concat(all_deductions_list)
-    all_deductions_df.reindex()
+    all_deductions_df.reset_index(inplace=True, drop=True)
     print 'deductions df concatenated'
     all_competitors_df = pd.concat(all_competitors_list)
     all_competitors_df.drop_duplicates(subset=['category', 'name', 'country'], keep='last', inplace=True)
-    all_competitors_df.reindex()
+    all_competitors_df.reset_index(inplace=True, drop=True)
     print 'competitors df concatenated'
 
 
 
     date = '180619'
-    ver = '3'
+    ver = '5'
     all_scores_df.to_csv(write_path + 'scores_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
     all_pcs_df.to_csv(write_path + 'pcs_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
     all_goe_df.to_csv(write_path + 'goe_'+date+ver+'.csv', mode='a', encoding='utf-8',header=True)
