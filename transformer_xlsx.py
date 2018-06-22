@@ -209,19 +209,18 @@ def main():
                                     ded_list.remove(x)
                             except:
                                 pass
-
                         i2 = 0
-                        while i2 < len(ded_list): # can I do p directly instead of indexing e.g p+1?
+                        while i2 < len(ded_list):
                             # Ensure all number are negative
                             digits1 = re.search(r'[\d+]',ded_list[i2])
                             if digits1 is not None:
-                                # Falls: -2.00(2)
                                 ded_list[i2] = -1*float(ded_list[i2]) if float(ded_list[i2]) > 0 else float(ded_list[i2])
-
                             if (i2+1) < (len(ded_list)-1):
                                 digits2 = re.search(r'[\d+]',ded_list[i2+1])
                                 if digits1 is None and digits2 is None and ded_list[i2+1] != 'Total':
-                                    ded_list = [' '.join(ded_list[i2:i2+2])] + ded_list[i2+2:]
+                                    temp = ded_list[0:i2] + [' '.join(ded_list[i2:(i2+2)])] + ded_list[(i2+2):]
+                                    ded_list = temp
+                                    i2 -= 1
                             i2 += 1
                         ded_tuples = zip(ded_list[0::2],ded_list[1::2])
 
