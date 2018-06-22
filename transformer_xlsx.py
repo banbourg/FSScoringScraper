@@ -108,10 +108,10 @@ def main():
 
         wb = load_workbook(f)
         segment_competitors_list = []
-        # segment_goe_list = []
-        # segment_calls_list = []
-        # segment_pcs_list = []
-        # segment_scores_list = []
+        segment_goe_list = []
+        segment_calls_list = []
+        segment_pcs_list = []
+        segment_scores_list = []
         segment_deductions_list = []
         segment_exploded_names = []
 
