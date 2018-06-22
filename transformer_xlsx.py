@@ -10,7 +10,6 @@ import numpy as np
 
 # TO DOs: (1) Fix missing deductions
 
-
 def return_isu_abbrev(s):
     temp = filter(None, re.split(r'(\d+)', s))
     return temp[0]
@@ -109,10 +108,10 @@ def main():
 
         wb = load_workbook(f)
         segment_competitors_list = []
-        segment_goe_list = []
-        segment_calls_list = []
-        segment_pcs_list = []
-        segment_scores_list = []
+        # segment_goe_list = []
+        # segment_calls_list = []
+        # segment_pcs_list = []
+        # segment_scores_list = []
         segment_deductions_list = []
         segment_exploded_names = []
 
@@ -190,16 +189,46 @@ def main():
                         segment_pcs_list.extend([single_pcs_df])
 
                     # SCRAPE DEDUCTIONS
-                    elif 'Deductions' in unicode(raw_df.iloc[i, j]):
+                    # For clarity, formatting issues we're trying to tackle:
+                    #    Falls may or may not be followed (or preceded) by # of falls in parentheses
+                    #    Total fall deduction may not equal # of falls * -1 (can add deductions for interruption)
+                    #    Some rows have totals, some don't
+                    elif 'Deductions' in unicode(raw_df.iloc[i, j]) and j < 4:
                         ded_row = []
                         return_row_list(i, j, raw_df, ded_row)
-                        ded_row = [str(ded) for ded in ded_row]
-                        ded_str = '!'.join(ded_row)
-                        ded_list = filter(None, re.split("[,!():]+", ded_str))
-                        for p in range(1, len(ded_list) - 2, 2):
-                            segment_deductions_list.append(
-                                (discipline, category, season, event, team_event, segment_competitors_list[-1][3],
-                                 segment, ded_list[p], ded_list[p + 1]))
+                        # Stringify and remove number of falls in brackets, split
+                        ded_row = [re.sub(r'\(\d+\)', '', str(ded)) for ded in ded_row]
+                        ded_list = []
+                        for ded in ded_row:
+                            ded_list.extend(re.split('[,!: ]+', str(ded)))
+                        ded_list = filter(None, ded_list[1:-1]) # Gets rid of initial 'deduction' heading & total
+                        # Do this, given the existence of strings: ded_list = filter(lambda x: abs(float(x)) < 10, ded_list)
+                        for x in ded_list:
+                            try:
+                                if abs(float(x)) > 15:
+                                    ded_list.remove(x)
+                            except:
+                                pass
+
+                        i2 = 0
+                        while i2 < len(ded_list): # can I do p directly instead of indexing e.g p+1?
+                            # Ensure all number are negative
+                            digits1 = re.search(r'[\d+]',ded_list[i2])
+                            if digits1 is not None:
+                                # Falls: -2.00(2)
+                                ded_list[i2] = -1*float(ded_list[i2]) if float(ded_list[i2]) > 0 else float(ded_list[i2])
+
+                            if (i2+1) < (len(ded_list)-1):
+                                digits2 = re.search(r'[\d+]',ded_list[i2+1])
+                                if digits1 is None and digits2 is None and ded_list[i2+1] != 'Total':
+                                    ded_list = [' '.join(ded_list[i2:i2+2])] + ded_list[i2+2:]
+                            i2 += 1
+                        ded_tuples = zip(ded_list[0::2],ded_list[1::2])
+
+                        for (ded_type, ded_points) in ded_tuples:
+                            segment_deductions_list.append((discipline, category, season, event, team_event,
+                                                            segment_competitors_list[-1][3], segment) +
+                                                           (ded_type, ded_points))
 
                     # SCRAPE ELEMENTS, CALLS, GOE AND TES SCORES
                     elif 'Elements' in unicode(raw_df.iloc[i, j]):
@@ -395,7 +424,7 @@ def main():
         all_calls_list.append(segment_calls_df)
         all_deductions_list.append(segment_deductions_df)
         all_competitors_list.append(segment_competitors_df)
-        # print '        loaded full segment df into overall summary list'
+        print '        loaded full segment df into overall summary list'
 
     all_scores_df = pd.concat(all_scores_list)
     print 'scores df concatenated'
@@ -417,8 +446,8 @@ def main():
 
 
 
-    date = '180619'
-    ver = '4'
+    date = '180622'
+    ver = '1'
     all_scores_df.to_csv(write_path + 'scores_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
     all_pcs_df.to_csv(write_path + 'pcs_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
     all_goe_df.to_csv(write_path + 'goe_'+date+ver+'.csv', mode='a', encoding='utf-8',header=True)
