@@ -10,23 +10,28 @@ import numpy as np
 
 # TO DOs: (1) Fix missing deductions
 
+
 def return_isu_abbrev(s):
     temp = filter(None, re.split(r'(\d+)', s))
     return temp[0]
 
-def is_nan(x):
-    return (x is np.nan or x != x)
 
-def return_row_list(i, k_min, df, list):
+def is_nan(x):
+    return x is np.nan or x != x
+
+
+def return_row_list(i, k_min, df, a_list):
     for k in range(k_min, len(df.columns)):
         if df.iloc[i, k] is not None and not is_nan(df.iloc[i, k]):
-            list.append(df.iloc[i, k])
-    return list
+            a_list.append(df.iloc[i, k])
+    return a_list
+
 
 def clean_elt_name(cur_string, replace_list):
     for cur_word in replace_list:
         cur_string = cur_string.replace(cur_word, '')
     return cur_string
+
 
 def add_segment_identifiers(df, identifiers, segment_competitors_list):
     df['discipline'] = identifiers[0]
@@ -44,6 +49,7 @@ def add_segment_identifiers(df, identifiers, segment_competitors_list):
     df['segment'] = identifiers[5]
     df.set_index('segment', append=True, inplace=True)
 
+
 def main():
     read_path = os.path.expanduser('~/Desktop/bias/pdftoxls/')
     write_path = os.path.expanduser('~/Desktop/bias/output/')
@@ -57,6 +63,7 @@ def main():
 
     files = sorted(glob.glob(read_path + '*.xlsx'))
 
+    all_scraped_totals_list = []
     all_scores_list = []
     all_pcs_list = []
     all_goe_list = []
@@ -107,6 +114,7 @@ def main():
         print 'SUMMARY: ', filename, season, event, team_event, event_year, discipline, category, segment
 
         wb = load_workbook(f)
+        segment_scraped_totals_list = []
         segment_competitors_list = []
         segment_goe_list = []
         segment_calls_list = []
@@ -119,15 +127,12 @@ def main():
             # print sheet
             ws = wb[sheet]
 
-            length = {'JrLSP': 7, 'JrMSP': 7, 'SrLSP': 7, 'SrMSP': 7, 'JrLFS': 11, 'JrMFS': 12, 'SrLFS': 12,
-                      'SrMFS': 13}
-
             raw_df = pd.DataFrame(ws.values)
             for i in raw_df.index:
                 for j in raw_df.columns:
 
                     # SCRAPE COMPETITOR NAME
-                    if raw_df.iloc[i, j] == 'Name':
+                    if 'Name' in unicode(raw_df.iloc[i, j]):
                         name_row = []
                         for k in range(i + 2, i + 5):
                             start = max(j-2, 0)
@@ -161,6 +166,9 @@ def main():
                         segment_competitors_list.append((season, discipline, category, competitor_name, country))
                         segment_exploded_names.append((first_name, short_last_name))
 
+                        segment_scraped_totals_list.append((discipline, category, season, event, team_event,
+                                                           competitor_name, segment, float(name_row[6]),
+                                                            float(name_row[5]), float(name_row[4])))
                     # SCRAPE PCS SCORES
                     elif 'Skating Skills' in unicode(raw_df.iloc[i, j]):
                         single_pcs_list = []
@@ -169,13 +177,13 @@ def main():
                             return_row_list(k, j + 1, raw_df, raw_row_data)
                             row_data = []
                             for raw_cell in raw_row_data:
-                                cleaner = [u.replace(u',',u'.') for u in str(raw_cell).split()]
+                                cleaner = [u.replace(u',', u'.') for u in str(raw_cell).split()]
                                 for v in cleaner:
                                     try:
                                         cleanest_cell = float(v)
                                     except:
                                         cleanest_cell = ''
-                                row_data.append(cleanest_cell)
+                                    row_data.append(cleanest_cell)
                             row_data = filter(None, row_data)
 
                             single_pcs_list.append(row_data[1:-1])
@@ -201,8 +209,9 @@ def main():
                         ded_list = []
                         for ded in ded_row:
                             ded_list.extend(re.split('[,!: ]+', str(ded)))
-                        ded_list = filter(None, ded_list[1:-1]) # Gets rid of initial 'deduction' heading & total
-                        # Do this, given the existence of strings: ded_list = filter(lambda x: abs(float(x)) < 10, ded_list)
+                        ded_list = filter(None, ded_list[1:-1])  # Gets rid of initial 'deduction' heading & total
+                        # Do this, given the existence of strings: ded_list = filter(lambda x: abs(float(x)) < 10,
+                        # ded_list)
                         for x in ded_list:
                             try:
                                 if abs(float(x)) > 15:
@@ -212,17 +221,17 @@ def main():
                         i2 = 0
                         while i2 < len(ded_list):
                             # Ensure all number are negative
-                            digits1 = re.search(r'[\d+]',ded_list[i2])
+                            digits1 = re.search(r'[\d+]', ded_list[i2])
                             if digits1 is not None:
                                 ded_list[i2] = -1*float(ded_list[i2]) if float(ded_list[i2]) > 0 else float(ded_list[i2])
                             if (i2+1) < (len(ded_list)-1):
-                                digits2 = re.search(r'[\d+]',ded_list[i2+1])
+                                digits2 = re.search(r'[\d+]', ded_list[i2+1])
                                 if digits1 is None and digits2 is None and ded_list[i2+1] != 'Total':
                                     temp = ded_list[0:i2] + [' '.join(ded_list[i2:(i2+2)])] + ded_list[(i2+2):]
                                     ded_list = temp
                                     i2 -= 1
                             i2 += 1
-                        ded_tuples = zip(ded_list[0::2],ded_list[1::2])
+                        ded_tuples = zip(ded_list[0::2], ded_list[1::2])
 
                         for (ded_type, ded_points) in ded_tuples:
                             segment_deductions_list.append((discipline, category, season, event, team_event,
@@ -238,8 +247,25 @@ def main():
                         competitor_short_name = segment_exploded_names[-1][1] + segment_exploded_names[-1][0][0]
 
                         # Identify whether elt list starts on next line or not
-                        incr = 1 if raw_df.iloc[i + 1, j] is not None else 2
-                        for k in range(i + incr, i + incr + length[dc_short + segment]):
+                        incr = 1 if (raw_df.iloc[i + 1, j] is not None or raw_df.iloc[i + 1, j - 1] is not None) else 2
+
+                        # Get number of elements in the programme (e.g. when some are invalid there might be 14
+                        # instead of 13)
+                        z, flag = i + incr, 0
+                        while flag == 0:
+                            test_row = []
+                            return_row_list(z, 0, raw_df, test_row)
+                            content = ' '.join(str(elt) for elt in test_row)
+                            if 'Program Components' in content:
+                                flag = 1
+                                break
+                            elif z == (raw_df.shape[0] - 1):
+                                flag = 2
+                                break
+                            z += 1
+                        end = (z - 1) if flag == 1 else z
+
+                        for k in range(i + incr, end):
                             elt_row = []
                             return_row_list(k, 0, raw_df, elt_row)
 
@@ -379,7 +405,8 @@ def main():
                                      'downgrade_flag', 'severe_edge_flag', 'unclear_edge_flag', 'rep_flag', 'jump_1',
                                      'j1_sev_edge', 'j1_unc_edge', 'j1_ur', 'j1_down', 'jump_2', 'j2_sev_edge',
                                      'j2_unc_edge', 'j2_ur', 'j2_down', 'jump_3', 'j3_sev_edge', 'j3_unc_edge', 'j3_ur',
-                                     'j3_down', 'jump_4', 'j4_sev_edge', 'j4_unc_edge', 'j4_ur','j4_down', 'failed_spin']
+                                     'j3_down', 'jump_4', 'j4_sev_edge', 'j4_unc_edge', 'j4_ur', 'j4_down',
+                                     'failed_spin']
                         single_calls_df = pd.DataFrame(single_calls_list, index=elt_id_list, columns=call_cols)
                         # print single_calls_df
 
@@ -388,8 +415,8 @@ def main():
                                                                  'elt_total'])
                         # print single_scores_df
 
-                        single_goe_df = pd.DataFrame(single_goe_list, index=elt_id_list, columns=['j1', 'j2', 'j3', 'j4', 'j5', 'j6',
-                                                                                                  'j7', 'j8', 'j9'])
+                        single_goe_df = pd.DataFrame(single_goe_list, index=elt_id_list,
+                                                     columns=['j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'j7', 'j8', 'j9'])
                         single_goe_df.rename_axis('judge', axis='columns', inplace=True)
                         # print single_goe_df
 
@@ -402,7 +429,11 @@ def main():
                         segment_goe_list.append(single_goe_df)
                         segment_calls_list.append(single_calls_df)
 
-        # print type(segment_scores_list.stack())
+        segment_scraped_totals_df = pd.DataFrame(segment_scraped_totals_list,
+                                                 columns=['discipline', 'category', 'season', 'event', 'sub_event',
+                                                          'skater_name', 'segment', 'scraped_pcs', 'scraped_tes',
+                                                          'scraped_total'])
+
         segment_competitors_df = pd.DataFrame(segment_competitors_list,
                                               columns=['season', 'disc', 'category', 'name', 'country'])
 
@@ -410,13 +441,14 @@ def main():
                                              columns=['discipline', 'category', 'season', 'event', 'team_event',
                                                       'skater', 'segment', 'ded_type', 'ded_points'])
 
-        segment_scores_df = pd.concat(segment_scores_list)  # .stack()
+        segment_scores_df = pd.concat(segment_scores_list)
         segment_pcs_df = pd.concat(segment_pcs_list).stack()
         segment_pcs_df.name = 'pcs'
         segment_goe_df = pd.concat(segment_goe_list).stack()
         segment_goe_df.name = 'goe'
-        segment_calls_df = pd.concat(segment_calls_list)  # .stack()
+        segment_calls_df = pd.concat(segment_calls_list)
 
+        all_scraped_totals_list.append(segment_scraped_totals_df)
         all_scores_list.append(segment_scores_df)
         all_pcs_list.append(segment_pcs_df)
         all_goe_list.append(segment_goe_df)
@@ -425,6 +457,7 @@ def main():
         all_competitors_list.append(segment_competitors_df)
         print '        loaded full segment df into overall summary list'
 
+    all_scraped_totals_df = pd.concat(all_scraped_totals_list)
     all_scores_df = pd.concat(all_scores_list)
     print 'scores df concatenated'
     all_pcs_df = pd.concat(all_pcs_list)
@@ -443,16 +476,17 @@ def main():
     all_competitors_df = all_competitors_df.reset_index(drop=True)
     print 'competitors df concatenated'
 
-
-
-    date = '180622'
+    date = '180626'
     ver = '1'
-    all_scores_df.to_csv(write_path + 'scores_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
-    all_pcs_df.to_csv(write_path + 'pcs_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
-    all_goe_df.to_csv(write_path + 'goe_'+date+ver+'.csv', mode='a', encoding='utf-8',header=True)
-    all_calls_df.to_csv(write_path + 'calls_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
-    all_deductions_df.to_csv(write_path + 'deductions_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
-    all_competitors_df.to_csv(write_path + 'competitors_'+date+ver+'.csv', mode='a', encoding='utf-8', header=True)
+    all_scraped_totals_df.to_csv(write_path + 'scrapedtotals_' + date + ver + '.csv', mode='a', encoding='utf-8',
+                                 header=True)
+    all_scores_df.to_csv(write_path + 'scores_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
+    all_pcs_df.to_csv(write_path + 'pcs_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
+    all_goe_df.to_csv(write_path + 'goe_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
+    all_calls_df.to_csv(write_path + 'calls_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
+    all_deductions_df.to_csv(write_path + 'deductions_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
+    all_competitors_df.to_csv(write_path + 'competitors_' + date + ver + '.csv', mode='a', encoding='utf-8',
+                              header=True)
 
 
 main()
