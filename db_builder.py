@@ -209,7 +209,7 @@ CREATE TABLE total_scores_180626(
     scraped_pcs	float(1),
     scraped_tes	float(1),
     scraped_total float(1),
-    scraped_ded smallint,
+    scraped_ded float(1),
     pcs_diff float(1),
     tes_diff float(1),
     ded_diff float(1) 

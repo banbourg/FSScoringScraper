@@ -56,20 +56,20 @@ def main():
 
     event_dic = {'gpjpn': 'NHK', 'gpfra': 'TDF', 'gpcan': 'SC', 'gprus': 'COR', 'gpusa': 'SA', 'gpchn': 'COC',
                  'gpf': 'GPF', 'wc': 'WC', 'fc': '4CC', 'owg': 'OWG', 'wtt': 'WTT'}
-    calls = ['!', 'e', '<', '<<', '*', '+REP', 'V', 'x', 'X']
+    calls = ['!', 'e', '<', '<<', '*', '+REP', 'V1', 'V2', 'x', 'X']
 
     year_regex = re.compile(r'\d+')
     combo_regex = re.compile(r'\+[0-9]')
 
     files = sorted(glob.glob(read_path + '*.xlsx'))
 
-    all_scraped_totals_list = []
+    # all_scraped_totals_list = []
     all_scores_list = []
-    all_pcs_list = []
+    # all_pcs_list = []
     all_goe_list = []
     all_calls_list = []
-    all_deductions_list = []
-    all_competitors_list = []
+    # all_deductions_list = []
+    # all_competitors_list = []
 
     for f in files:
         filename = f[43:]  # 43
@@ -114,13 +114,13 @@ def main():
         print 'SUMMARY: ', filename, season, event, team_event, event_year, discipline, category, segment
 
         wb = load_workbook(f)
-        segment_scraped_totals_list = []
+        # segment_scraped_totals_list = []
         segment_competitors_list = []
         segment_goe_list = []
         segment_calls_list = []
-        segment_pcs_list = []
+        # segment_pcs_list = []
         segment_scores_list = []
-        segment_deductions_list = []
+        # segment_deductions_list = []
         segment_exploded_names = []
 
         for sheet in wb.sheetnames:
@@ -166,77 +166,77 @@ def main():
                         segment_competitors_list.append((season, discipline, category, competitor_name, country))
                         segment_exploded_names.append((first_name, short_last_name))
 
-                        segment_scraped_totals_list.append((discipline, category, season, event, team_event,
-                                                           competitor_name, segment, float(name_row[6]),
-                                                            float(name_row[5]), float(name_row[4])))
-                    # SCRAPE PCS SCORES
-                    elif 'Skating Skills' in unicode(raw_df.iloc[i, j]):
-                        single_pcs_list = []
-                        for k in range(i, i + 5):
-                            raw_row_data = []
-                            return_row_list(k, j + 1, raw_df, raw_row_data)
-                            row_data = []
-                            for raw_cell in raw_row_data:
-                                cleaner = [u.replace(u',', u'.') for u in str(raw_cell).split()]
-                                for v in cleaner:
-                                    try:
-                                        cleanest_cell = float(v)
-                                    except:
-                                        cleanest_cell = ''
-                                    row_data.append(cleanest_cell)
-                            row_data = filter(None, row_data)
-
-                            single_pcs_list.append(row_data[1:-1])
-
-                        single_pcs_df = pd.DataFrame(single_pcs_list, index=['ss', 'tr', 'pc', 'ch', 'in'],
-                                                     columns=['j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'j7', 'j8', 'j9'])
-                        single_pcs_df.rename_axis('judge', axis='columns', inplace=True)
-                        single_pcs_df.rename_axis('component', axis='index', inplace=True)
-
-                        add_segment_identifiers(single_pcs_df, identifiers, segment_competitors_list)
-                        segment_pcs_list.extend([single_pcs_df])
-
-                    # SCRAPE DEDUCTIONS
-                    # For clarity, formatting issues we're trying to tackle:
-                    #    Falls may or may not be followed (or preceded) by # of falls in parentheses
-                    #    Total fall deduction may not equal # of falls * -1 (can add deductions for interruption)
-                    #    Some rows have totals, some don't
-                    elif 'Deductions' in unicode(raw_df.iloc[i, j]) and j < 4:
-                        ded_row = []
-                        return_row_list(i, j, raw_df, ded_row)
-                        # Stringify and remove number of falls in brackets, split
-                        ded_row = [re.sub(r'\(\d+\)', '', str(ded)) for ded in ded_row]
-                        ded_list = []
-                        for ded in ded_row:
-                            ded_list.extend(re.split('[,!: ]+', str(ded)))
-                        ded_list = filter(None, ded_list[1:-1])  # Gets rid of initial 'deduction' heading & total
-                        # Do this, given the existence of strings: ded_list = filter(lambda x: abs(float(x)) < 10,
-                        # ded_list)
-                        for x in ded_list:
-                            try:
-                                if abs(float(x)) > 15:
-                                    ded_list.remove(x)
-                            except:
-                                pass
-                        i2 = 0
-                        while i2 < len(ded_list):
-                            # Ensure all number are negative
-                            digits1 = re.search(r'[\d+]', ded_list[i2])
-                            if digits1 is not None:
-                                ded_list[i2] = -1*float(ded_list[i2]) if float(ded_list[i2]) > 0 else float(ded_list[i2])
-                            if (i2+1) < (len(ded_list)-1):
-                                digits2 = re.search(r'[\d+]', ded_list[i2+1])
-                                if digits1 is None and digits2 is None and ded_list[i2+1] != 'Total':
-                                    temp = ded_list[0:i2] + [' '.join(ded_list[i2:(i2+2)])] + ded_list[(i2+2):]
-                                    ded_list = temp
-                                    i2 -= 1
-                            i2 += 1
-                        ded_tuples = zip(ded_list[0::2], ded_list[1::2])
-
-                        for (ded_type, ded_points) in ded_tuples:
-                            segment_deductions_list.append((discipline, category, season, event, team_event,
-                                                            segment_competitors_list[-1][3], segment) +
-                                                           (ded_type, ded_points))
+                        # segment_scraped_totals_list.append((discipline, category, season, event, team_event,
+                        #                                    competitor_name, segment, float(name_row[6]),
+                        #                                     float(name_row[5]), float(name_row[4])))
+                    # # SCRAPE PCS SCORES
+                    # elif 'Skating Skills' in unicode(raw_df.iloc[i, j]):
+                    #     single_pcs_list = []
+                    #     for k in range(i, i + 5):
+                    #         raw_row_data = []
+                    #         return_row_list(k, j + 1, raw_df, raw_row_data)
+                    #         row_data = []
+                    #         for raw_cell in raw_row_data:
+                    #             cleaner = [u.replace(u',', u'.') for u in str(raw_cell).split()]
+                    #             for v in cleaner:
+                    #                 try:
+                    #                     cleanest_cell = float(v)
+                    #                 except:
+                    #                     cleanest_cell = ''
+                    #                 row_data.append(cleanest_cell)
+                    #         row_data = filter(None, row_data)
+                    #
+                    #         single_pcs_list.append(row_data[1:-1])
+                    #
+                    #     single_pcs_df = pd.DataFrame(single_pcs_list, index=['ss', 'tr', 'pc', 'ch', 'in'],
+                    #                                  columns=['j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'j7', 'j8', 'j9'])
+                    #     single_pcs_df.rename_axis('judge', axis='columns', inplace=True)
+                    #     single_pcs_df.rename_axis('component', axis='index', inplace=True)
+                    #
+                    #     add_segment_identifiers(single_pcs_df, identifiers, segment_competitors_list)
+                    #     segment_pcs_list.extend([single_pcs_df])
+                    #
+                    # # SCRAPE DEDUCTIONS
+                    # # For clarity, formatting issues we're trying to tackle:
+                    # #    Falls may or may not be followed (or preceded) by # of falls in parentheses
+                    # #    Total fall deduction may not equal # of falls * -1 (can add deductions for interruption)
+                    # #    Some rows have totals, some don't
+                    # elif 'Deductions' in unicode(raw_df.iloc[i, j]) and j < 4:
+                    #     ded_row = []
+                    #     return_row_list(i, j, raw_df, ded_row)
+                    #     # Stringify and remove number of falls in brackets, split
+                    #     ded_row = [re.sub(r'\(\d+\)', '', str(ded)) for ded in ded_row]
+                    #     ded_list = []
+                    #     for ded in ded_row:
+                    #         ded_list.extend(re.split('[,!: ]+', str(ded)))
+                    #     ded_list = filter(None, ded_list[1:-1])  # Gets rid of initial 'deduction' heading & total
+                    #     # Do this, given the existence of strings: ded_list = filter(lambda x: abs(float(x)) < 10,
+                    #     # ded_list)
+                    #     for x in ded_list:
+                    #         try:
+                    #             if abs(float(x)) > 15:
+                    #                 ded_list.remove(x)
+                    #         except:
+                    #             pass
+                    #     i2 = 0
+                    #     while i2 < len(ded_list):
+                    #         # Ensure all number are negative
+                    #         digits1 = re.search(r'[\d+]', ded_list[i2])
+                    #         if digits1 is not None:
+                    #             ded_list[i2] = -1*float(ded_list[i2]) if float(ded_list[i2]) > 0 else float(ded_list[i2])
+                    #         if (i2+1) < (len(ded_list)-1):
+                    #             digits2 = re.search(r'[\d+]', ded_list[i2+1])
+                    #             if digits1 is None and digits2 is None and ded_list[i2+1] != 'Total':
+                    #                 temp = ded_list[0:i2] + [' '.join(ded_list[i2:(i2+2)])] + ded_list[(i2+2):]
+                    #                 ded_list = temp
+                    #                 i2 -= 1
+                    #         i2 += 1
+                    #     ded_tuples = zip(ded_list[0::2], ded_list[1::2])
+                    #
+                    #     for (ded_type, ded_points) in ded_tuples:
+                    #         segment_deductions_list.append((discipline, category, season, event, team_event,
+                    #                                         segment_competitors_list[-1][3], segment) +
+                    #                                        (ded_type, ded_points))
 
                     # SCRAPE ELEMENTS, CALLS, GOE AND TES SCORES
                     elif 'Elements' in unicode(raw_df.iloc[i, j]):
@@ -276,23 +276,35 @@ def main():
                                 if elt_row[-2] == '-' and elt_row[-3] != '-':
                                     del elt_row[-2]
 
-                                # Clean elt name and separate Sq and level
-                                elt_name = clean_elt_name(elt_row[1], calls)
-                                lvl_regex = re.search(r'\d+$', elt_row[1])
-                                if lvl_regex is not None:
+                                # Clean elt name, capture any missing reqs, start to separate elt and level info
+                                missing_req_search = re.search(r'V\d+', elt_row[1])
+                                missing_reqs = missing_req_search.group(0)[1:] if missing_req_search is not None\
+                                    else None
+
+                                elt_less_calls = clean_elt_name(elt_row[1], calls)
+                                lvl_regex = re.search(r'\d+$', elt_less_calls)
+                                if lvl_regex is not None: # Woop! It's a non-jump element!
+                                    elt_type = 'non_jump'
                                     level = lvl_regex.group(0)
-                                    elt_name = elt_name[:-1]
+                                    split = re.split('(\d+)', elt_less_calls)
+                                    elt_name = split[0]
+                                    assert len(split[:-1]) in [2, 4]
+                                    no_positions = split[1] if len(split[:-1]) == 4 else 'NA'
                                 else:
-                                    level = ''
+                                    elt_type = 'jump'
+                                    level = None
+                                    elt_name = elt_less_calls
+                                    no_positions = None
 
                                 # POPULATE TECH CALL FLAGS
                                 invalid = 1 if any('*' in str(cell) for cell in elt_row) else 0
                                 h2 = 1 if any('x' in str(cell) for cell in elt_row) else 0
 
-                                if len(combo_regex.findall(elt_name)) > 0 or '+COMBO' in elt_name:
+                                seq_flag, combo_flag = 0, 0
+                                if '+SEQ' in elt_name:
+                                    seq_flag = 1
+                                elif len(combo_regex.findall(elt_name)) > 0 or '+COMBO' in elt_name:
                                     combo_flag = 1
-                                else:
-                                    combo_flag = 0
 
                                 # Note: Distinction between UR and Downgrade was brought in from SB2011
                                 # multiple calls per jumping pass
@@ -308,45 +320,53 @@ def main():
                                 rep_flag = 1 if any('+REP' in str(cell) for cell in elt_row) else 0
                                 failed_spin = 1 if any('V' in str(cell) for cell in elt_row) else 0
 
-                                if combo_flag == 1:
+                                if combo_flag == 1 or seq_flag == 1:
                                     jumps = elt_row[1].split('+')
 
                                     jump_1 = clean_elt_name(jumps[0], calls)
-                                    jump_2 = clean_elt_name(jumps[1], calls)
-                                    jump_3 = clean_elt_name(jumps[2], calls) if len(jumps) > 2 else ''
-                                    jump_4 = clean_elt_name(jumps[3], calls) if len(jumps) > 3 else ''
-
                                     j1_sev_edge = 1 if 'e' in jumps[0] else 0
-                                    j2_sev_edge = 1 if 'e' in jumps[1] else 0
-                                    j3_sev_edge = 1 if (len(jumps) > 2 and 'e' in jumps[2]) else 0
-                                    j4_sev_edge = 1 if (len(jumps) > 3 and 'e' in jumps[3]) else 0
-
                                     j1_unc_edge = 1 if '!' in jumps[0] else 0
-                                    j2_unc_edge = 1 if '!' in jumps[1] else 0
-                                    j3_unc_edge = 1 if (len(jumps) > 2 and '!' in jumps[2]) else 0
-                                    j4_unc_edge = 1 if (len(jumps) > 3 and '!' in jumps[3]) else 0
-
                                     j1_down = 1 if '<<' in jumps[0] else 0
-                                    j2_down = 1 if '<<' in jumps[1] else 0
-                                    j3_down = 1 if (len(jumps) > 2 and '<<' in jumps[2]) else 0
-                                    j4_down = 1 if (len(jumps) > 3 and '<<!' in jumps[3]) else 0
-
                                     j1_ur = 1 if ('<' in jumps[0] and '<<' not in jumps[0]) else 0
-                                    j2_ur = 1 if ('<' in jumps[1] and '<<' not in jumps[1]) else 0
-                                    j3_ur = 1 if (len(jumps) > 2 and '<' in jumps[2] and '<<' not in jumps[2]) else 0
-                                    j4_ur = 1 if (len(jumps) > 3 and '<' in jumps[3] and '<<' not in jumps[3]) else 0
+
+                                    if jumps[-1] not in ['SEQ', 'COMBO']:
+                                        jump_2 = clean_elt_name(jumps[1], calls)
+                                        j2_sev_edge = 1 if 'e' in jumps[1] else 0
+                                        j2_unc_edge = 1 if '!' in jumps[1] else 0
+                                        j2_down = 1 if '<<' in jumps[1] else 0
+                                        j2_ur = 1 if ('<' in jumps[1] and '<<' not in jumps[1]) else 0
+                                    else:
+                                       jump_2, j2_sev_edge, j2_unc_edge, j2_down, j2_ur = None, None, None, None, None
+
+                                    if len(jumps) >= 3:
+                                        jump_3 = clean_elt_name(jumps[2], calls)
+                                        j3_sev_edge = 1 if 'e' in jumps[2] else 0
+                                        j3_unc_edge = 1 if '!' in jumps[2] else 0
+                                        j3_down = 1 if '<<' in jumps[2] else 0
+                                        j3_ur = 1 if '<' in jumps[2] and '<<' not in jumps[2] else 0
+                                    else:
+                                        jump_3, j3_sev_edge, j3_unc_edge, j3_down, j3_ur = None, None, None, None, None
+
+                                    if len(jumps) >= 4:
+                                        jump_4 = clean_elt_name(jumps[3], calls)
+                                        j4_sev_edge = 1 if 'e' in jumps[3] else 0
+                                        j4_unc_edge = 1 if '!' in jumps[3] else 0
+                                        j4_down = 1 if '<<' in jumps[3] else 0
+                                        j4_ur = 1 if '<' in jumps[3] and '<<' not in jumps[3] else 0
+                                    else:
+                                        jump_4, j4_sev_edge, j4_unc_edge, j4_down, j4_ur = None, None, None, None, None
 
                                 else:
-                                    jump_1 = clean_elt_name(elt_row[1], calls) if lvl_regex is None else ''
+                                    jump_1 = clean_elt_name(elt_row[1], calls) if lvl_regex is None else None
                                     j1_sev_edge = severe_edge_flag
                                     j1_unc_edge = unclear_edge_flag
                                     j1_ur = 1 if downgrade_flag == 0 and any(
                                         '<' in str(cell) for cell in elt_row) else 0
                                     j1_down = downgrade_flag
-                                    jump_2, j2_sev_edge, j2_unc_edge, j2_ur = '', 0, 0, 0
-                                    j2_down, jump_3, j3_sev_edge, j3_unc_edge = 0, '', 0, 0
-                                    j3_ur, j3_down, jump_4, j4_sev_edge = 0, 0, '', 0
-                                    j4_unc_edge, j4_ur, j4_down = 0, 0, 0
+                                    jump_2, j2_sev_edge, j2_unc_edge, j2_ur = None, None, None, None
+                                    j2_down, jump_3, j3_sev_edge, j3_unc_edge = None, None, None, None
+                                    j3_ur, j3_down, jump_4, j4_sev_edge = None, None, None, None
+                                    j4_unc_edge, j4_ur, j4_down = None, None, None
 
                                 ur_flag = 1 if 1 in [j1_ur, j2_ur, j3_ur, j4_ur] else 0
 
@@ -372,47 +392,50 @@ def main():
                             else:
                                 elt_no = k - i
                                 elt_name = 'MISSING_ELEMENT'
-                                level, h2, combo_flag, ur_flag = 0, 0, 0, 0
-                                downgrade_flag, severe_edge_flag, unclear_edge_flag = 0, 0, 0
-                                rep_flag, called_jumps, invalid, failed_spin = 0, 0, 0, 0
+                                elt_type = None
+                                level, h2, combo_flag, seq_flag, ur_flag = None, None, None, None, None
+                                downgrade_flag, severe_edge_flag, unclear_edge_flag, rep_flag = None, None, None, None
+                                called_jumps, invalid, failed_spin, missing_reqs = None, None, None, None
 
-                                jump_1, j1_sev_edge, j1_unc_edge, j1_ur = '', 0, 0, 0
-                                j1_down, jump_2, j2_sev_edge, j2_unc_edge = 0, '', 0, 0
-                                j2_ur, j2_down, jump_3, j3_sev_edge = 0, 0, '', 0
-                                j3_unc_edge, j3_ur, j3_down, jump_4 = 0, 0, 0, ''
-                                j4_sev_edge, j4_unc_edge, j4_ur, j4_down = 0, 0, 0, 0
-                                elt_bv, elt_sov_goe, elt_total = 0, 0, 0
-                                goe_row = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+                                jump_1, j1_sev_edge, j1_unc_edge, j1_ur = None, None, None, None
+                                j1_down, jump_2, j2_sev_edge, j2_unc_edge = None, None, None, None
+                                j2_ur, j2_down, jump_3, j3_sev_edge = None, None, None, None
+                                j3_unc_edge, j3_ur, j3_down, jump_4 = None, None, None, None
+                                j4_sev_edge, j4_unc_edge, j4_ur, j4_down = None, None, None, None
+                                elt_bv, elt_sov_goe, elt_total = None, None, None
+                                goe_row = [None, None, None, None, None, None, None, None, None]
 
                             elt_id = 'SB' + season[-2:] + event + team_event[:1].upper() + dc_short \
                                      + competitor_short_name + segment + str(elt_no)
                             elt_id_list.append(elt_id)
                             # print elt_id
 
-                            calls_row = (elt_no, elt_name, level, invalid, h2, combo_flag, ur_flag, downgrade_flag,
-                                         severe_edge_flag, unclear_edge_flag, rep_flag, jump_1, j1_sev_edge,
-                                         j1_unc_edge,
-                                         j1_ur, j1_down, jump_2, j2_sev_edge, j2_unc_edge, j2_ur, j2_down, jump_3,
-                                         j3_sev_edge, j3_unc_edge, j3_ur, j3_down, jump_4,
-                                         j4_sev_edge, j4_unc_edge, j4_ur, j4_down, failed_spin)
-                            scores_row = (elt_name, level, h2, elt_bv, elt_sov_goe, elt_total)
+                            calls_row = (elt_no, elt_name, elt_type, level, no_positions, invalid, h2, combo_flag,
+                                         seq_flag, ur_flag, downgrade_flag, severe_edge_flag, unclear_edge_flag, rep_flag,
+                                         jump_1, j1_sev_edge, j1_unc_edge, j1_ur, j1_down,
+                                         jump_2, j2_sev_edge, j2_unc_edge, j2_ur, j2_down,
+                                         jump_3, j3_sev_edge, j3_unc_edge, j3_ur, j3_down,
+                                         jump_4, j4_sev_edge, j4_unc_edge, j4_ur, j4_down, failed_spin, missing_reqs)
+                            scores_row = (elt_name, elt_type, level, no_positions, h2, elt_bv, elt_sov_goe, elt_total)
 
                             single_scores_list.append(scores_row)
                             single_calls_list.append(calls_row)
                             single_goe_list.append(goe_row)
 
-                        call_cols = ['elt_no', 'elt_name', 'level', 'invalid', 'h2', 'combo_flag', 'ur_flag',
-                                     'downgrade_flag', 'severe_edge_flag', 'unclear_edge_flag', 'rep_flag', 'jump_1',
-                                     'j1_sev_edge', 'j1_unc_edge', 'j1_ur', 'j1_down', 'jump_2', 'j2_sev_edge',
-                                     'j2_unc_edge', 'j2_ur', 'j2_down', 'jump_3', 'j3_sev_edge', 'j3_unc_edge', 'j3_ur',
-                                     'j3_down', 'jump_4', 'j4_sev_edge', 'j4_unc_edge', 'j4_ur', 'j4_down',
-                                     'failed_spin']
+                        call_cols = ['elt_no', 'elt_name', 'elt_type', 'level', 'no_positions', 'invalid', 'h2',
+                                     'combo_flag','seq_flag', 'ur_flag', 'downgrade_flag', 'severe_edge_flag',
+                                     'unclear_edge_flag', 'rep_flag',
+                                     'jump_1', 'j1_sev_edge', 'j1_unc_edge', 'j1_ur', 'j1_down',
+                                     'jump_2', 'j2_sev_edge', 'j2_unc_edge', 'j2_ur', 'j2_down',
+                                     'jump_3', 'j3_sev_edge', 'j3_unc_edge', 'j3_ur', 'j3_down',
+                                     'jump_4', 'j4_sev_edge', 'j4_unc_edge', 'j4_ur', 'j4_down',
+                                     'failed_spin', 'missing_reqs']
                         single_calls_df = pd.DataFrame(single_calls_list, index=elt_id_list, columns=call_cols)
                         # print single_calls_df
 
                         single_scores_df = pd.DataFrame(single_scores_list, index=elt_id_list,
-                                                        columns=['elt_name', 'level', 'h2', 'elt_bv', 'elt_sov_goe',
-                                                                 'elt_total'])
+                                                        columns=['elt_name', 'elt_type', 'level', 'no_positions', 'h2',
+                                                                 'elt_bv', 'elt_sov_goe', 'elt_total'])
                         # print single_scores_df
 
                         single_goe_df = pd.DataFrame(single_goe_list, index=elt_id_list,
@@ -429,64 +452,64 @@ def main():
                         segment_goe_list.append(single_goe_df)
                         segment_calls_list.append(single_calls_df)
 
-        segment_scraped_totals_df = pd.DataFrame(segment_scraped_totals_list,
-                                                 columns=['discipline', 'category', 'season', 'event', 'sub_event',
-                                                          'skater_name', 'segment', 'scraped_pcs', 'scraped_tes',
-                                                          'scraped_total'])
+        # segment_scraped_totals_df = pd.DataFrame(segment_scraped_totals_list,
+        #                                          columns=['discipline', 'category', 'season', 'event', 'sub_event',
+        #                                                   'skater_name', 'segment', 'scraped_pcs', 'scraped_tes',
+        #                                                   'scraped_total'])
 
-        segment_competitors_df = pd.DataFrame(segment_competitors_list,
-                                              columns=['season', 'disc', 'category', 'name', 'country'])
+        # segment_competitors_df = pd.DataFrame(segment_competitors_list,
+        #                                       columns=['season', 'disc', 'category', 'name', 'country'])
 
-        segment_deductions_df = pd.DataFrame(segment_deductions_list,
-                                             columns=['discipline', 'category', 'season', 'event', 'team_event',
-                                                      'skater', 'segment', 'ded_type', 'ded_points'])
+        # segment_deductions_df = pd.DataFrame(segment_deductions_list,
+        #                                      columns=['discipline', 'category', 'season', 'event', 'team_event',
+        #                                               'skater', 'segment', 'ded_type', 'ded_points'])
 
         segment_scores_df = pd.concat(segment_scores_list)
-        segment_pcs_df = pd.concat(segment_pcs_list).stack()
-        segment_pcs_df.name = 'pcs'
+        # segment_pcs_df = pd.concat(segment_pcs_list).stack()
+        # segment_pcs_df.name = 'pcs'
         segment_goe_df = pd.concat(segment_goe_list).stack()
         segment_goe_df.name = 'goe'
         segment_calls_df = pd.concat(segment_calls_list)
 
-        all_scraped_totals_list.append(segment_scraped_totals_df)
+        # all_scraped_totals_list.append(segment_scraped_totals_df)
         all_scores_list.append(segment_scores_df)
-        all_pcs_list.append(segment_pcs_df)
+        # all_pcs_list.append(segment_pcs_df)
         all_goe_list.append(segment_goe_df)
         all_calls_list.append(segment_calls_df)
-        all_deductions_list.append(segment_deductions_df)
-        all_competitors_list.append(segment_competitors_df)
+        # all_deductions_list.append(segment_deductions_df)
+        # all_competitors_list.append(segment_competitors_df)
         print '        loaded full segment df into overall summary list'
 
-    all_scraped_totals_df = pd.concat(all_scraped_totals_list)
+    # all_scraped_totals_df = pd.concat(all_scraped_totals_list)
     all_scores_df = pd.concat(all_scores_list)
     print 'scores df concatenated'
-    all_pcs_df = pd.concat(all_pcs_list)
-    all_pcs_df = all_pcs_df.reset_index()
-    print 'pcs df concatenated'
+    # all_pcs_df = pd.concat(all_pcs_list)
+    # all_pcs_df = all_pcs_df.reset_index()
+    # print 'pcs df concatenated'
     all_goe_df = pd.concat(all_goe_list)
     all_goe_df = all_goe_df.reset_index()
     print 'goe df concatenated'
     all_calls_df = pd.concat(all_calls_list)
     print 'calls df concatenated'
-    all_deductions_df = pd.concat(all_deductions_list)
-    all_deductions_df = all_deductions_df.reset_index(drop=True)
-    print 'deductions df concatenated'
-    all_competitors_df = pd.concat(all_competitors_list)
-    all_competitors_df.drop_duplicates(subset=['category', 'name', 'country'], keep='last', inplace=True)
-    all_competitors_df = all_competitors_df.reset_index(drop=True)
-    print 'competitors df concatenated'
+    # all_deductions_df = pd.concat(all_deductions_list)
+    # all_deductions_df = all_deductions_df.reset_index(drop=True)
+    # print 'deductions df concatenated'
+    # all_competitors_df = pd.concat(all_competitors_list)
+    # all_competitors_df.drop_duplicates(subset=['category', 'name', 'country'], keep='last', inplace=True)
+    # all_competitors_df = all_competitors_df.reset_index(drop=True)
+    # print 'competitors df concatenated'
 
-    date = '180626'
+    date = '180628'
     ver = '1'
-    all_scraped_totals_df.to_csv(write_path + 'scrapedtotals_' + date + ver + '.csv', mode='a', encoding='utf-8',
-                                 header=True)
+    # all_scraped_totals_df.to_csv(write_path + 'scrapedtotals_' + date + ver + '.csv', mode='a', encoding='utf-8',
+    #                              header=True)
     all_scores_df.to_csv(write_path + 'scores_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
-    all_pcs_df.to_csv(write_path + 'pcs_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
+    # all_pcs_df.to_csv(write_path + 'pcs_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
     all_goe_df.to_csv(write_path + 'goe_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
     all_calls_df.to_csv(write_path + 'calls_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
-    all_deductions_df.to_csv(write_path + 'deductions_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
-    all_competitors_df.to_csv(write_path + 'competitors_' + date + ver + '.csv', mode='a', encoding='utf-8',
-                              header=True)
+    # all_deductions_df.to_csv(write_path + 'deductions_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
+    # all_competitors_df.to_csv(write_path + 'competitors_' + date + ver + '.csv', mode='a', encoding='utf-8',
+    #                           header=True)
 
 
 main()
