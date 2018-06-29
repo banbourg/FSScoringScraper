@@ -2,9 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="015d0eec-5d23-4579-9378-fecb3e3d294f" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change beforePath="$PROJECT_DIR$/db_builder.py" afterPath="$PROJECT_DIR$/db_builder.py" />
-      <change beforePath="$PROJECT_DIR$/transformer_xlsx.py" afterPath="$PROJECT_DIR$/transformer_xlsx.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -18,7 +16,7 @@
     <SUITE FILE_PATH="coverage/scripts$isu_judge_scraper.coverage" NAME="isu_judge_scraper Coverage Results" MODIFIED="1529419979884" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/scripts$generate_summary.coverage" NAME="generate_summary Coverage Results" MODIFIED="1530025596488" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/scripts$scratch_1.coverage" NAME="scratch_1 Coverage Results" MODIFIED="1530205967584" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$APPLICATION_CONFIG_DIR$/scratches" />
-    <SUITE FILE_PATH="coverage/scripts$db_builder.coverage" NAME="db_builder Coverage Results" MODIFIED="1530026978663" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/scripts$db_builder.coverage" NAME="db_builder Coverage Results" MODIFIED="1530233069411" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/scripts$transformer_xlsx.coverage" NAME="transformer_xlsx Coverage Results" MODIFIED="1530225139913" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="DatabaseView">
@@ -37,11 +35,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="transformer_xlsx.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="transformer_xlsx.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/transformer_xlsx.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1985">
-              <caret line="53" column="60" lean-forward="false" selection-start-line="53" selection-start-column="60" selection-end-line="53" selection-end-column="60" />
+            <state relative-caret-position="-19">
+              <caret line="317" column="35" lean-forward="false" selection-start-line="317" selection-start-column="32" selection-end-line="317" selection-end-column="35" />
               <folding>
                 <element signature="e#35#44#0" expanded="true" />
               </folding>
@@ -49,19 +47,22 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="db_builder.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="db_builder.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/db_builder.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2745">
-              <caret line="183" column="17" lean-forward="false" selection-start-line="183" selection-start-column="17" selection-end-line="183" selection-end-column="17" />
+            <state relative-caret-position="-178">
+              <caret line="171" column="25" lean-forward="false" selection-start-line="171" selection-start-column="25" selection-end-line="171" selection-end-column="25" />
               <folding>
-                <marker date="1530026825187" expanded="true" signature="304:573" ph="CREATE TABLE... us" />
-                <marker date="1530026825187" expanded="true" signature="821:1142" ph="CREATE TABLE... elt_scores_180626" />
-                <marker date="1530026825187" expanded="true" signature="1379:1628" ph="CREATE TABLE... pcs_180626" />
-                <marker date="1530026825187" expanded="true" signature="1849:2095" ph="CREATE TABLE... goe_180626" />
-                <marker date="1530026825187" expanded="true" signature="2770:3690" ph="CREATE TABLE... calls_180626" />
-                <marker date="1530026825187" expanded="true" signature="3919:4166" ph="CREATE TABLE... deductions_180622" />
-                <marker date="1530026825187" expanded="true" signature="4415:4890" ph="CREATE TABLE... total_scores_180626" />
+                <marker date="1530233069404" expanded="true" signature="304:573" ph="CREATE TABLE... us" />
+                <marker date="1530233069404" expanded="true" signature="826:1219" ph="CREATE TABLE... elt_scores_180626" />
+                <marker date="1530233069404" expanded="true" signature="1223:1295" ph="UPDATE elt_scores_180628... " />
+                <marker date="1530233069404" expanded="true" signature="1299:1365" ph="UPDATE elt_scores_180628... " />
+                <marker date="1530233069404" expanded="true" signature="1620:1893" ph="CREATE TABLE... pcs_180626" />
+                <marker date="1530233069404" expanded="true" signature="2132:2402" ph="CREATE TABLE... goe_180626" />
+                <marker date="1530233069404" expanded="true" signature="3091:4103" ph="CREATE TABLE... calls_180626" />
+                <marker date="1530233069404" expanded="true" signature="4105:4776" ph="UPDATE calls_180628... " />
+                <marker date="1530233069404" expanded="true" signature="5021:5290" ph="CREATE TABLE... deductions_180622" />
+                <marker date="1530233069404" expanded="true" signature="5558:6072" ph="CREATE TABLE... total_scores_180626" />
               </folding>
             </state>
           </provider>
@@ -98,11 +99,9 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>search</find>
       <find>violation</find>
       <find>excess</find>
       <find>sb1</find>
-      <find>float</find>
       <find>prin</find>
       <find>tmeans</find>
       <find>country</find>
@@ -128,6 +127,8 @@
       <find>''</find>
       <find>split</find>
       <find>NA</find>
+      <find>float</find>
+      <find>sev</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -140,9 +141,9 @@
         <option value="$PROJECT_DIR$/isu_judge_scraper.py" />
         <option value="$PROJECT_DIR$/../old_scrips/transformer.py" />
         <option value="$PROJECT_DIR$/generate_summary.py" />
-        <option value="$PROJECT_DIR$/db_builder.py" />
         <option value="$APPLICATION_CONFIG_DIR$/scratches/scratch_1.py" />
         <option value="$PROJECT_DIR$/transformer_xlsx.py" />
+        <option value="$PROJECT_DIR$/db_builder.py" />
       </list>
     </option>
   </component>
@@ -152,9 +153,11 @@
     <detection-done>true</detection-done>
     <sorting>DEFINITION_ORDER</sorting>
   </component>
-  <component name="ProjectFrameBounds" fullScreen="true">
-    <option name="width" value="1440" />
-    <option name="height" value="900" />
+  <component name="ProjectFrameBounds">
+    <option name="x" value="380" />
+    <option name="y" value="23" />
+    <option name="width" value="1060" />
+    <option name="height" value="813" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
@@ -223,7 +226,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.transformer_xlsx">
+  <component name="RunManager" selected="Python.db_builder">
     <configuration name="db_builder" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -328,9 +331,9 @@
     </list>
     <recent_temporary>
       <list size="5">
-        <item index="0" class="java.lang.String" itemvalue="Python.transformer_xlsx" />
-        <item index="1" class="java.lang.String" itemvalue="Python.scratch_1" />
-        <item index="2" class="java.lang.String" itemvalue="Python.db_builder" />
+        <item index="0" class="java.lang.String" itemvalue="Python.db_builder" />
+        <item index="1" class="java.lang.String" itemvalue="Python.transformer_xlsx" />
+        <item index="2" class="java.lang.String" itemvalue="Python.scratch_1" />
         <item index="3" class="java.lang.String" itemvalue="Python.generate_summary" />
         <item index="4" class="java.lang.String" itemvalue="Python.isu_judge_scraper" />
       </list>
@@ -353,12 +356,12 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="0" width="1440" height="900" extended-state="0" />
+    <frame x="380" y="23" width="1060" height="813" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25764707" sideWeight="0.10208333" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2568238" sideWeight="0.8979167" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2969871" sideWeight="0.8979167" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
@@ -366,8 +369,8 @@
       <window_info id="Docker" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3297568" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="SciView" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.12660944" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39882353" sideWeight="0.4888889" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.17387034" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39741752" sideWeight="0.4888889" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -435,13 +438,16 @@
         <state relative-caret-position="2745">
           <caret line="183" column="17" lean-forward="false" selection-start-line="183" selection-start-column="17" selection-end-line="183" selection-end-column="17" />
           <folding>
-            <marker date="1530026825187" expanded="true" signature="304:573" ph="CREATE TABLE... us" />
-            <marker date="1530026825187" expanded="true" signature="821:1142" ph="CREATE TABLE... elt_scores_180626" />
-            <marker date="1530026825187" expanded="true" signature="1379:1628" ph="CREATE TABLE... pcs_180626" />
-            <marker date="1530026825187" expanded="true" signature="1849:2095" ph="CREATE TABLE... goe_180626" />
-            <marker date="1530026825187" expanded="true" signature="2770:3690" ph="CREATE TABLE... calls_180626" />
-            <marker date="1530026825187" expanded="true" signature="3919:4166" ph="CREATE TABLE... deductions_180622" />
-            <marker date="1530026825187" expanded="true" signature="4415:4890" ph="CREATE TABLE... total_scores_180626" />
+            <marker date="1530233069404" expanded="true" signature="304:573" ph="CREATE TABLE... us" />
+            <marker date="1530233069404" expanded="true" signature="826:1219" ph="CREATE TABLE... elt_scores_180626" />
+            <marker date="1530233069404" expanded="true" signature="1223:1295" ph="UPDATE elt_scores_180628... " />
+            <marker date="1530233069404" expanded="true" signature="1299:1365" ph="UPDATE elt_scores_180628... " />
+            <marker date="1530233069404" expanded="true" signature="1620:1893" ph="CREATE TABLE... pcs_180626" />
+            <marker date="1530233069404" expanded="true" signature="2132:2402" ph="CREATE TABLE... goe_180626" />
+            <marker date="1530233069404" expanded="true" signature="3091:4103" ph="CREATE TABLE... calls_180626" />
+            <marker date="1530233069404" expanded="true" signature="4105:4776" ph="UPDATE calls_180628... " />
+            <marker date="1530233069404" expanded="true" signature="5021:5290" ph="CREATE TABLE... deductions_180622" />
+            <marker date="1530233069404" expanded="true" signature="5558:6072" ph="CREATE TABLE... total_scores_180626" />
           </folding>
         </state>
       </provider>
@@ -471,13 +477,16 @@
         <state relative-caret-position="3165">
           <caret line="211" column="23" lean-forward="false" selection-start-line="211" selection-start-column="23" selection-end-line="211" selection-end-column="23" />
           <folding>
-            <marker date="1530026825187" expanded="true" signature="304:573" ph="CREATE TABLE... us" />
-            <marker date="1530026825187" expanded="true" signature="821:1142" ph="CREATE TABLE... elt_scores_180626" />
-            <marker date="1530026825187" expanded="true" signature="1379:1628" ph="CREATE TABLE... pcs_180626" />
-            <marker date="1530026825187" expanded="true" signature="1849:2095" ph="CREATE TABLE... goe_180626" />
-            <marker date="1530026825187" expanded="true" signature="2770:3690" ph="CREATE TABLE... calls_180626" />
-            <marker date="1530026825187" expanded="true" signature="3919:4166" ph="CREATE TABLE... deductions_180622" />
-            <marker date="1530026825187" expanded="true" signature="4415:4890" ph="CREATE TABLE... total_scores_180626" />
+            <marker date="1530233069404" expanded="true" signature="304:573" ph="CREATE TABLE... us" />
+            <marker date="1530233069404" expanded="true" signature="826:1219" ph="CREATE TABLE... elt_scores_180626" />
+            <marker date="1530233069404" expanded="true" signature="1223:1295" ph="UPDATE elt_scores_180628... " />
+            <marker date="1530233069404" expanded="true" signature="1299:1365" ph="UPDATE elt_scores_180628... " />
+            <marker date="1530233069404" expanded="true" signature="1620:1893" ph="CREATE TABLE... pcs_180626" />
+            <marker date="1530233069404" expanded="true" signature="2132:2402" ph="CREATE TABLE... goe_180626" />
+            <marker date="1530233069404" expanded="true" signature="3091:4103" ph="CREATE TABLE... calls_180626" />
+            <marker date="1530233069404" expanded="true" signature="4105:4776" ph="UPDATE calls_180628... " />
+            <marker date="1530233069404" expanded="true" signature="5021:5290" ph="CREATE TABLE... deductions_180622" />
+            <marker date="1530233069404" expanded="true" signature="5558:6072" ph="CREATE TABLE... total_scores_180626" />
           </folding>
         </state>
       </provider>
@@ -504,13 +513,16 @@
         <state relative-caret-position="2625">
           <caret line="175" column="0" lean-forward="false" selection-start-line="175" selection-start-column="0" selection-end-line="175" selection-end-column="0" />
           <folding>
-            <marker date="1530026825187" expanded="true" signature="304:573" ph="CREATE TABLE... us" />
-            <marker date="1530026825187" expanded="true" signature="821:1142" ph="CREATE TABLE... elt_scores_180626" />
-            <marker date="1530026825187" expanded="true" signature="1379:1628" ph="CREATE TABLE... pcs_180626" />
-            <marker date="1530026825187" expanded="true" signature="1849:2095" ph="CREATE TABLE... goe_180626" />
-            <marker date="1530026825187" expanded="true" signature="2770:3690" ph="CREATE TABLE... calls_180626" />
-            <marker date="1530026825187" expanded="true" signature="3919:4166" ph="CREATE TABLE... deductions_180622" />
-            <marker date="1530026825187" expanded="true" signature="4415:4890" ph="CREATE TABLE... total_scores_180626" />
+            <marker date="1530233069404" expanded="true" signature="304:573" ph="CREATE TABLE... us" />
+            <marker date="1530233069404" expanded="true" signature="826:1219" ph="CREATE TABLE... elt_scores_180626" />
+            <marker date="1530233069404" expanded="true" signature="1223:1295" ph="UPDATE elt_scores_180628... " />
+            <marker date="1530233069404" expanded="true" signature="1299:1365" ph="UPDATE elt_scores_180628... " />
+            <marker date="1530233069404" expanded="true" signature="1620:1893" ph="CREATE TABLE... pcs_180626" />
+            <marker date="1530233069404" expanded="true" signature="2132:2402" ph="CREATE TABLE... goe_180626" />
+            <marker date="1530233069404" expanded="true" signature="3091:4103" ph="CREATE TABLE... calls_180626" />
+            <marker date="1530233069404" expanded="true" signature="4105:4776" ph="UPDATE calls_180628... " />
+            <marker date="1530233069404" expanded="true" signature="5021:5290" ph="CREATE TABLE... deductions_180622" />
+            <marker date="1530233069404" expanded="true" signature="5558:6072" ph="CREATE TABLE... total_scores_180626" />
           </folding>
         </state>
       </provider>
@@ -554,13 +566,16 @@
         <state relative-caret-position="150">
           <caret line="10" column="0" lean-forward="false" selection-start-line="10" selection-start-column="0" selection-end-line="10" selection-end-column="0" />
           <folding>
-            <marker date="1530026825187" expanded="true" signature="304:573" ph="CREATE TABLE... us" />
-            <marker date="1530026825187" expanded="true" signature="821:1142" ph="CREATE TABLE... elt_scores_180626" />
-            <marker date="1530026825187" expanded="true" signature="1379:1628" ph="CREATE TABLE... pcs_180626" />
-            <marker date="1530026825187" expanded="true" signature="1849:2095" ph="CREATE TABLE... goe_180626" />
-            <marker date="1530026825187" expanded="true" signature="2770:3690" ph="CREATE TABLE... calls_180626" />
-            <marker date="1530026825187" expanded="true" signature="3919:4166" ph="CREATE TABLE... deductions_180622" />
-            <marker date="1530026825187" expanded="true" signature="4415:4890" ph="CREATE TABLE... total_scores_180626" />
+            <marker date="1530233069404" expanded="true" signature="304:573" ph="CREATE TABLE... us" />
+            <marker date="1530233069404" expanded="true" signature="826:1219" ph="CREATE TABLE... elt_scores_180626" />
+            <marker date="1530233069404" expanded="true" signature="1223:1295" ph="UPDATE elt_scores_180628... " />
+            <marker date="1530233069404" expanded="true" signature="1299:1365" ph="UPDATE elt_scores_180628... " />
+            <marker date="1530233069404" expanded="true" signature="1620:1893" ph="CREATE TABLE... pcs_180626" />
+            <marker date="1530233069404" expanded="true" signature="2132:2402" ph="CREATE TABLE... goe_180626" />
+            <marker date="1530233069404" expanded="true" signature="3091:4103" ph="CREATE TABLE... calls_180626" />
+            <marker date="1530233069404" expanded="true" signature="4105:4776" ph="UPDATE calls_180628... " />
+            <marker date="1530233069404" expanded="true" signature="5021:5290" ph="CREATE TABLE... deductions_180622" />
+            <marker date="1530233069404" expanded="true" signature="5558:6072" ph="CREATE TABLE... total_scores_180626" />
           </folding>
         </state>
       </provider>
@@ -614,19 +629,11 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/db_builder.py">
+    <entry file="file://$APPLICATION_CONFIG_DIR$/scratches/scratch_1.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2745">
-          <caret line="183" column="17" lean-forward="false" selection-start-line="183" selection-start-column="17" selection-end-line="183" selection-end-column="17" />
-          <folding>
-            <marker date="1530026825187" expanded="true" signature="304:573" ph="CREATE TABLE... us" />
-            <marker date="1530026825187" expanded="true" signature="821:1142" ph="CREATE TABLE... elt_scores_180626" />
-            <marker date="1530026825187" expanded="true" signature="1379:1628" ph="CREATE TABLE... pcs_180626" />
-            <marker date="1530026825187" expanded="true" signature="1849:2095" ph="CREATE TABLE... goe_180626" />
-            <marker date="1530026825187" expanded="true" signature="2770:3690" ph="CREATE TABLE... calls_180626" />
-            <marker date="1530026825187" expanded="true" signature="3919:4166" ph="CREATE TABLE... deductions_180622" />
-            <marker date="1530026825187" expanded="true" signature="4415:4890" ph="CREATE TABLE... total_scores_180626" />
-          </folding>
+        <state relative-caret-position="15">
+          <caret line="1" column="0" lean-forward="false" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -638,20 +645,31 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$APPLICATION_CONFIG_DIR$/scratches/scratch_1.py">
+    <entry file="file://$PROJECT_DIR$/transformer_xlsx.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="15">
-          <caret line="1" column="0" lean-forward="false" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
-          <folding />
+        <state relative-caret-position="-19">
+          <caret line="317" column="35" lean-forward="false" selection-start-line="317" selection-start-column="32" selection-end-line="317" selection-end-column="35" />
+          <folding>
+            <element signature="e#35#44#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/transformer_xlsx.py">
+    <entry file="file://$PROJECT_DIR$/db_builder.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1985">
-          <caret line="53" column="60" lean-forward="false" selection-start-line="53" selection-start-column="60" selection-end-line="53" selection-end-column="60" />
+        <state relative-caret-position="-178">
+          <caret line="171" column="25" lean-forward="false" selection-start-line="171" selection-start-column="25" selection-end-line="171" selection-end-column="25" />
           <folding>
-            <element signature="e#35#44#0" expanded="true" />
+            <marker date="1530233069404" expanded="true" signature="304:573" ph="CREATE TABLE... us" />
+            <marker date="1530233069404" expanded="true" signature="826:1219" ph="CREATE TABLE... elt_scores_180626" />
+            <marker date="1530233069404" expanded="true" signature="1223:1295" ph="UPDATE elt_scores_180628... " />
+            <marker date="1530233069404" expanded="true" signature="1299:1365" ph="UPDATE elt_scores_180628... " />
+            <marker date="1530233069404" expanded="true" signature="1620:1893" ph="CREATE TABLE... pcs_180626" />
+            <marker date="1530233069404" expanded="true" signature="2132:2402" ph="CREATE TABLE... goe_180626" />
+            <marker date="1530233069404" expanded="true" signature="3091:4103" ph="CREATE TABLE... calls_180626" />
+            <marker date="1530233069404" expanded="true" signature="4105:4776" ph="UPDATE calls_180628... " />
+            <marker date="1530233069404" expanded="true" signature="5021:5290" ph="CREATE TABLE... deductions_180622" />
+            <marker date="1530233069404" expanded="true" signature="5558:6072" ph="CREATE TABLE... total_scores_180626" />
           </folding>
         </state>
       </provider>
