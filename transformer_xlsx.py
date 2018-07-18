@@ -10,6 +10,16 @@ import numpy as np
 
 # TO DOs: (1) Fix missing deductions
 
+read_path = os.path.expanduser('~/Desktop/bias/pdftoxls/test/')
+write_path = os.path.expanduser('~/Desktop/bias/output/')
+
+event_dic = {'gpjpn': 'NHK', 'gpfra': 'TDF', 'gpcan': 'SC', 'gprus': 'COR', 'gpusa': 'SA', 'gpchn': 'COC',
+             'gpf': 'GPF', 'wc': 'WC', 'fc': '4CC', 'owg': 'OWG', 'wtt': 'WTT', 'sc': 'SC', 'ec': 'EC', 'sa': 'SA',
+             'jgpfra': 'JGPFRA'}
+calls = ['!', 'e', '<', '<<', '*', '+REP', 'V1', 'V2', 'x', 'X', 'V']
+ded_types = ['falls', 'time violation', 'costume failure', 'late start', 'music violation',
+             'interruption in excess', 'costume & prop violation', 'illegal element/movement']
+key_cols = ['discipline', 'category', 'season', 'event', 'sub_event', 'skater_name', 'segment']
 
 def return_isu_abbrev(s):
     temp = filter(None, re.split(r'(\d+)', s))
@@ -33,7 +43,18 @@ def clean_elt_name(cur_string, replace_list):
     return cur_string
 
 
-def add_segment_identifiers(df, identifiers, segment_competitors_list):
+def reorder_cols(df, col_to_move, new_pos):
+    cols = df.columns.tolist()
+    cols.insert(new_pos, cols.pop(cols.index(col_to_move)))
+    return df[cols]
+
+
+def add_segment_identifiers(df, identifiers, segment_competitors_list, segment_exploded_names):
+    competitor_short_name = segment_exploded_names[-1][1] + segment_exploded_names[-1][0]
+    #counldn't use first name initials bc of asado mao and asada mai...
+    df['index'] = identifiers[2] + identifiers[3] + identifiers[4] + identifiers[1] + identifiers[0] + \
+        competitor_short_name + identifiers[5]
+    df.set_index('index', append=True, inplace=True)
     df['discipline'] = identifiers[0]
     df.set_index('discipline', append=True, inplace=True)
     df['category'] = identifiers[1]
@@ -42,61 +63,100 @@ def add_segment_identifiers(df, identifiers, segment_competitors_list):
     df.set_index('season', append=True, inplace=True)
     df['event'] = identifiers[3]
     df.set_index('event', append=True, inplace=True)
-    df['team_event'] = identifiers[4]
-    df.set_index('team_event', append=True, inplace=True)
-    df['skater'] = segment_competitors_list[-1][3]
-    df.set_index('skater', append=True, inplace=True)
+    df['sub_event'] = identifiers[4]
+    df.set_index('sub_event', append=True, inplace=True)
+    df['skater_name'] = segment_competitors_list[-1][3]
+    df.set_index('skater_name', append=True, inplace=True)
     df['segment'] = identifiers[5]
     df.set_index('segment', append=True, inplace=True)
 
 
+def clean_ded_row(row):
+    # Stringify and remove number of falls in brackets, split
+    row = [re.sub(r'\(\d+\)', '', str(r)) for r in row]
+    ded_words, ded_digits = [], []
+    for r in row:
+        ded_words.extend(re.findall(r'[A-Z][a-z]+/* *&* *[A-Z]*[a-z]* *[a-z]*', r))
+        ded_digits.extend(re.findall(r'[-]*[0-9]+.*[0-9]*', r))
+
+    ded_words = [x.lower() for x in ded_words]
+
+    # print 'ded words after regex', ded_words
+    # print 'ded_digits after regewx', ded_digits
+
+    if len(ded_words) > 1:
+        # If deduction names were split across multiple cells in spreadsheet, join them back together
+        for x in range(len(ded_words) - 1, 0, -1):
+            if ded_words[x] == 'total':
+                del ded_words[x]
+            s = slice(x - 1, x + 1)
+            word = ''.join(ded_words[s])
+            match = [full_ded for full_ded in ded_types if word in full_ded]
+            assert len(match) <= 1
+
+            if len(match) == 1:
+                ded_words[s] = [''.join(ded_words[s])]
+
+        # Remove other random numbers that might have ended up in the row, ensure all numbers negative
+        ded_digits = [x.replace('.00', '').replace('.0', '') for x in ded_digits]
+        ded_digits = [x if (float(x) - int(float(x))) < 0.001 else None for x in ded_digits]
+        ded_digits = filter(None, ded_digits)
+        ded_digits = [-1 * int(x) if int(x) > 0 else int(x) for x in ded_digits]
+
+        ded_words = [re.sub(r'fall$', 'falls', x) for x in ded_words]
+        ded_words = [x.replace('late start', 'time violation') for x in ded_words]
+
+    # print 'ded words, ded digits at end of function', ded_words, ded_digits
+    return {'ded_words': ded_words, 'ded_digits': ded_digits}
+
+
 def main():
-    read_path = os.path.expanduser('~/Desktop/bias/pdftoxls/')
-    write_path = os.path.expanduser('~/Desktop/bias/output/')
-
-    event_dic = {'gpjpn': 'NHK', 'gpfra': 'TDF', 'gpcan': 'SC', 'gprus': 'COR', 'gpusa': 'SA', 'gpchn': 'COC',
-                 'gpf': 'GPF', 'wc': 'WC', 'fc': '4CC', 'owg': 'OWG', 'wtt': 'WTT'}
-    calls = ['!', 'e', '<', '<<', '*', '+REP', 'V1', 'V2', 'x', 'X']
-
     year_regex = re.compile(r'\d+')
     combo_regex = re.compile(r'\+[0-9]')
 
     files = sorted(glob.glob(read_path + '*.xlsx'))
 
-    # all_scraped_totals_list = []
+    all_scraped_totals_list = []
     all_scores_list = []
-    # all_pcs_list = []
+    all_pcs_list = []
     all_goe_list = []
     all_calls_list = []
-    # all_deductions_list = []
-    # all_competitors_list = []
+    all_deductions_list = []
+    all_competitors_list = []
 
     for f in files:
-        filename = f[43:]  # 43
+        filename = f[48:]  # 43
+        name_order = 'unknown' # we use this as a flag later on so we don't have to keep rechecking
 
         # 1. DERIVE YEAR
-        year_list = [int(x) for x in year_regex.findall(filename)]
+        year_list = [x for x in year_regex.findall(filename)]
+
         if len(year_list) > 1:
             print 'Error - MULTIPLE YEARS LISTED IN FILENAME ', filename
             exit()
         else:
             year_data = year_list[0]
-            if len(str(year_data)) == 2:
-                event_year = 2000 + year_data
-            elif len(str(year_data)) == 4 and str(year_data)[:2] == '20':
-                event_year = year_data
-            elif len(str(year_data)) == 4 and int(str(year_data)[:2]) == (int(str(year_data)[-2:]) - 1):
-                event_year = 2000 + int(str(year_data)[:2])
+            if len(year_data) <= 2:
+                event_year = 2000 + int(year_data)
+            elif len(year_data) == 4 and year_data[:2] == '20':
+                event_year = int(year_data)
+            elif len(year_data) == 4 and int(year_data[:2]) == (int(year_data[-2:]) - 1):
+                event_year = 2000 + int(year_data[:2])
             else:
                 print 'Error - SOMETHING WONKY WITH DATE FORMATTING IN FILENAME ', filename
                 exit()
 
         # 2. DERIVE EVENT & SUB EVENT
         event = event_dic[return_isu_abbrev(filename.lower())]
-        team_event = 'Team' if 'Team' in filename else ''
+        if 'Team' in filename:
+            sub_event = 'team'
+        elif 'Preliminary' in filename or 'Q' in filename:
+            sub_event = 'qual'
+        else:
+            sub_event = ''
 
         # 3. DERIVE SEASON
-        if event in ['4CC', 'OWG', 'WC', 'WTT']:
+        if event in ['4CC', 'OWG', 'WC', 'WTT', 'EC']:
             season = "SB" + str(event_year - 1)
         else:
             season = "SB" + str(event_year)
@@ -109,29 +169,64 @@ def main():
         category = 'Jr' if 'Junior' in filename else 'Sr'
         dc_short = category + discipline[0]
 
-        identifiers = [discipline, category, season, event, team_event, segment]
+        identifiers = [discipline, category, season, event, sub_event, segment]
 
-        print 'SUMMARY: ', filename, season, event, team_event, event_year, discipline, category, segment
+        print 'SUMMARY: ', filename, season, event, sub_event, event_year, discipline, category, segment
 
         wb = load_workbook(f)
-        # segment_scraped_totals_list = []
+        segment_scraped_totals_list = []
         segment_competitors_list = []
         segment_goe_list = []
         segment_calls_list = []
-        # segment_pcs_list = []
+        segment_pcs_list = []
         segment_scores_list = []
-        # segment_deductions_list = []
+        segment_deductions_list = []
         segment_exploded_names = []
 
         for sheet in wb.sheetnames:
-            # print sheet
             ws = wb[sheet]
-
             raw_df = pd.DataFrame(ws.values)
+
+            # GET NUMBER OF JUDGES (cols then rows scan to go faster since string usually found in first couple of cols)
+            # You'd think the following bit only needs to be done once per WB, but no -- sometimes judges disappear
+            # in the middle of a segment apparently
+            found_flag = 0
+            for j in raw_df.columns:
+                for i in raw_df.index:
+                    if 'Skating Skills' in unicode(raw_df.iloc[i, j]):
+                        test_row = []
+                        return_row_list(i, j + 1, raw_df, test_row)
+                        found_flag = 1
+                        break
+                    if found_flag == 1:
+                        break
+                if found_flag == 1:
+                    break
+
+            row_data = []
+            for a in test_row:
+                cleaner = [u.replace(u',', u'.') for u in str(a).split()]
+                for b in cleaner:
+                    try:
+                        cleanest_cell = float(b)
+                    except:
+                        cleanest_cell = ''
+                    row_data.append(cleanest_cell)
+            row_data = filter(None, row_data)
+            row_data = filter(None, row_data)
+
+            no_judges = len(row_data[1:-1])
+            # print 'no_judges', no_judges
+
+            judge_col_headers = []
+            for r in range (1, no_judges+1):
+                judge_col_headers.append('j'+str(r))
+
             for i in raw_df.index:
                 for j in raw_df.columns:
 
                     # SCRAPE COMPETITOR NAME
+
                     if 'Name' in unicode(raw_df.iloc[i, j]):
                         name_row = []
                         for k in range(i + 2, i + 5):
@@ -146,97 +241,129 @@ def main():
                         assert name_row
 
                         # The 'fuck your names, Dutch people' exception - they break the pdf conversion
+                        # Also some people have single letter names which isn't great for deducing first vs. last from
+                        # case
                         spaced_patronym_regex = re.search(r'^\d+\s+\D+', unicode(name_row[0]))
                         if spaced_patronym_regex is not None:
                             e_handler = unicode(name_row[0]).split(' ', 1)
                             name_row[0] = int(e_handler[0])
                             name_row.insert(1, e_handler[1])
+
                         # Check name order
                         exploded_name = name_row[1].split(' ')
-                        first_name_list = [word for word in exploded_name if unicode(word[1]).islower()]
+
+                        first_name_list, last_name_list = [], []
+                        exploded_name = [word.replace(u'.', u'') for word in exploded_name]
+                        for word in exploded_name:
+                            if len(word) > 1 and (unicode(word[1]).isupper() or unicode(word[:2]) == u'Mc'):
+                                last_name_list.append(word)
+                            else:
+                                first_name_list.append(word)
+
                         first_name = ' '.join(first_name_list)
-                        last_name_list = [word for word in exploded_name if unicode(word[1]).isupper()]
                         last_name = ' '.join(last_name_list)
                         short_last_name = ''.join(last_name_list)
-
                         competitor_name = first_name + ' ' + last_name
+                        # print competitor_name
 
                         country = 'RUS' if name_row[2] == 'OAR' else name_row[2]
 
                         segment_competitors_list.append((season, discipline, category, competitor_name, country))
                         segment_exploded_names.append((first_name, short_last_name))
 
-                        # segment_scraped_totals_list.append((discipline, category, season, event, team_event,
-                        #                                    competitor_name, segment, float(name_row[6]),
-                        #                                     float(name_row[5]), float(name_row[4])))
-                    # # SCRAPE PCS SCORES
-                    # elif 'Skating Skills' in unicode(raw_df.iloc[i, j]):
-                    #     single_pcs_list = []
-                    #     for k in range(i, i + 5):
-                    #         raw_row_data = []
-                    #         return_row_list(k, j + 1, raw_df, raw_row_data)
-                    #         row_data = []
-                    #         for raw_cell in raw_row_data:
-                    #             cleaner = [u.replace(u',', u'.') for u in str(raw_cell).split()]
-                    #             for v in cleaner:
-                    #                 try:
-                    #                     cleanest_cell = float(v)
-                    #                 except:
-                    #                     cleanest_cell = ''
-                    #                 row_data.append(cleanest_cell)
-                    #         row_data = filter(None, row_data)
-                    #
-                    #         single_pcs_list.append(row_data[1:-1])
-                    #
-                    #     single_pcs_df = pd.DataFrame(single_pcs_list, index=['ss', 'tr', 'pc', 'ch', 'in'],
-                    #                                  columns=['j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'j7', 'j8', 'j9'])
-                    #     single_pcs_df.rename_axis('judge', axis='columns', inplace=True)
-                    #     single_pcs_df.rename_axis('component', axis='index', inplace=True)
-                    #
-                    #     add_segment_identifiers(single_pcs_df, identifiers, segment_competitors_list)
-                    #     segment_pcs_list.extend([single_pcs_df])
-                    #
-                    # # SCRAPE DEDUCTIONS
-                    # # For clarity, formatting issues we're trying to tackle:
-                    # #    Falls may or may not be followed (or preceded) by # of falls in parentheses
-                    # #    Total fall deduction may not equal # of falls * -1 (can add deductions for interruption)
-                    # #    Some rows have totals, some don't
-                    # elif 'Deductions' in unicode(raw_df.iloc[i, j]) and j < 4:
-                    #     ded_row = []
-                    #     return_row_list(i, j, raw_df, ded_row)
-                    #     # Stringify and remove number of falls in brackets, split
-                    #     ded_row = [re.sub(r'\(\d+\)', '', str(ded)) for ded in ded_row]
-                    #     ded_list = []
-                    #     for ded in ded_row:
-                    #         ded_list.extend(re.split('[,!: ]+', str(ded)))
-                    #     ded_list = filter(None, ded_list[1:-1])  # Gets rid of initial 'deduction' heading & total
-                    #     # Do this, given the existence of strings: ded_list = filter(lambda x: abs(float(x)) < 10,
-                    #     # ded_list)
-                    #     for x in ded_list:
-                    #         try:
-                    #             if abs(float(x)) > 15:
-                    #                 ded_list.remove(x)
-                    #         except:
-                    #             pass
-                    #     i2 = 0
-                    #     while i2 < len(ded_list):
-                    #         # Ensure all number are negative
-                    #         digits1 = re.search(r'[\d+]', ded_list[i2])
-                    #         if digits1 is not None:
-                    #             ded_list[i2] = -1*float(ded_list[i2]) if float(ded_list[i2]) > 0 else float(ded_list[i2])
-                    #         if (i2+1) < (len(ded_list)-1):
-                    #             digits2 = re.search(r'[\d+]', ded_list[i2+1])
-                    #             if digits1 is None and digits2 is None and ded_list[i2+1] != 'Total':
-                    #                 temp = ded_list[0:i2] + [' '.join(ded_list[i2:(i2+2)])] + ded_list[(i2+2):]
-                    #                 ded_list = temp
-                    #                 i2 -= 1
-                    #         i2 += 1
-                    #     ded_tuples = zip(ded_list[0::2], ded_list[1::2])
-                    #
-                    #     for (ded_type, ded_points) in ded_tuples:
-                    #         segment_deductions_list.append((discipline, category, season, event, team_event,
-                    #                                         segment_competitors_list[-1][3], segment) +
-                    #                                        (ded_type, ded_points))
+                        competitor_short_name = segment_exploded_names[-1][1] + segment_exploded_names[-1][0]
+                        index = identifiers[2] + identifiers[3] + identifiers[4] + identifiers[1] + identifiers[0] + \
+                            competitor_short_name + identifiers[5]
+
+
+                        # Protocol format changed from SB2009 to included skater starting number
+                        score_index = 6 if (int(season[2:]) >= 2009 or (event in ['WTT', 'WC'] and
+                                                                        int(season[2:]) == 2008))  else 5
+                        segment_scraped_totals_list.append((index, discipline, category, season, event, sub_event,
+                                                           competitor_name, segment, float(name_row[score_index]),
+                                                            float(name_row[score_index-1]),
+                                                            float(name_row[score_index-2])))
+
+                    # SCRAPE PCS SCORES
+                    elif 'Skating Skills' in unicode(raw_df.iloc[i, j]):
+                        single_pcs_list = []
+                        for k in range(i, i + 5):
+                            raw_row_data = []
+                            return_row_list(k, j + 1, raw_df, raw_row_data)
+                            row_data = []
+                            for raw_cell in raw_row_data:
+                                cleaner = [u.replace(u',', u'.') for u in str(raw_cell).split()]
+                                for v in cleaner:
+                                    try:
+                                        cleanest_cell = float(v)
+                                    except:
+                                        cleanest_cell = ''
+                                    row_data.append(cleanest_cell)
+                            row_data = filter(None, row_data)
+
+                            single_pcs_list.append(row_data[1:-1])
+
+                        single_pcs_df = pd.DataFrame(single_pcs_list, index=['ss', 'tr', 'pc', 'ch', 'in'],
+                                                     columns=judge_col_headers)
+                        single_pcs_df.rename_axis('judge', axis='columns', inplace=True)
+                        single_pcs_df.rename_axis('component', axis='index', inplace=True)
+
+                        add_segment_identifiers(single_pcs_df, identifiers, segment_competitors_list,
+                                                segment_exploded_names)
+                        segment_pcs_list.extend([single_pcs_df])
+
+                    # SCRAPE DEDUCTIONS
+                    # For clarity, formatting issues we're trying to tackle:
+                    #    Falls may or may not be followed (or preceded) by # of falls in parentheses
+                    #    Total fall deduction may not equal # of falls * -1 (can add deductions for interruption)
+                    #    Some rows have totals, some don't
+                    # In older protocols (pre 2005-06), all deduction types are listed, with 0 if no deduction
+                    elif 'Deductions' in unicode(raw_df.iloc[i, j]) and j < 4:
+                        ded_row = []
+                        return_row_list(i, j, raw_df, ded_row)
+
+                        row_dic = clean_ded_row(ded_row)
+                        ded_words, ded_digits = row_dic['ded_words'], row_dic['ded_digits']
+
+                        assert ded_words[0] == 'deductions'
+
+                        # Special case for older protocols - scrape both lines
+                        old_protocol = True if (int(season[-2:]) < 5 or (int(season[-2:]) == 5 and event == 'OWG')) \
+                            else False
+
+                        # Two models in old protocols: total at end of top row or at end of bottom row (in which case
+                        # bottom row contains three numbers
+                        if old_protocol:
+                            ded_row_2 = []
+                            return_row_list(i+1, j, raw_df, ded_row_2)
+                            row_dic_2 = clean_ded_row(ded_row_2)
+                            ded_words += row_dic_2['ded_words']
+                            if event == 'OWG' or len(ded_digits) == 4:
+                                # print '1 OLD PROTOCOL -- TOTAL ON TOP ROW'
+                                ded_digits = ded_digits[:-1] + row_dic_2['ded_digits']
+                            else:
+                                assert len(row_dic_2['ded_digits']) == 3
+                                # print '2 OLD PROTOCOL -- TOTAL ON BOTTOM ROW'
+                                ded_digits += row_dic_2['ded_digits'][:-1]
+                        else:
+                            if len(ded_words) == len(ded_digits):
+                                del ded_digits[-1]
+
+                        del ded_words[0]
+
+                        # For old school protocols, remove all the headings where there was no actual deduction
+                        if old_protocol:
+                            for z in range(len(ded_digits)-1, -1, -1):
+                                if ded_digits[z] == 0:
+                                    del ded_words[z]
+                                    del ded_digits[z]
+
+                        if ded_words is not None:
+                            for z in range(0, len(ded_words)):
+                                #print '(', ded_words[z], ded_digits[z], ')'
+                                segment_deductions_list.append((index, discipline, category, season, event, sub_event,
+                                                                segment_competitors_list[-1][3], segment, ded_words[z],
+                                                                ded_digits[z]))
 
                     # SCRAPE ELEMENTS, CALLS, GOE AND TES SCORES
                     elif 'Elements' in unicode(raw_df.iloc[i, j]):
@@ -244,7 +371,6 @@ def main():
                         single_calls_list = []
                         single_scores_list = []
                         elt_id_list = []
-                        competitor_short_name = segment_exploded_names[-1][1] + segment_exploded_names[-1][0][0]
 
                         # Identify whether elt list starts on next line or not
                         incr = 1 if (raw_df.iloc[i + 1, j] is not None or raw_df.iloc[i + 1, j - 1] is not None) else 2
@@ -278,23 +404,46 @@ def main():
 
                                 # Clean elt name, capture any missing reqs, start to separate elt and level info
                                 missing_req_search = re.search(r'V\d+', elt_row[1])
-                                missing_reqs = missing_req_search.group(0)[1:] if missing_req_search is not None\
-                                    else None
+                                if missing_req_search is not None:
+                                    missing_reqs = missing_req_search.group(0)[1:]
+                                    elt_row[1] = elt_row[1].replace(missing_req_search.group(0), '')
+                                else:
+                                    missing_reqs = None
 
                                 elt_less_calls = clean_elt_name(elt_row[1], calls)
+
+                                # Separate jumps from non jumps - not all non-jump elements have levels or no_positions
                                 lvl_regex = re.search(r'\d+$', elt_less_calls)
-                                if lvl_regex is not None: # Woop! It's a non-jump element!
+                                non_jump_regex = re.search(r'[a-y]', elt_less_calls)
+                                lo_regex = re.search(r'Lo', elt_less_calls)
+                                if lvl_regex is not None or (non_jump_regex is not None and lo_regex is None):
                                     elt_type = 'non_jump'
-                                    level = lvl_regex.group(0)
-                                    split = re.split('(\d+)', elt_less_calls)
-                                    elt_name = split[0]
-                                    assert len(split[:-1]) in [2, 4]
-                                    no_positions = split[1] if len(split[:-1]) == 4 else 'NA'
+                                    if lvl_regex is not None:
+                                        level = lvl_regex.group(0)
+                                        split = re.split('(\d+)', elt_less_calls)
+                                        elt_name = split[0]
+                                        assert len(split[:-1]) in [2, 4]
+                                        no_positions = split[1] if len(split[:-1]) == 4 else 'NA'
+                                    else:
+                                        level = None
+                                        elt_name = elt_less_calls
+                                        no_positions = None
                                 else:
                                     elt_type = 'jump'
                                     level = None
                                     elt_name = elt_less_calls
                                     no_positions = None
+
+                                # Some jumps are just labeled "Lz" instead of "1Lz"; others are labelled "LZ"
+                                rot_regex_1 = re.search(r'^\d+', elt_less_calls)
+                                jump_types = ['A', 'F', 'Lo', 'Lz', 'S', 'T']
+                                if elt_type == 'jump':
+                                    elt_name = elt_name.replace('LZ','Lz').replace('LO','Lo')
+                                    if rot_regex_1 is None:
+                                        elt_name = '1' + elt_name
+                                    for jump in jump_types:
+                                        elt_name = re.sub(r'\+' + jump + r'$', '+1' + jump, elt_name)
+                                        elt_name = re.sub(r'\+' + jump + r'\+', '+1' + jump + '+', elt_name)
 
                                 # POPULATE TECH CALL FLAGS
                                 invalid = 1 if any('*' in str(cell) for cell in elt_row) else 0
@@ -371,7 +520,8 @@ def main():
                                 ur_flag = 1 if 1 in [j1_ur, j2_ur, j3_ur, j4_ur] else 0
 
                                 temp_numbers = []
-                                for cell in elt_row[2:-10]:
+                                cutoff = -1 - no_judges
+                                for cell in elt_row[2:cutoff]:
                                     temp_numbers.extend(unicode(cell).split(' '))
                                 numbers = [unicode(cell).strip() for cell in temp_numbers if cell not in calls]
                                 for call_notation in calls:
@@ -381,13 +531,12 @@ def main():
 
                                 # SCRAPE GOE SCORES
                                 goe_row = []
-                                for b in elt_row[-10:-1]:
+                                for b in elt_row[cutoff:-1]:
                                     try:
                                         clean = int(b)
                                     except:
                                         clean = 0
                                     goe_row.append(clean)
-                                # print 'goe_row: ', goe_row
 
                             else:
                                 elt_no = k - i
@@ -405,10 +554,9 @@ def main():
                                 elt_bv, elt_sov_goe, elt_total = None, None, None
                                 goe_row = [None, None, None, None, None, None, None, None, None]
 
-                            elt_id = 'SB' + season[-2:] + event + team_event[:1].upper() + dc_short \
+                            elt_id = 'SB' + season[-2:] + event + sub_event[:1].upper() + dc_short \
                                      + competitor_short_name + segment + str(elt_no)
                             elt_id_list.append(elt_id)
-                            # print elt_id
 
                             calls_row = (elt_no, elt_name, elt_type, level, no_positions, invalid, h2, combo_flag,
                                          seq_flag, ur_flag, downgrade_flag, severe_edge_flag, unclear_edge_flag, rep_flag,
@@ -431,85 +579,106 @@ def main():
                                      'jump_4', 'j4_sev_edge', 'j4_unc_edge', 'j4_ur', 'j4_down',
                                      'failed_spin', 'missing_reqs']
                         single_calls_df = pd.DataFrame(single_calls_list, index=elt_id_list, columns=call_cols)
-                        # print single_calls_df
 
                         single_scores_df = pd.DataFrame(single_scores_list, index=elt_id_list,
                                                         columns=['elt_name', 'elt_type', 'level', 'no_positions', 'h2',
                                                                  'elt_bv', 'elt_sov_goe', 'elt_total'])
-                        # print single_scores_df
 
                         single_goe_df = pd.DataFrame(single_goe_list, index=elt_id_list,
-                                                     columns=['j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'j7', 'j8', 'j9'])
+                                                     columns=judge_col_headers)
                         single_goe_df.rename_axis('judge', axis='columns', inplace=True)
-                        # print single_goe_df
 
                         # ADD THE OTHER INFO COLUMNS - Figure how to loop through the dfs without python thinking
-                        add_segment_identifiers(single_scores_df, identifiers, segment_competitors_list)
-                        add_segment_identifiers(single_goe_df, identifiers, segment_competitors_list)
-                        add_segment_identifiers(single_calls_df, identifiers, segment_competitors_list)
+                        add_segment_identifiers(single_scores_df, identifiers, segment_competitors_list,
+                                                segment_exploded_names)
+                        add_segment_identifiers(single_goe_df, identifiers, segment_competitors_list,
+                                                segment_exploded_names)
+                        add_segment_identifiers(single_calls_df, identifiers, segment_competitors_list,
+                                                segment_exploded_names)
 
                         segment_scores_list.append(single_scores_df)
                         segment_goe_list.append(single_goe_df)
                         segment_calls_list.append(single_calls_df)
 
-        # segment_scraped_totals_df = pd.DataFrame(segment_scraped_totals_list,
-        #                                          columns=['discipline', 'category', 'season', 'event', 'sub_event',
-        #                                                   'skater_name', 'segment', 'scraped_pcs', 'scraped_tes',
-        #                                                   'scraped_total'])
+        segment_scraped_totals_df = pd.DataFrame(segment_scraped_totals_list,
+                                                 columns=['index', 'discipline', 'category', 'season', 'event', 'sub_event',
+                                                          'skater_name', 'segment', 'scraped_pcs', 'scraped_tes',
+                                                          'scraped_total'])
 
-        # segment_competitors_df = pd.DataFrame(segment_competitors_list,
-        #                                       columns=['season', 'disc', 'category', 'name', 'country'])
+        segment_competitors_df = pd.DataFrame(segment_competitors_list,
+                                              columns=['season', 'disc', 'category', 'name', 'country'])
 
-        # segment_deductions_df = pd.DataFrame(segment_deductions_list,
-        #                                      columns=['discipline', 'category', 'season', 'event', 'team_event',
-        #                                               'skater', 'segment', 'ded_type', 'ded_points'])
+        segment_deductions_df = pd.DataFrame(segment_deductions_list,
+                                             columns=['index', 'discipline', 'category', 'season', 'event', 'sub_event',
+                                                      'skater_name', 'segment', 'ded_type', 'ded_points'])
 
         segment_scores_df = pd.concat(segment_scores_list)
-        # segment_pcs_df = pd.concat(segment_pcs_list).stack()
-        # segment_pcs_df.name = 'pcs'
+        segment_pcs_df = pd.concat(segment_pcs_list).stack()
+        segment_pcs_df.name = 'pcs'
         segment_goe_df = pd.concat(segment_goe_list).stack()
         segment_goe_df.name = 'goe'
         segment_calls_df = pd.concat(segment_calls_list)
 
-        # all_scraped_totals_list.append(segment_scraped_totals_df)
+        all_scraped_totals_list.append(segment_scraped_totals_df)
         all_scores_list.append(segment_scores_df)
-        # all_pcs_list.append(segment_pcs_df)
+        all_pcs_list.append(segment_pcs_df)
         all_goe_list.append(segment_goe_df)
         all_calls_list.append(segment_calls_df)
-        # all_deductions_list.append(segment_deductions_df)
-        # all_competitors_list.append(segment_competitors_df)
+        all_deductions_list.append(segment_deductions_df)
+        all_competitors_list.append(segment_competitors_df)
         print '        loaded full segment df into overall summary list'
 
-    # all_scraped_totals_df = pd.concat(all_scraped_totals_list)
+    all_scraped_totals_df = pd.concat(all_scraped_totals_list)
     all_scores_df = pd.concat(all_scores_list)
     print 'scores df concatenated'
-    # all_pcs_df = pd.concat(all_pcs_list)
-    # all_pcs_df = all_pcs_df.reset_index()
-    # print 'pcs df concatenated'
+    all_pcs_df = pd.concat(all_pcs_list)
+    all_pcs_df = all_pcs_df.reset_index()
+    print 'pcs df concatenated'
     all_goe_df = pd.concat(all_goe_list)
     all_goe_df = all_goe_df.reset_index()
     print 'goe df concatenated'
     all_calls_df = pd.concat(all_calls_list)
     print 'calls df concatenated'
-    # all_deductions_df = pd.concat(all_deductions_list)
-    # all_deductions_df = all_deductions_df.reset_index(drop=True)
-    # print 'deductions df concatenated'
-    # all_competitors_df = pd.concat(all_competitors_list)
-    # all_competitors_df.drop_duplicates(subset=['category', 'name', 'country'], keep='last', inplace=True)
-    # all_competitors_df = all_competitors_df.reset_index(drop=True)
-    # print 'competitors df concatenated'
+    all_deductions_df = pd.concat(all_deductions_list)
+    all_deductions_df = all_deductions_df.reset_index(drop=True)
+    print 'deductions df concatenated'
+    all_competitors_df = pd.concat(all_competitors_list)
+    all_competitors_df.drop_duplicates(subset=['category', 'name', 'country'], keep='last', inplace=True)
+    all_competitors_df = all_competitors_df.reset_index(drop=True)
+    print 'competitors df concatenated'
 
-    date = '180628'
+    date = '180717'
     ver = '1'
-    # all_scraped_totals_df.to_csv(write_path + 'scrapedtotals_' + date + ver + '.csv', mode='a', encoding='utf-8',
-    #                              header=True)
-    all_scores_df.to_csv(write_path + 'scores_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
-    # all_pcs_df.to_csv(write_path + 'pcs_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
-    all_goe_df.to_csv(write_path + 'goe_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
-    all_calls_df.to_csv(write_path + 'calls_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
-    # all_deductions_df.to_csv(write_path + 'deductions_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
-    # all_competitors_df.to_csv(write_path + 'competitors_' + date + ver + '.csv', mode='a', encoding='utf-8',
-    #                           header=True)
+    header_setting = True
+    all_scraped_totals_df.to_csv(write_path + 'scrapedtotals_' + date + ver + '.csv', mode='a', encoding='utf-8',
+                                 header=header_setting)
+    all_scores_df.to_csv(write_path + 'scores_' + date + ver + '.csv', mode='a', encoding='utf-8',
+                         header=header_setting)
+    all_pcs_df.to_csv(write_path + 'pcs_' + date + ver + '.csv', mode='a', encoding='utf-8', header=header_setting)
+    all_goe_df.to_csv(write_path + 'goe_' + date + ver + '.csv', mode='a', encoding='utf-8', header=header_setting)
+    all_calls_df.to_csv(write_path + 'calls_' + date + ver + '.csv', mode='a', encoding='utf-8', header=header_setting)
+    all_deductions_df.to_csv(write_path + 'deductions_' + date + ver + '.csv', mode='a', encoding='utf-8',
+                             header=header_setting)
+    all_competitors_df.to_csv(write_path + 'competitors_' + date + ver + '.csv', mode='a', encoding='utf-8',
+                              header=header_setting)
 
+    # WHERE DEDUCTIONS ARE MISSING (BC THEY DISAPPEARED IN THE CONVERSION FROM PDF TO XLS), ADD THE TOTALS AS
+    # 'UNKNOWN' PENDING MANUAL CORRECTION
+    all_scraped_totals_df['derived_ded'] = all_scraped_totals_df.apply(lambda x: \
+            int(round(x['scraped_total'] - x['scraped_tes'] - x['scraped_pcs'], 0)), axis = 1)
+    all_scraped_totals_df.drop(labels=['scraped_pcs', 'scraped_tes', 'scraped_total'], axis=1, inplace=True)
+    print all_scraped_totals_df
+    ded_totals = all_deductions_df.fillna('None').groupby(key_cols)['ded_points'].sum().reset_index()
+    print ded_totals
+    ded_comparison = all_scraped_totals_df.join(ded_totals.set_index(key_cols), on=key_cols, how='left', lsuffix='_pcs',
+                            rsuffix='_tes').fillna(0)
+    ded_comparison['ded_type'] = 'unknown'
+    ded_comparison.to_csv(write_path + 'ded_comp_' + date + ver + '.csv', mode='a', encoding='utf-8',
+                          header=header_setting)
+    ded_comparison['ded_diff'] = ded_comparison.apply(lambda x: int(round(x['derived_ded'] - x['ded_points'], 0)), axis=1)
+    ded_comparison.drop(labels=['derived_ded', 'ded_points'], axis=1, inplace=True)
+    rows_to_append = ded_comparison.loc[ded_comparison['ded_diff'] != 0]
+    rows_to_append.to_csv(write_path + 'deductions_' + date + ver + '.csv', mode='a', encoding='utf-8',
+                             header=False)
 
 main()

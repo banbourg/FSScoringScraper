@@ -17,7 +17,7 @@ def remove_newlines(str):
 
 def main():
     # STEP 1: Find links to all event pages since ISU website is not mappable. Judges stopped being anonymous in 2016-17
-    start_year = 2014
+    start_year = 2005
     search_events = ['gp+canada', 'GPF', 'nhk', 'gp+china', 'gp+russia', 'gp+france', 'gp+america', 'continents',
                      'olympic', 'world', 'wtt']
     event_dic = {'nhk': 'NHK', 'gp+france': 'TDF', 'gp+canada': 'SC', 'gp+russia': 'COR', 'gp+america': 'SA',
@@ -34,7 +34,7 @@ def main():
     search_captions = [' '.join(combination) for combination in combinations]
 
     for search_event in search_events:
-        for search_year in range(start_year, 2019):
+        for search_year in range(start_year, 2014):
 
             if search_event != 'wtt':
                 search = 'https://www.google.co.uk/search?q=isu+results+' + search_event + '+' + str(search_year)

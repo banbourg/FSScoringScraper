@@ -3,25 +3,27 @@
 import pandas as pd
 import decimal as dec
 
+# NOTE: CURRENTLY NOT SKIPPING ANY ROWS IN DED TABLE, DON'T FORGET TO CHANGE BACK
 
 dir_path = '/users/clarapouletty/desktop/bias/output/'
 
 pcs_factors = {'MenSP': '1', 'MenFS': '2', 'LadiesSP': '0.8', 'LadiesFS': '1.6'}
 
-types_dic = {'line_id': int, 'component': str, 'discipline': str, 'category': str, 'season': str, 'event': str,
-             'sub_event': str, 'skater_name': str, 'segment': str, 'judge':str, 'elt_id': str, 'elt_name': str,
-             'level': str, 'h2': int}
+types_dic = {'line_id': int, 'component': str, 'index': str, 'discipline': str, 'category': str, 'season': str,
+             'event': str, 'sub_event': str, 'skater_name': str, 'segment': str, 'judge':str, 'elt_id': str,
+             'elt_name': str, 'level': str, 'h2': int, 'no_positions': str, 'elt_type': str}
 
 decs_dic = {'pcs': dec.Decimal, 'elt_bv': dec.Decimal, 'elt_sov_goe': dec.Decimal, 'elt_total': dec.Decimal,
             'scraped_pcs': dec.Decimal, 'scraped_tes': dec.Decimal, 'scraped_total': dec.Decimal}
 
 key_cols = ['discipline', 'category', 'season', 'event', 'sub_event', 'skater_name', 'segment']
 
-date, ver = '180626', '1'
+date, ver = '180716', '1'
 
 # 1 - IMPORT PCS TABLE AND BUILD TOTAL FACTORED PCS FOR EACH SKATER
-pcs_df = pd.read_csv(dir_path+'pcs_1806261.csv', names=['line_id', 'component', 'discipline', 'category', 'season',
-                                                        'event', 'sub_event', 'skater_name', 'segment', 'judge', 'pcs'],
+pcs_df = pd.read_csv(dir_path+'pcs_1807161.csv', names=['line_id', 'component', 'index',
+                                                        'discipline', 'category', 'season', 'event', 'sub_event',
+                                                        'skater_name', 'segment', 'judge', 'pcs'],
                      skiprows=1, dtype=types_dic, converters=decs_dic)
 
 
@@ -46,6 +48,8 @@ def factoring(row):
 
 
 pcs_tmeans['factored_mean'] = pcs_tmeans.apply(factoring, axis=1)
+#print pcs_tmeans['factored_mean']
+
 
 def decimal_sum(group, source_col):
     s = group[source_col]
@@ -56,24 +60,21 @@ def decimal_sum(group, source_col):
 pcs_totals = pcs_tmeans.groupby(key_cols).apply(decimal_sum, 'factored_mean').reset_index()
 pcs_totals.rename(columns={0: 'factored_pcs'}, inplace=True)
 print pcs_totals.dtypes
-# Floating point arithmetic means so we need to round yet again woop
-#pcs_totals['factored_pcs'] = pcs_totals['factored_pcs'].apply(lambda x: round(x, 2))
-
 
 # 2 - IMPORT ELEMENT SCORES AND BUILT TOTAL TES FOR EACH SKATER
-elt_scores_df = pd.read_csv(dir_path+'scores_1806261.csv',
-                            names=['elt_id', 'discipline', 'category', 'season', 'event','sub_event', 'skater_name',
-                                   'segment', 'elt_name', 'level', 'h2', 'elt_bv', 'elt_sov_goe', 'elt_total'],
+elt_scores_df = pd.read_csv(dir_path+'scores_1807161.csv',
+                            names=['elt_id', 'index', 'discipline', 'category', 'season', 'event','sub_event',
+                                   'skater_name', 'segment', 'elt_name', 'elt_type', 'level', 'no_positions', 'h2',
+                                   'elt_bv', 'elt_sov_goe', 'elt_total'],
                             skiprows=1, dtype=types_dic, converters=decs_dic)
 
 elt_totals = elt_scores_df.fillna('None').groupby(key_cols).apply(decimal_sum,'elt_total').reset_index()
 elt_totals.rename(columns={0: 'tes_total'}, inplace=True)
-# Floating point arithmetic means so we need to round yet again woop
-#elt_totals['elt_total'] = elt_totals['elt_total'].apply(lambda x: round(x, 2))
+
 
 # 3 - IMPORT DEDUCTIONS AND BUILD TOTAL DEDUCTIONS FOR EACH SKATER
-ded_df = pd.read_csv(dir_path+'deductions_1806221.csv',
-                     names=['line_id', 'discipline', 'category', 'season', 'event', 'sub_event', 'skater_name',
+ded_df = pd.read_csv(dir_path+'deductions_1807161.csv',
+                     names=['line_id', 'index', 'discipline', 'category', 'season', 'event', 'sub_event', 'skater_name',
                             'segment', 'ded_type', 'ded_points'], skiprows=1, dtype=types_dic, converters=decs_dic)
 
 ded_totals = ded_df.fillna('None').groupby(key_cols).apply(decimal_sum,'ded_points').reset_index()
@@ -89,32 +90,27 @@ all_scores['total_score'] = all_scores\
            axis=1)
 
 # 5 - IMPORT SCRAPED TOTALS AND CALCULATE IMPLIED DEDUCTIONS
-scraped_df = pd.read_csv(dir_path+'scrapedtotals_1806221.csv',
-                         names=['discipline', 'category', 'season', 'event', 'sub_event', 'skater_name', 'segment',
-                                'scraped_pcs', 'scraped_tes', 'scraped_total'], skiprows=1, dtype=types_dic,
-                         converters=decs_dic)
+scraped_df = pd.read_csv(dir_path+'scrapedtotals_1807161.csv',
+                         names=['line_id', 'index', 'discipline', 'category', 'season', 'event', 'sub_event',
+                                'skater_name', 'segment', 'scraped_pcs', 'scraped_tes', 'scraped_total'],
+                         skiprows=1, dtype=types_dic, converters=decs_dic)
 
 scraped_df = scraped_df.fillna('None')
 scraped_df['scraped_ded'] = scraped_df\
     .apply(lambda x: dec.Decimal(x['scraped_total'] - x['scraped_tes'] - x['scraped_pcs'])
            .quantize(dec.Decimal('0.00')), axis=1)
 
-#scraped_df.to_csv(dir_path + 'cleanscrape_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
-
 # 6 - JOIN SCRAPED TO COMPUTED AND COMPARE
 scores_diff = all_scores.join(scraped_df.set_index(key_cols), on=key_cols, how='left', lsuffix='_calc',
                               rsuffix='_scrape')
 
-
-#all_scores.fillna('0', inplace=True)
-
 print scores_diff.dtypes
 
-scores_diff['pcs_diff'] = scores_diff.apply(lambda x: dec.Decimal(x['scraped_pcs'] - x['factored_pcs'])
+scores_diff['pcs_diff'] = scores_diff.apply(lambda x: (dec.Decimal(x['scraped_pcs']) - dec.Decimal(x['factored_pcs']))
                                             .quantize(dec.Decimal('0.00')), axis=1)
-scores_diff['tes_diff'] = scores_diff.apply(lambda x: dec.Decimal(x['scraped_tes'] - x['tes_total'])
+scores_diff['tes_diff'] = scores_diff.apply(lambda x: (dec.Decimal(x['scraped_tes']) - dec.Decimal(x['tes_total']))
                                             .quantize(dec.Decimal('0.00')), axis=1)
-scores_diff['ded_diff'] = scores_diff.apply(lambda x: dec.Decimal(x['scraped_ded'] - x['ded_total'])
+scores_diff['ded_diff'] = scores_diff.apply(lambda x: (dec.Decimal(x['scraped_ded']) - dec.Decimal(x['ded_total']))
                                             .quantize(dec.Decimal('0.00')), axis=1)
 
 scores_diff.to_csv(dir_path + 'totalscores_' + date + ver + '.csv', mode='a', encoding='utf-8', header=True)
