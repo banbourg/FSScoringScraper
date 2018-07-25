@@ -9,7 +9,7 @@ conn = psycopg2.connect(database="fsscores_2010", user="cpouletty", password="In
         host="fsdb.c3ldus0yxoex.eu-west-1.rds.amazonaws.com", port="5432")
 
 cur = conn.cursor()
-print 'connected to aws database'
+print('connected to aws database')
 
 # cur.execute("""
 # CREATE TABLE judges_180717(
@@ -56,12 +56,12 @@ CREATE TABLE elt_scores_180717(
 UPDATE elt_scores_180717 SET level = cast(nullif(level, '') AS smallint);
 UPDATE elt_scores_180717 SET h2 = cast(nullif(h2, '') AS smallint);
 """)
-print 'created scores table'
+print('created scores table')
 f = open(r'/users/clarapouletty/desktop/bias/output/scores_'+date+ver+'.csv', 'r')
 f.readline()
 cur.copy_from(f, 'elt_scores_180717', sep=',')
 f.close()
-print 'populated scores table'
+print('populated scores table')
 
 cur.execute("""
 CREATE TABLE pcs_180717(
@@ -79,12 +79,12 @@ CREATE TABLE pcs_180717(
     pcs float(1)
     );
 """)
-print 'created pcs table'
+print('created pcs table')
 f = open(r'/users/clarapouletty/desktop/bias/output/pcs_'+date+ver+'.csv', 'r')
 f.readline()
 cur.copy_from(f, 'pcs_180717', sep=',')
 f.close()
-print 'populated pcs table'
+print('populated pcs table')
 
 cur.execute("""
 CREATE TABLE goe_180717(
@@ -103,12 +103,12 @@ CREATE TABLE goe_180717(
     );
 UPDATE goe_180717 SET goe = cast(goe AS smallint);
 """)
-print 'created goe table'
+print('created goe table')
 f = open(r'/users/clarapouletty/desktop/bias/output/goe_'+date+ver+'.csv', 'r')
 f.readline()
 cur.copy_from(f, 'goe_180717', sep=',')
 f.close()
-print 'populated goe table'
+print('populated goe table')
 
 cur.execute("""
 CREATE TABLE competitors_180717(
@@ -120,12 +120,12 @@ CREATE TABLE competitors_180717(
     country text
     );
 """)
-print 'created competitors table'
+print('created competitors table')
 f = open(r'/users/clarapouletty/desktop/bias/output/competitors_'+date+ver+'.csv', 'r')
 f.readline()
 cur.copy_from(f, 'competitors_180717', sep=',')
 f.close()
-print 'populated competitors table'
+print('populated competitors table')
 
 cur.execute("""
 CREATE TABLE calls_180717(
@@ -193,12 +193,12 @@ UPDATE calls_180717
   missing_reqs = cast(missing_reqs AS smallint)
   ;
 """)
-print 'created calls table'
+print('created calls table')
 f = open(r'/users/clarapouletty/desktop/bias/output/calls_'+date+ver+'.csv', 'r')
 f.readline()
 cur.copy_from(f, 'calls_180717', sep=',', null='')
 f.close()
-print 'populated calls table'
+print('populated calls table')
 
 cur.execute("""
 CREATE TABLE deductions_180717(
@@ -215,12 +215,12 @@ CREATE TABLE deductions_180717(
     ded_points float(1)
     );
 """)
-print 'created deductions table'
+print('created deductions table')
 f = open(r'/users/clarapouletty/desktop/bias/output/deductions_'+date+ver+'.csv', 'r')
 f.readline()
 cur.copy_from(f, 'deductions_180717', sep=',')
 f.close()
-print 'populated deductions table'
+print('populated deductions table')
 
 cur.execute("""
 CREATE TABLE total_scores_180717(
@@ -246,12 +246,12 @@ CREATE TABLE total_scores_180717(
     ded_diff float(1)
     );
 """)
-print 'created total scores table'
+print('created total scores table')
 f = open(r'/users/clarapouletty/desktop/bias/output/totalscores_180716'+ver+'.csv', 'r')
 f.readline()
 cur.copy_from(f, 'total_scores_180717', sep=',')
 f.close()
-print 'populated total scores table'
+print('populated total scores table')
 
 
 conn.commit()

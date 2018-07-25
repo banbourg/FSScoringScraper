@@ -40,7 +40,7 @@ def main():
                 search = 'https://www.google.co.uk/search?q=isu+results+' + search_event + '+' + str(search_year)
             else:
                 search = 'https://www.google.co.uk/search?q=jsf+results+index+' + search_event + '+' + str(search_year)
-            print search
+            print(search)
 
             r = requests.get(search)
             html = BeautifulSoup(r.text, 'html.parser')
@@ -62,10 +62,10 @@ def main():
                 # Note: Using the google search method bc url construction is not uniform over time.
                 if 'isuresults' in link or 'jsfresults' in link:
                     if (isu_name in link or wtt_name in link) and 'pdf' not in link:
-                        print 'google link passed tests:', link
+                        print('google link passed tests:', link)
                         google_link_list.append((event_dic[search_event], search_year, season, link))
                         break
-    print google_link_list
+    print(google_link_list)
 
     # STEP 2: On each page, locate the 4 (or 8 at OWG) links to the singles judging panels
     all_judges = []
@@ -81,7 +81,7 @@ def main():
         for a in event_page.find_all('a'):
             event_domain = link.replace('index.htm', '')
             segment_page = a.get('href')
-            print segment_page
+            print(segment_page)
 
             if segment_page is not None and ('.htm' in segment_page or '.HTM' in segment_page) and \
                     'index' not in segment_page:
@@ -110,7 +110,7 @@ def main():
                     subtitle = []
 
                 if title in search_captions and 'Panel of' in subtitle:
-                    print event, title, subtitle
+                    print(event, title, subtitle)
 
                     # SET SEGMENT, SUB EVENT, DISCIPLINE AND CATEGORY
                     segment = 'SP' if 'Short' in title else 'FS'
@@ -120,15 +120,15 @@ def main():
 
                     # EXTRACT DATA AND CLEAN IT: First, names and roles
                     raw_roles = [re.sub(r'[\n]+', '', td.get_text()) for td in html.find_all('td')]
-                    raw_roles = filter(None, [entry.replace(u'\xa0', u' ').replace(u'\xd6', u'OE').
-                                       replace(u'\xf6', u'oe').strip() for entry in raw_roles])
-                    print 'raw roles: ', raw_roles
+                    raw_roles = [_f for _f in [entry.replace('\xa0', ' ').replace('\xd6', 'OE').
+                                       replace('\xf6', 'oe').strip() for entry in raw_roles] if _f]
+                    print('raw roles: ', raw_roles)
 
                     segment_judges = []
 
                     # Find increment (sometimes country appears twice)
-                    indices = [raw_roles.index(r) for r in [u'Referee', u'Technical Controller',
-                                                            u'Technical Controller']]
+                    indices = [raw_roles.index(r) for r in ['Referee', 'Technical Controller',
+                                                            'Technical Controller']]
                     first_entry = min(indices)
                     incr = 4 if (raw_roles[first_entry+2] == raw_roles[first_entry+3]) else 3
                     last = 16 * incr
@@ -164,9 +164,9 @@ def main():
                             segment_judges.append((season, year, event, sub_event, discipline, category, segment,
                                                    role, name, raw_roles[i+2]))
                     except IndexError:
-                        print 'too few officials in ', event, year, discipline, category, segment
+                        print('too few officials in ', event, year, discipline, category, segment)
 
-                    print 'segment judges: ', segment_judges
+                    print('segment judges: ', segment_judges)
                     event_judges.extend(segment_judges)
 
         all_judges.extend(event_judges)

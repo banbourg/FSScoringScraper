@@ -59,7 +59,7 @@ def decimal_sum(group, source_col):
 
 pcs_totals = pcs_tmeans.groupby(key_cols).apply(decimal_sum, 'factored_mean').reset_index()
 pcs_totals.rename(columns={0: 'factored_pcs'}, inplace=True)
-print pcs_totals.dtypes
+print(pcs_totals.dtypes)
 
 # 2 - IMPORT ELEMENT SCORES AND BUILT TOTAL TES FOR EACH SKATER
 elt_scores_df = pd.read_csv(dir_path+'scores_1807161.csv',
@@ -104,7 +104,7 @@ scraped_df['scraped_ded'] = scraped_df\
 scores_diff = all_scores.join(scraped_df.set_index(key_cols), on=key_cols, how='left', lsuffix='_calc',
                               rsuffix='_scrape')
 
-print scores_diff.dtypes
+print(scores_diff.dtypes)
 
 scores_diff['pcs_diff'] = scores_diff.apply(lambda x: (dec.Decimal(x['scraped_pcs']) - dec.Decimal(x['factored_pcs']))
                                             .quantize(dec.Decimal('0.00')), axis=1)
