@@ -5,6 +5,9 @@ import psycopg2
 
 date = '180717'
 ver = '1'
+filepath = '/users/clarapouletty/desktop/bias/output/'
+
+
 conn = psycopg2.connect(database="fsscores_2010", user="cpouletty", password="Ins1d10us",
         host="fsdb.c3ldus0yxoex.eu-west-1.rds.amazonaws.com", port="5432")
 
@@ -12,7 +15,9 @@ cur = conn.cursor()
 print('connected to aws database')
 
 # cur.execute("""
-# CREATE TABLE judges_180717(
+# DROP TABLE IF EXISTS judges_OLD;
+# ALTER TABLE judges RENAME judges_OLD;
+# CREATE TABLE judges(
 #     elt_id text PRIMARY KEY,
 #     season text,
 #     year smallint,
@@ -27,14 +32,16 @@ print('connected to aws database')
 #     );
 # """)
 # print 'created judges table'
-# f = open(r'/users/clarapouletty/desktop/bias/output/judges_'+date+ver+'.csv', 'r')
+# f = open(filepath + 'judges_'+ date + ver + '.csv', 'r')
 # f.readline()
-# cur.copy_from(f, 'judges_180619', sep=',')
+# cur.copy_from(f, 'judges', sep=',')
 # f.close()
 # print 'populated judges table'
 
 cur.execute("""
-CREATE TABLE elt_scores_180717(
+DROP TABLE IF EXISTS elt_scores_OLD;
+ALTER TABLE elt_scores RENAME elt_scores_OLD;
+CREATE TABLE elt_scores(
     elt_id text PRIMARY KEY,
     index text,
     discipline text,
@@ -53,18 +60,20 @@ CREATE TABLE elt_scores_180717(
     elt_sov_goe float(1),
     elt_total float(1)
     );
-UPDATE elt_scores_180717 SET level = cast(nullif(level, '') AS smallint);
-UPDATE elt_scores_180717 SET h2 = cast(nullif(h2, '') AS smallint);
+UPDATE elt_scores SET level = cast(nullif(level, '') AS smallint);
+UPDATE elt_scores SET h2 = cast(nullif(h2, '') AS smallint);
 """)
 print('created scores table')
-f = open(r'/users/clarapouletty/desktop/bias/output/scores_'+date+ver+'.csv', 'r')
+f = open(filepath + 'scores_' + date + ver + '.csv', 'r')
 f.readline()
-cur.copy_from(f, 'elt_scores_180717', sep=',')
+cur.copy_from(f, 'elt_scores', sep=',')
 f.close()
 print('populated scores table')
 
 cur.execute("""
-CREATE TABLE pcs_180717(
+DROP TABLE IF EXISTS pcs_OLD;
+ALTER TABLE pcs RENAME pcs_OLD;
+CREATE TABLE pcs(
     line_id integer PRIMARY KEY,
     component text,
     index text,
@@ -80,14 +89,16 @@ CREATE TABLE pcs_180717(
     );
 """)
 print('created pcs table')
-f = open(r'/users/clarapouletty/desktop/bias/output/pcs_'+date+ver+'.csv', 'r')
+f = open(filepath + 'pcs_' + date + ver + '.csv', 'r')
 f.readline()
-cur.copy_from(f, 'pcs_180717', sep=',')
+cur.copy_from(f, 'pcs', sep=',')
 f.close()
 print('populated pcs table')
 
 cur.execute("""
-CREATE TABLE goe_180717(
+DROP TABLE IF EXISTS goe_OLD;
+ALTER TABLE goe RENAME goe_OLD;
+CREATE TABLE goe(
     line_id integer PRIMARY KEY,
     elt_id text,
     index text,
@@ -101,17 +112,19 @@ CREATE TABLE goe_180717(
     judge text,
     goe float(1)
     );
-UPDATE goe_180717 SET goe = cast(goe AS smallint);
+UPDATE goe SET goe = cast(goe AS smallint);
 """)
 print('created goe table')
-f = open(r'/users/clarapouletty/desktop/bias/output/goe_'+date+ver+'.csv', 'r')
+f = open(filepath + 'goe_' + date + ver + '.csv', 'r')
 f.readline()
-cur.copy_from(f, 'goe_180717', sep=',')
+cur.copy_from(f, 'goe', sep=',')
 f.close()
 print('populated goe table')
 
 cur.execute("""
-CREATE TABLE competitors_180717(
+DROP TABLE IF EXISTS competitor_OLD;
+ALTER TABLE competitor RENAME competitor_OLD;
+CREATE TABLE competitors(
     line_id smallint PRIMARY KEY,
     season text,
     discipline text,
@@ -121,14 +134,16 @@ CREATE TABLE competitors_180717(
     );
 """)
 print('created competitors table')
-f = open(r'/users/clarapouletty/desktop/bias/output/competitors_'+date+ver+'.csv', 'r')
+f = open(filepath + 'competitors_' + date + ver + '.csv', 'r')
 f.readline()
-cur.copy_from(f, 'competitors_180717', sep=',')
+cur.copy_from(f, 'competitors', sep=',')
 f.close()
 print('populated competitors table')
 
 cur.execute("""
-CREATE TABLE calls_180717(
+DROP TABLE IF EXISTS calls_OLD;
+ALTER TABLE calls RENAME calls_OLD;
+CREATE TABLE calls(
     elt_id text PRIMARY KEY,
     index text,
     discipline text,
@@ -175,7 +190,7 @@ CREATE TABLE calls_180717(
     failed_spin float(1),
     missing_reqs float(1)
     );
-UPDATE calls_180717 
+UPDATE calls 
   SET j1_sev_edge = cast(j1_sev_edge AS smallint),
   j2_sev_edge = cast(j2_sev_edge AS smallint),
   j2_unc_edge = cast(j2_unc_edge AS smallint),
@@ -194,14 +209,16 @@ UPDATE calls_180717
   ;
 """)
 print('created calls table')
-f = open(r'/users/clarapouletty/desktop/bias/output/calls_'+date+ver+'.csv', 'r')
+f = open(filepath + 'calls_' + date + ver + '.csv', 'r')
 f.readline()
-cur.copy_from(f, 'calls_180717', sep=',', null='')
+cur.copy_from(f, 'calls', sep=',', null='')
 f.close()
 print('populated calls table')
 
 cur.execute("""
-CREATE TABLE deductions_180717(
+DROP TABLE IF EXISTS deductions_OLD;
+ALTER TABLE deductions RENAME deductions_OLD;
+CREATE TABLE deductions(
     line_id smallint PRIMARY KEY,
     index text,
     discipline text,
@@ -216,14 +233,16 @@ CREATE TABLE deductions_180717(
     );
 """)
 print('created deductions table')
-f = open(r'/users/clarapouletty/desktop/bias/output/deductions_'+date+ver+'.csv', 'r')
+f = open(filepath + 'deductions_' + date + ver + '.csv', 'r')
 f.readline()
-cur.copy_from(f, 'deductions_180717', sep=',')
+cur.copy_from(f, 'deductions', sep=',')
 f.close()
 print('populated deductions table')
 
 cur.execute("""
-CREATE TABLE total_scores_180717(
+DROP TABLE total_scores_OLD;
+ALTER TABLE total_scores RENAME total_scores_OLD;
+CREATE TABLE total_scores(
     line_id smallint PRIMARY KEY,
     index text,
     discipline text,
@@ -247,9 +266,9 @@ CREATE TABLE total_scores_180717(
     );
 """)
 print('created total scores table')
-f = open(r'/users/clarapouletty/desktop/bias/output/totalscores_180716'+ver+'.csv', 'r')
+f = open(filepath + 'totalscores_'+ date + ver + '.csv', 'r')
 f.readline()
-cur.copy_from(f, 'total_scores_180717', sep=',')
+cur.copy_from(f, 'total_scores', sep=',')
 f.close()
 print('populated total scores table')
 
