@@ -2,7 +2,7 @@
 
 import requests
 from bs4 import BeautifulSoup
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import os
 
 
@@ -36,7 +36,7 @@ for search_event in search_events:
         else:
             season = 'SB' + str(search_year - 1)
 
-        print search_event, search_year, season
+        print(search_event, search_year, season)
 
         for link in all_links:
             if "isuresults" in str(link):  # and "season" in str(link):
@@ -44,7 +44,7 @@ for search_event in search_events:
                 break
         search_year += 1
 
-print google_link_list
+print(google_link_list)
 
 
 
@@ -55,7 +55,7 @@ dir_path = os.path.expanduser('~/Desktop/bias/pdfs_with_check/new/')
 
 for (event, year, season, link) in google_link_list:
 
-    print event, year, season, link
+    print(event, year, season, link)
 
     response = requests.get('http://'+link, stream=True)
     event_page = BeautifulSoup(response.text, "html.parser")
@@ -66,7 +66,7 @@ for (event, year, season, link) in google_link_list:
     else:
         right_year = season[-4:]
 
-    print event, right_year
+    print(event, right_year)
 
     # Check that the top google result is for the right hear (avoids 'OWG 2016' search returning pyeongchang)
     # Note: Using the google search method bc url construction is not uniform over time.
@@ -79,18 +79,18 @@ for (event, year, season, link) in google_link_list:
                 else:
                     clean_link = link
                 full_url = "http://"+clean_link+url
-                print full_url
-                req = urllib2.Request(full_url)
-                res = urllib2.urlopen(req)
+                print(full_url)
+                req = urllib.request.Request(full_url)
+                res = urllib.request.urlopen(req)
                 pdf = open(dir_path + url, 'wb')
                 pdf.write(res.read())
                 pdf.close()
                 pdf_link_list.append(full_url)
             else:
-               print 'No discipline found in url: ', str(url)
+                print('No discipline found in url: ', str(url))
     else:
-        print 'Top google result for ', event, year, ' returned an incorrect link'
+        print('Top google result for ', event, year, ' returned an incorrect link')
 
-print pdf_link_list
+print(pdf_link_list)
 
 
