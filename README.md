@@ -10,4 +10,6 @@
 6. Create summary tables (to check for bugs in total score calculation) using generate_summary.py.
 7. Upload to RDS database using db_builder.py.
 
+## How to Use Data
 
+The analysis folder includes a Jupyter Notebook that has the initial setup to call the data from the database. Make a local copy of that notebook to use for your testing.
