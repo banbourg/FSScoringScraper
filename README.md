@@ -1,0 +1,13 @@
+# Figure Skating Scoring Scraper and Analysis
+
+## How to Use Scraper
+
+1. Clone the repository.
+2. Use score_fetcher.py to get pdfs.
+3. Use isu_judge_scraper.py to get judges.
+4. Convert pdfs to excel using http://pdftoxls.com/.
+5. Structure the data using transformer_xlsx.py. If fetching additional data, change to ‘header=False’ in the to_csv calls at the end of the script & add reindexing instruction. Amend input & output directories, date and version (nth time extracted on date) as needed, as well as filename trimmer in line 69 (slices filename from full path).
+6. Create summary tables (to check for bugs in total score calculation) using generate_summary.py.
+7. Upload to RDS database using db_builder.py.
+
+
