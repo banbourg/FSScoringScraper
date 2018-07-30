@@ -4,17 +4,20 @@ import pandas as pd
 import glob
 from sqlalchemy import create_engine
 
-filepath, date, ver = "/users/clarapouletty/desktop/bias/output/upload/", "180717", "1"
-un, pw = "cpouletty", "Ins1d10us"
-h, db, port = "fsdb.c3ldus0yxoex.eu-west-1.rds.amazonaws.com", "fsscores_2010", "5432"
-mode = "fail" #or "append"
+FILEPATH, DATE, VER, UN, PW = "", "", "", "", ""
+H, DB, PORT = "", "", ""
+MODE = "fail" #or "append"
+try:
+    from dev_settings import *
+except ImportError:
+    pass
 
-conn = psycopg2.connect(database=db, user=un, password=pw, host=h, port=port)
+conn = psycopg2.connect(database=DB, user=UN, password=PW, host=H, PORT=PORT)
 cur = conn.cursor()
-engine = create_engine("postgresql://" + un + ":" + pw + "@" + h + ":" + port + "/" + db, echo=True)
+engine = create_engine("postgresql://" + UN + ":" + PW + "@" + H + ":" + PORT + "/" + DB, echo=True)
 print("Engines created.")
 
-files = sorted(glob.glob(filepath + "*.csv"))
+files = sorted(glob.glob(FILEPATH + "*.csv"))
 for f in files:
         table_name = f.rpartition('_')[0].rpartition('/')[2]
 
@@ -29,7 +32,7 @@ for f in files:
         print(f"Removed old {table_name} table and renamed current to old.")
 
         # CREATE NEW TABLE
-        data.to_sql(table_name, engine, if_exists=mode, index=False)
+        data.to_sql(table_name, engine, if_exists=MODE, index=False)
         print(f"Populated {table_name} table.")
 
 cur.close()
