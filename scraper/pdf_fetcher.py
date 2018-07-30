@@ -7,8 +7,6 @@ import os
 import re
 
 
-
-
 # STEP 1: Find links to all event pages since ISU website is not mappable
 start_year = 2004
 search_events = ['russia', 'france', 'america', 'canada', 'europeans', 'wtt', 'china', 'nhk', 'russia', 'france', 'america', 'canada', 'GPF', 'continents', 'olympic', 'world'] #'bompard', 'china', 'nhk',
@@ -47,8 +45,7 @@ for search_event in search_events:
 
 print(google_link_list)
 
-
-#STEP 2: On each page, locate the 4 singles scoring pdfs and download them
+# STEP 2: On each page, locate the 4 singles scoring pdfs and download them
 pdf_link_list = []
 disciplines = {'Danc': 'Dance', 'Pairs': 'Pairs', '0403': 'Dance', '0405': 'Dance', '0303': 'Pairs', '0305': 'Pairs'} #['Ladies', 'Men']
 dir_path = os.path.expanduser('~/Desktop/bias/pdfs_with_check/pairs_id/')
@@ -68,14 +65,12 @@ for (event, year, season, link) in google_link_list:
 
     print(event, right_year)
 
-
     # Check that the top google result is for the right hear (avoids 'OWG 2016' search returning pyeongchang)
     # Note: Using the google search method bc url construction is not uniform over time.
-    if isu_name in link and (right_year in link or str(year)[-2:] in link): #('gpf'+str(year)[-2:] in link)):
+    if isu_name in link and (right_year in link or str(year)[-2:] in link):
         for sublink in event_page.find_all('a'):
             url = sublink.get('href')
             for discipline in disciplines:
-                #print 'discipline', discipline
                 if discipline in str(url):
                     if 'index.htm' in link:
                         clean_link = link.replace('index.htm','')
@@ -86,13 +81,13 @@ for (event, year, season, link) in google_link_list:
 
                     try:
                         res = urllib.request.urlopen(req)
-                    except urllib.request.HTTPError, e:
-                        print 'HTTPError = ', str(e.code), full_url
-                    except urllib.request.URLError, e:
-                        print 'URLError = ', str(e.reason), full_url
+                    except urllib.request.HTTPError as e:
+                        print('HTTPError = ', str(e.code), full_url)
+                    except urllib.request.URLError as e:
+                        print('URLError = ', str(e.reason), full_url)
                     except Exception:
                         import traceback
-                        print 'generic exception: ', traceback.format_exc(), full_url
+                        print('generic exception: ', traceback.format_exc(), full_url)
 
                     if re.search(r'data[0-9]+', url) is not None:
                         length = 'S' if discipline[2:] == '03' else 'F'
@@ -106,7 +101,7 @@ for (event, year, season, link) in google_link_list:
                     pdf.close()
                     pdf_link_list.append(full_url)
                 else:
-                   print('No discipline found in url: ', str(url))
+                    print('No discipline found in url: ', str(url))
     else:
         print('Top google result for ', event, year, ' returned an incorrect link')
 
