@@ -3,9 +3,12 @@
 import pandas as pd
 import decimal as dec
 
-# NOTE: CURRENTLY NOT SKIPPING ANY ROWS IN DED TABLE, DON"T FORGET TO CHANGE BACK
 DATE, VER = "180728", "1"
-DIRPATH = "/users/clarapouletty/desktop/bias/output/"
+READ_PATH = ""
+try:
+    from settings import *
+except ImportError:
+    pass
 
 pcs_factors = {"MenSP": "1", "MenFS": "2", "LadiesSP": "0.8", "LadiesFS": "1.6"}
 
