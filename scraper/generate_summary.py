@@ -3,8 +3,7 @@
 import pandas as pd
 import decimal as dec
 
-DATE, VER = "180728", "1"
-READ_PATH = ""
+DATE, VER, READ_PATH = "", "", ""
 try:
     from settings import *
 except ImportError:
