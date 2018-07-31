@@ -45,7 +45,7 @@ def factoring(row):
 
 
 # 1 --- IMPORT PCS TABLE AND BUILD TOTAL FACTORED PCS FOR EACH SKATER
-pcs_df = pd.read_csv(DIRPATH + "pcs_" + DATE + VER + ".csv", index_col=0, na_values="", dtype=types_dic,
+pcs_df = pd.read_csv(READ_PATH + "pcs_" + DATE + VER + ".csv", index_col=0, na_values="", dtype=types_dic,
                      converters=decs_dic)
 
 pcs_tmeans = pcs_df.fillna("None").groupby(key_cols + ["component"]).apply(trimmed_mean, "pcs").reset_index()
@@ -57,14 +57,14 @@ pcs_totals = pcs_tmeans.groupby(key_cols).apply(decimal_sum, "factored_mean").re
 pcs_totals.rename(columns={0: "factored_pcs"}, inplace=True)
 
 # 2 --- IMPORT ELEMENT SCORES AND BUILT TOTAL TES FOR EACH SKATER
-elt_scores_df = pd.read_csv(DIRPATH + "elt_scores_" + DATE + VER + ".csv", index_col=0, na_values="", dtype=types_dic,
+elt_scores_df = pd.read_csv(READ_PATH + "elt_scores_" + DATE + VER + ".csv", index_col=0, na_values="", dtype=types_dic,
                             converters=decs_dic)
 
 elt_totals = elt_scores_df.fillna("None").groupby(key_cols).apply(decimal_sum, "elt_total").reset_index()
 elt_totals.rename(columns={0: "tes_total"}, inplace=True)
 
 # 3 --- IMPORT DEDUCTIONS AND BUILD TOTAL DEDUCTIONS FOR EACH SKATER
-ded_df = pd.read_csv(DIRPATH + "deductions_" + DATE + VER + ".csv", index_col=0, na_values="", dtype=types_dic,
+ded_df = pd.read_csv(READ_PATH + "deductions_" + DATE + VER + ".csv", index_col=0, na_values="", dtype=types_dic,
                      converters=decs_dic)
 
 ded_totals = ded_df.fillna("None").groupby(key_cols)["ded_points"].sum().reset_index()
@@ -85,7 +85,7 @@ all_scores["total_score"] = all_scores.apply(lambda x: (dec.Decimal(x["factored_
 print(all_scores["total_score"])
 
 # 5 --- IMPORT SCRAPED TOTALS AND CALCULATE IMPLIED DEDUCTIONS
-scraped_df = pd.read_csv(DIRPATH + "scraped_totals_" + DATE + VER + ".csv", index_col=0, na_values="", dtype=types_dic,
+scraped_df = pd.read_csv(READ_PATH + "scraped_totals_" + DATE + VER + ".csv", index_col=0, na_values="", dtype=types_dic,
                          converters=decs_dic)
 
 scraped_df = scraped_df.fillna("None")
@@ -104,5 +104,5 @@ scores_diff["tes_diff"] = scores_diff.apply(lambda x: (dec.Decimal(x["scraped_te
 scores_diff["ded_diff"] = scores_diff.apply(lambda x: (dec.Decimal(x["scraped_ded"]) - dec.Decimal(x["ded_total"]))
                                             .quantize(dec.Decimal("0.00")), axis=1)
 
-scores_diff.to_csv(DIRPATH + "total_scores_" + DATE + VER + ".csv", mode="a", encoding="utf-8", header=True)
+scores_diff.to_csv(READ_PATH + "total_scores_" + DATE + VER + ".csv", mode="a", encoding="utf-8", header=True)
 
