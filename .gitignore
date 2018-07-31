@@ -1,0 +1,6 @@
+# Files to ignore
+settings.py
+
+# Folders to ignore
+.idea/
+.ipynb_checkpoints/
