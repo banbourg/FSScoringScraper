@@ -4,11 +4,11 @@ import pandas as pd
 import glob
 from sqlalchemy import create_engine
 
-FILEPATH, DATE, VER, UN, PW = "", "", "", "", ""
+READ_PATH, DATE, VER, UN, PW = "", "", "", "", ""
 H, DB, PORT = "", "", ""
 MODE = "fail" #or "append"
 try:
-    from dev_settings import *
+    from settings import *
 except ImportError:
     pass
 
@@ -17,7 +17,7 @@ cur = conn.cursor()
 engine = create_engine("postgresql://" + UN + ":" + PW + "@" + H + ":" + PORT + "/" + DB, echo=True)
 print("Engines created.")
 
-files = sorted(glob.glob(FILEPATH + "*.csv"))
+files = sorted(glob.glob(READ_PATH + "*.csv"))
 for f in files:
         table_name = f.rpartition('_')[0].rpartition('/')[2]
 
