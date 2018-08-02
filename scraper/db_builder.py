@@ -4,7 +4,7 @@ import pandas as pd
 import glob
 from sqlalchemy import create_engine
 
-READ_PATH, DATE, VER, UN, PW = "", "", "", "", ""
+READ_PATH, UN, PW = "", "", ""
 H, DB, PORT = "", "", ""
 MODE = "fail" #or "append"
 try:
@@ -12,7 +12,7 @@ try:
 except ImportError:
     pass
 
-conn = psycopg2.connect(database=DB, user=UN, password=PW, host=H, PORT=PORT)
+conn = psycopg2.connect(database=DB, user=UN, password=PW, host=H, port=PORT)
 cur = conn.cursor()
 engine = create_engine("postgresql://" + UN + ":" + PW + "@" + H + ":" + PORT + "/" + DB, echo=True)
 print("Engines created.")
@@ -20,8 +20,13 @@ print("Engines created.")
 files = sorted(glob.glob(READ_PATH + "*.csv"))
 for f in files:
         table_name = f.rpartition('_')[0].rpartition('/')[2]
+        print(table_name)
 
-        data = pd.read_csv(f, na_values='', low_memory=False)
+        parse_setting = False if table_name in ["competitors", "judges"] else ["event_start_date"]
+        infer_setting = False if table_name in ["competitors", "judges"] else True
+
+        data = pd.read_csv(f, na_values='', low_memory=False, parse_dates=parse_setting,
+                           infer_datetime_format=infer_setting)
         data.rename(columns={"Unnamed: 0": "line_id"}, inplace=True)
 
         old, new = sql.Identifier(table_name + "_old"), sql.Identifier(table_name)
@@ -32,8 +37,12 @@ for f in files:
         print(f"Removed old {table_name} table and renamed current to old.")
 
         # CREATE NEW TABLE
-        data.to_sql(table_name, engine, if_exists=MODE, index=False)
-        print(f"Populated {table_name} table.")
+        try:
+            data.to_sql(table_name, engine, chunksize=10000, if_exists=MODE, index=False)
+            print(f"Populated {table_name} table.")
+        except ValueError:
+            print(f"Could not populate {table_name} table, as it already exists")
+            pass
 
 cur.close()
 conn.close()
