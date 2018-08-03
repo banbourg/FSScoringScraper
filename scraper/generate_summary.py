@@ -76,12 +76,10 @@ ded_totals["ded_total"] = ded_totals.apply(lambda x: dec.Decimal(x["ded_total"])
 all_scores = pcs_totals.join(elt_totals.set_index(key_cols), on=key_cols, how="left", lsuffix="_pcs", rsuffix="_tes")
 all_scores = all_scores.join(ded_totals.set_index(key_cols), on=key_cols, how="left", lsuffix="_ded", rsuffix="_rest")
 all_scores.fillna(0, inplace=True)
-print(all_scores.dtypes)
 
 all_scores["total_score"] = all_scores.apply(lambda x: (dec.Decimal(x["factored_pcs"]) + dec.Decimal(x["tes_total"]) +
                                                         dec.Decimal(x["ded_total"])).quantize(dec.Decimal("0.00")),
                                              axis=1)
-print(all_scores["total_score"])
 
 # 5 --- IMPORT SCRAPED TOTALS AND CALCULATE IMPLIED DEDUCTIONS
 scraped_df = pd.read_csv(READ_PATH + "scraped_totals_" + DATE + VER + ".csv", index_col=0, na_values="", dtype=types_dic,
