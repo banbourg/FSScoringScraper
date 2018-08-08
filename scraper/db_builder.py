@@ -3,13 +3,15 @@ import psycopg2
 import pandas as pd
 import glob
 from sqlalchemy import create_engine
+import sys
 
 READ_PATH, UN, PW = "", "", ""
 H, DB, PORT = "", "", ""
 MODE = "fail" #or "append"
 try:
     from settings import *
-except ImportError:
+except ImportError as exc:
+    sys.stderr.write("Error: failed to import module ({})".format(exc))
     pass
 
 
@@ -48,9 +50,9 @@ def main():
 
         data = pd.read_csv(f, na_values='', low_memory=False, parse_dates=parse_setting,
                            infer_datetime_format=infer_setting)
-        upload_new_table(conn, cur, engine, data, table_name)
+        upload_new_table(cur, conn, engine, data, table_name)
 
     cur.close()
     conn.close()
 
-# main()
+main()

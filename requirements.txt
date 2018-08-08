@@ -2,9 +2,10 @@
 # https://github.com/damnever/pigar
 
 # analysis/normality_tests.py: 4
-# analysis/season_trajectory_analysis.py: 4
+# analysis/season_trajectory_analysis.py: 6
 # analysis/variance_analysis.py: 4
 # scraper/db_builder.py: 5
+# scraper/one_off_changes/one_off_missing_ded_append.py: 5
 SQLAlchemy == 1.2.7
 
 # scraper/isu_judge_scraper.py: 4
@@ -27,10 +28,14 @@ openpyxl == 2.5.3
 # scraper/generate_summary.py: 3
 # scraper/isu_judge_scraper.py: 7
 # scraper/one_off_changes/one_off_date_join.py: 1
+# scraper/one_off_changes/one_off_encoding_fix.py: 2
+# scraper/one_off_changes/one_off_missing_ded_append.py: 4
+# scraper/pdf_fetcher.py: 9
 # scraper/transformer_xlsx.py: 7
 pandas == 0.23.0
 
 # scraper/db_builder.py: 1,2
+# scraper/one_off_changes/one_off_missing_ded_append.py: 3
 psycopg2 == 2.7.5
 
 # scraper/isu_judge_scraper.py: 3
