@@ -112,9 +112,10 @@ for (event, year, season, link) in google_link_list:
                 pass
 
         print(event_start_date.year, right_year)
+
         if int(event_start_date.year) == int(right_year):
 
-            # date_list.append((event, season, event_start_date)) # -- only useful for creating date list (one-off)
+            date_list.append((event, season, event_start_date)) # -- only useful for creating date list (one-off)
 
             # --- b. Fetch and download pdfs
             for sublink in event_page.find_all("a"):
@@ -162,5 +163,4 @@ print(pdf_link_list)
 # # Wrote this to create standalone list of dates to join to existing tables. Not needed in normal operation.
 # dates_df = pd.DataFrame.from_records(date_list, index=None, columns=["event", "season", "event_start_date"])
 # dates_df.drop_duplicates(keep='first', inplace=True)
-# print("DUPES", dates_df[dates_df.duplicated(subset=["event", "season"], keep=False)])
 # dates_df.to_csv(WRITE_PATH + "dates" + "_" + DATE + VER + ".csv", mode="w", encoding="utf-8", header=True)
