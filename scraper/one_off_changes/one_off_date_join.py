@@ -1,5 +1,6 @@
 import pandas as pd
 import glob
+import sys
 
 READ_PATH, WRITE_PATH, DATE, VER = "", "", "", ""
 DATE_PATH = ""
@@ -27,7 +28,7 @@ def join_dates(a_df, date_df):
 
 
 def main():
-    dates = pd.read_csv(DATE_PATH, index_col=False)
+    dates = pd.read_csv(DATE_PATH, index_col=0)
     files = sorted(glob.glob(READ_PATH + "*.csv"))
 
     for f in files:
