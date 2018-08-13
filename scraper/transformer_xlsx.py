@@ -1,5 +1,4 @@
 #!/bin/env python
-# coding: utf-8
 
 import os
 import glob
@@ -7,15 +6,19 @@ import re
 import pandas as pd
 from openpyxl import load_workbook
 import numpy as np
+from datetime import datetime
+import sys
 
-# TO DOs: (1) Fix missing deductions
-
-read_path = os.path.expanduser('~/Desktop/bias/pdftoxls/test/')
-write_path = os.path.expanduser('~/Desktop/bias/output/')
+READ_PATH, WRITE_PATH, DATE, VER = "", "", "", ""
+try:
+    from settings import *
+except ImportError as exc:
+    sys.stderr.write("Error: failed to import module ({})".format(exc))
+    pass
 
 event_dic = {'gpjpn': 'NHK', 'gpfra': 'TDF', 'gpcan': 'SC', 'gprus': 'COR', 'gpusa': 'SA', 'gpchn': 'COC',
              'gpf': 'GPF', 'wc': 'WC', 'fc': '4CC', 'owg': 'OWG', 'wtt': 'WTT', 'sc': 'SC', 'ec': 'EC', 'sa': 'SA',
-             'jgpfra': 'JGPFRA'}
+             'jgpfra': 'JGPFRA', 'nhk': 'NHK'}
 calls = ['!', 'e', '<', '<<', '*', '+REP', 'V1', 'V2', 'x', 'X', 'V']
 ded_types = ['falls', 'time violation', 'costume failure', 'late start', 'music violation',
              'interruption in excess', 'costume & prop violation', 'illegal element/movement']
@@ -70,6 +73,8 @@ def add_segment_identifiers(df, identifiers, segment_competitors_list, segment_e
     df.set_index('skater_name', append=True, inplace=True)
     df['segment'] = identifiers[5]
     df.set_index('segment', append=True, inplace=True)
+    df['event_start_date'] = identifiers[6]
+    df.set_index('event_start_date', append=True, inplace=True)
 
 
 def clean_ded_row(row):
@@ -112,10 +117,10 @@ def clean_ded_row(row):
 
 
 def main():
-    year_regex = re.compile(r'\d+')
     combo_regex = re.compile(r'\+[0-9]')
 
-    files = sorted(glob.glob(read_path + '*.xlsx'))
+#    files = sorted(glob.glob(READ_PATH + '*.xlsx'))
+    files = sorted(glob.glob(READ_PATH + '*.pdf'))
 
     all_scraped_totals_list = []
     all_scores_list = []
@@ -126,53 +131,43 @@ def main():
     all_competitors_list = []
 
     for f in files:
-        filename = f[48:]  # 43
-        name_order = 'unknown' # we use this as a flag later on so we don't have to keep rechecking
+        filename = f[55:]  # 43 # 48
+        print(filename)
 
-        # 1. DERIVE YEAR
-        year_list = [x for x in year_regex.findall(filename)]
-
-        if len(year_list) > 1:
-            print('Error - MULTIPLE YEARS LISTED IN FILENAME ', filename)
-            exit()
-        else:
-            year_data = year_list[0]
-            if len(year_data) <= 2:
-                event_year = 2000 + int(year_data)
-            elif len(year_data) == 4 and year_data[:2] == '20':
-                event_year = int(year_data)
-            elif len(year_data) == 4 and int(year_data[:2]) == (int(year_data[-2:]) - 1):
-                event_year = 2000 + int(year_data[:2])
-            else:
-                print('Error - SOMETHING WONKY WITH DATE FORMATTING IN FILENAME ', filename)
-                exit()
+        # 1. DERIVE YEAR AND EVENT START DATE
+        event_start_date = datetime.strptime(filename.partition("_")[0], "%y%m%d").date()
+        event_year = event_start_date.year
 
         # 2. DERIVE EVENT & SUB EVENT
-        event = event_dic[return_isu_abbrev(filename.lower())]
-        if 'Team' in filename:
-            sub_event = 'team'
-        elif 'Preliminary' in filename or 'Q' in filename:
-            sub_event = 'qual'
-        else:
-            sub_event = ''
+        event = event_dic[return_isu_abbrev(filename.partition("_")[2].lower())]
+        sub_event_dic = {"Team": "team", "Preliminary": "qual", "QA": "qual_1", "QB": "qual_2"}
+        try:
+            sub_event = [sub_event_dic[se] for se in sub_event_dic if se in filename][0]
+        except IndexError:
+            sub_event = ""
 
         # 3. DERIVE SEASON
-        if event in ['4CC', 'OWG', 'WC', 'WTT', 'EC']:
+        if event in ["4CC", "OWG", "WC", "WTT", "EC"]:
             season = "SB" + str(event_year - 1)
         else:
             season = "SB" + str(event_year)
 
         # 4. TAG SEGMENT
-        segment = 'SP' if 'SP' in filename else 'FS'
+        segment_dic = {"SP": "SP", "FS": "FS", "SD": "SD", "FP": "FS", "FD": "FD", "OD": "OD", "CD": "CD", "RD": "RD",
+                       "QA": "FS", "QB": "FS"}
+        segment = [segment_dic[s] for s in segment_dic if s in filename][0]
 
         # 5. TAG DISCIPLINE AND CATEGORY
-        discipline = 'Men' if 'Men' in filename else 'Ladies'
+        discipline_dic = {"Danc": "Ice Dance", "Pairs": "Pairs", "Men": "Men", "Ladies": "Ladies"}
+        discipline = [discipline_dic[d] for d in discipline_dic if d in filename][0]
         category = 'Jr' if 'Junior' in filename else 'Sr'
+
         dc_short = category + discipline[0]
 
-        identifiers = [discipline, category, season, event, sub_event, segment]
+        identifiers = [discipline, category, season, event, sub_event, segment, event_start_date]
 
-        print('SUMMARY: ', filename, season, event, sub_event, event_year, discipline, category, segment)
+        print("SUMMARY:", filename, season, event, sub_event, event_year, discipline, category, segment,
+              event_start_date)
 
         wb = load_workbook(f)
         segment_scraped_totals_list = []
@@ -227,7 +222,6 @@ def main():
                 for j in raw_df.columns:
 
                     # SCRAPE COMPETITOR NAME
-
                     if 'Name' in str(raw_df.iloc[i, j]):
                         name_row = []
                         for k in range(i + 2, i + 5):
@@ -647,19 +641,17 @@ def main():
     all_competitors_df = all_competitors_df.reset_index(drop=True)
     print('competitors df concatenated')
 
-    date = '180717'
-    ver = '1'
     header_setting = True
-    all_scraped_totals_df.to_csv(write_path + 'scrapedtotals_' + date + ver + '.csv', mode='a', encoding='utf-8',
+    all_scraped_totals_df.to_csv(WRITE_PATH + 'scraped_totals_' + DATE + VER + '.csv', mode='a', encoding='utf-8',
                                  header=header_setting)
-    all_scores_df.to_csv(write_path + 'scores_' + date + ver + '.csv', mode='a', encoding='utf-8',
+    all_scores_df.to_csv(WRITE_PATH + 'elt_scores_' + DATE + VER + '.csv', mode='a', encoding='utf-8',
                          header=header_setting)
-    all_pcs_df.to_csv(write_path + 'pcs_' + date + ver + '.csv', mode='a', encoding='utf-8', header=header_setting)
-    all_goe_df.to_csv(write_path + 'goe_' + date + ver + '.csv', mode='a', encoding='utf-8', header=header_setting)
-    all_calls_df.to_csv(write_path + 'calls_' + date + ver + '.csv', mode='a', encoding='utf-8', header=header_setting)
-    all_deductions_df.to_csv(write_path + 'deductions_' + date + ver + '.csv', mode='a', encoding='utf-8',
+    all_pcs_df.to_csv(WRITE_PATH + 'pcs_' + DATE + VER + '.csv', mode='a', encoding='utf-8', header=header_setting)
+    all_goe_df.to_csv(WRITE_PATH + 'goe_' + DATE + VER + '.csv', mode='a', encoding='utf-8', header=header_setting)
+    all_calls_df.to_csv(WRITE_PATH + 'calls_' + DATE + VER + '.csv', mode='a', encoding='utf-8', header=header_setting)
+    all_deductions_df.to_csv(WRITE_PATH + 'deductions_' + DATE + VER + '.csv', mode='a', encoding='utf-8',
                              header=header_setting)
-    all_competitors_df.to_csv(write_path + 'competitors_' + date + ver + '.csv', mode='a', encoding='utf-8',
+    all_competitors_df.to_csv(WRITE_PATH + 'competitors_' + DATE + VER + '.csv', mode='a', encoding='utf-8',
                               header=header_setting)
 
     # WHERE DEDUCTIONS ARE MISSING (BC THEY DISAPPEARED IN THE CONVERSION FROM PDF TO XLS), ADD THE TOTALS AS
@@ -673,12 +665,12 @@ def main():
     ded_comparison = all_scraped_totals_df.join(ded_totals.set_index(key_cols), on=key_cols, how='left', lsuffix='_pcs',
                             rsuffix='_tes').fillna(0)
     ded_comparison['ded_type'] = 'unknown'
-    ded_comparison.to_csv(write_path + 'ded_comp_' + date + ver + '.csv', mode='a', encoding='utf-8',
+    ded_comparison.to_csv(WRITE_PATH + 'ded_comp_' + DATE + VER + '.csv', mode='a', encoding='utf-8',
                           header=header_setting)
     ded_comparison['ded_diff'] = ded_comparison.apply(lambda x: int(round(x['derived_ded'] - x['ded_points'], 0)), axis=1)
     ded_comparison.drop(labels=['derived_ded', 'ded_points'], axis=1, inplace=True)
     rows_to_append = ded_comparison.loc[ded_comparison['ded_diff'] != 0]
-    rows_to_append.to_csv(write_path + 'deductions_' + date + ver + '.csv', mode='a', encoding='utf-8',
+    rows_to_append.to_csv(WRITE_PATH + 'deductions_' + DATE + VER + '.csv', mode='a', encoding='utf-8',
                              header=False)
 
 main()
