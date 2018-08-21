@@ -63,3 +63,5 @@ requests == 2.18.4
 
 # analysis/normality_tests.py: 5
 scipy == 1.1.0
+
+recordlinkage == 0.12
