@@ -124,4 +124,4 @@ if __name__ == '__main__':
     df.set_index('line_id', inplace=True)
     df['name'] = df['name'].apply(lambda x: x.lower())
 
-    to_sql(merge(df, depair(linkage(df))))
+    to_sql(merge(df_clean, depair(linkage(df))))
