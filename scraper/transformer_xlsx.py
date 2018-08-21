@@ -77,6 +77,24 @@ def add_segment_identifiers(df, identifiers, segment_competitors_list, segment_e
     df.set_index('event_start_date', append=True, inplace=True)
 
 
+def split_name(full_name):
+    # Check name order
+    exploded_name = full_name.split(' ')
+
+    first_name_list, last_name_list = [], []
+    exploded_name = [word.replace('.', '') for word in exploded_name]
+    for word in exploded_name:
+        if len(word) > 1 and (str(word[1]).isupper() or str(word[:2]) == 'Mc'):
+            last_name_list.append(word)
+        else:
+            first_name_list.append(word)
+
+    first_name = ' '.join(first_name_list)
+    last_name = ' '.join(last_name_list)
+    short_last_name = ''.join(last_name_list)
+    return first_name, last_name, short_last_name
+
+
 def clean_ded_row(row):
     # Stringify and remove number of falls in brackets, split
     row = [re.sub(r'\(\d+\)', '', str(r)) for r in row]
@@ -244,20 +262,8 @@ def main():
                             name_row[0] = int(e_handler[0])
                             name_row.insert(1, e_handler[1])
 
-                        # Check name order
-                        exploded_name = name_row[1].split(' ')
+                        first_name, last_name, short_last_name = split_name(name_row[1])
 
-                        first_name_list, last_name_list = [], []
-                        exploded_name = [word.replace('.', '') for word in exploded_name]
-                        for word in exploded_name:
-                            if len(word) > 1 and (str(word[1]).isupper() or str(word[:2]) == 'Mc'):
-                                last_name_list.append(word)
-                            else:
-                                first_name_list.append(word)
-
-                        first_name = ' '.join(first_name_list)
-                        last_name = ' '.join(last_name_list)
-                        short_last_name = ''.join(last_name_list)
                         competitor_name = first_name + ' ' + last_name
                         # print competitor_name
 
@@ -673,4 +679,6 @@ def main():
     rows_to_append.to_csv(WRITE_PATH + 'deductions_' + DATE + VER + '.csv', mode='a', encoding='utf-8',
                              header=False)
 
-main()
+
+if __name__ == "__main__":
+    main()

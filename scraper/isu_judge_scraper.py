@@ -191,4 +191,5 @@ def main():
     df.to_csv(path + 'judges_1617to1718.csv', mode='a', header=True)
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -45,4 +45,5 @@ def main():
             with_dates.to_csv(WRITE_PATH + name + "_" + DATE + VER + ".csv", index_label=index_name, mode="w",
                               encoding="utf-8", header=True)
 
-main()
+if __name__ == "__main__":
+    main()

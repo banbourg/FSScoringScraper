@@ -8,6 +8,10 @@ import os
 
 # Pokemon list from here https://gist.github.com/armgilles/194bcff35001e7eb53a2a8b441e8b2c6
 
+# Ensure python can find modules for import
+p = os.path.abspath("/Users/clarapouletty/Desktop/bias/scripts/scraper/")
+if p not in sys.path:
+    sys.path.append(p)
 
 READ_PATH, UN, PW = "", "", ""
 H, DB, PORT = "", "", ""
@@ -15,6 +19,7 @@ MODE = "fail" #or "append"
 POKE_PATH = os.path.expanduser("~/Desktop/bias/pokemon.csv")
 try:
     from settings import *
+    from transformer_xlsx import split_name
 except ImportError as exc:
     sys.stderr.write("Error: failed to import module ({})".format(exc))
     pass
@@ -37,9 +42,12 @@ def pokemonizer(poke_names, data, table_name):
     col = data.columns.intersection(name_cols)
     names = data[col].drop_duplicates(keep='first')
     names = names[str(col[0])].tolist()
+    rev_names = [(split_name(n)[2] + split_name(n)[0]) for n in names]
 
-    poke_dict = dict(zip(names, poke_names))
-    data.replace(poke_dict, inplace=True)
+    poke_dict_1 = dict(zip(names, poke_names))
+    poke_dict_2 = dict(zip(rev_names, poke_names))
+    data.replace(poke_dict_1, inplace=True)
+    data.replace(poke_dict_2, inplace=True, regex=True)
     data.to_csv(WRITE_PATH + table_name + "_test.csv", mode="w", encoding="utf-8", header=True)
 
 
@@ -66,4 +74,5 @@ def main():
         pokemonizer(poke_names, data, table_name)
 
 
-main()
+if __name__ == "__main__":
+    main()

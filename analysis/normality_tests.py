@@ -13,7 +13,7 @@ WRITE_PATH = ""
 
 try:
     from settings import *
-    from scraper.generate_summary import trimmed_mean
+    from scraper import trimmed_mean
 except ImportError as ex:
     sys.stderr.write("Error: failed to import custom module ({})".format(ex))
     pass
