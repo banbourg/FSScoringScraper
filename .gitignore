@@ -1,6 +1,8 @@
 # Files to ignore
 settings.py
 .DS_Store
+pod_analysis.py #Clara: messy working file, may clean up later
+
 
 # Folders to ignore
 .idea/
