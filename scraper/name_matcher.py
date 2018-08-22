@@ -131,11 +131,11 @@ def to_sql(df, tablename):
     cursor.execute(sql.SQL(f"ALTER TABLE IF EXISTS {tablename} RENAME TO {tablename}_unmatched;"))
     conn.commit()
 
-    logger.info('Staged original table')
+    logger.info(f'Staged {tablename}')
 
     df.to_sql(tablename, conn, chunksize=10000, index=False)
 
-    logger.info('Insert updated table')
+    logger.info(f'Insert updated {tablename}: {len(df)} rows')
 
 
 if __name__ == '__main__':
@@ -145,11 +145,11 @@ if __name__ == '__main__':
     else:
         table = 'competitors'
 
-    logger.info('Load data')
+    logger.info(f'Load {table}')
 
     df_clean = pd.read_sql_query(f"Select * FROM {table}", conn)
 
-    logger.info('Initial data load complete')
+    logger.info(f'{table} loaded: {len(df_clean)} rows')
 
     df = df_clean.copy()
     df.set_index('line_id', inplace=True)
