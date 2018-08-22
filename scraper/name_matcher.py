@@ -1,9 +1,14 @@
+import logging
+import sys
+
 import numpy as np
 import pandas as pd
 import psycopg2
 import recordlinkage
 
-from init import settings
+from psycopg2 import sql
+
+import settings
 
 
 bad_matches = [
@@ -17,6 +22,14 @@ bad_matches = [
 
 conn = psycopg2.connect(database=settings.DB, user=settings.UN, password=settings.PW, host=settings.H,
                         port=settings.PORT)
+
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s"
+    , level=logging.INFO
+    , datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+logger = logging.getLogger(__name__)
 
 
 def bad_match(row):
@@ -49,6 +62,8 @@ def linkage(df):
 
     matched['bad_match'] = matched.apply(bad_match, axis=1)
 
+    logger.info('Linked names')
+
     return matched
 
 
@@ -56,7 +71,7 @@ def depair(df):
     d = {}
     check = 0
 
-    for index, row in df[df['bad_match'] is False].iterrows():
+    for index, row in df[df['bad_match'] == False].iterrows():
         if not d:
             d[row['line_id_1']] = []
             d[row['line_id_1']].append(row['line_id_1'])
@@ -86,6 +101,8 @@ def depair(df):
         for line_id in d[key]:
             id_pair[line_id] = key
 
+    logger.info('Depaired matches')
+
     return id_pair
 
 
@@ -107,21 +124,35 @@ def merge(df, pairs):
     return df_final
 
 
-def to_sql(df):
+def to_sql(df, tablename):
     cursor = conn.cursor()
 
-    cursor.execute(psycopg2.sql.SQL("DROP TABLE IF EXISTS competitors_unmatched;"))
-    cursor.execute(psycopg2.sql.SQL("ALTER TABLE IF EXISTS competitors RENAME TO competitors_unmatched;"))
+    cursor.execute(sql.SQL(f"DROP TABLE IF EXISTS {tablename}_unmatched;"))
+    cursor.execute(sql.SQL(f"ALTER TABLE IF EXISTS {tablename} RENAME TO {tablename}_unmatched;"))
     conn.commit()
 
-    df.to_sql('competitors', conn, chunksize=10000, index=False)
+    logger.info('Staged original table')
+
+    df.to_sql(tablename, conn, chunksize=10000, index=False)
+
+    logger.info('Insert updated table')
 
 
 if __name__ == '__main__':
 
-    df_clean = pd.read_sql_query("Select * FROM competitors", conn)
+    if len(sys.argv) == 2:
+        table = sys.argv[1]
+    else:
+        table = 'competitors'
+
+    logger.info('Load data')
+
+    df_clean = pd.read_sql_query(f"Select * FROM {table}", conn)
+
+    logger.info('Initial data load complete')
+
     df = df_clean.copy()
     df.set_index('line_id', inplace=True)
     df['name'] = df['name'].apply(lambda x: x.lower())
 
-    to_sql(merge(df_clean, depair(linkage(df))))
+    to_sql(merge(df_clean, depair(linkage(df))), table)
