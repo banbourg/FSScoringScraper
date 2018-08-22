@@ -7,6 +7,7 @@ import psycopg2
 import recordlinkage
 
 from psycopg2 import sql
+from sqlalchemy import create_engine
 
 import settings
 
@@ -22,6 +23,8 @@ bad_matches = [
 
 conn = psycopg2.connect(database=settings.DB, user=settings.UN, password=settings.PW, host=settings.H,
                         port=settings.PORT)
+
+engine = create_engine("postgresql://" + settings.UN + ":" + settings.PW + "@" + settings.H + ":" + settings.PORT + "/" + settings.DB, echo=True)
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s"
@@ -133,7 +136,7 @@ def to_sql(df, tablename):
 
     logger.info(f'Staged {tablename}')
 
-    df.to_sql(tablename, conn, chunksize=10000, index=False)
+    df.to_sql(tablename, engine, chunksize=10000, index=False)
 
     logger.info(f'Insert updated {tablename}: {len(df)} rows')
 
