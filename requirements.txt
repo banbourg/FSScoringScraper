@@ -17,12 +17,6 @@ beautifulsoup4 == 4.6.0
 # analysis/impute_falls.py: 7
 dash == 0.25.0
 
-# analysis/impute_falls.py: 8
-dash-core-components == 0.27.1
-
-# analysis/impute_falls.py: 9
-dash-html-components == 0.11.0
-
 # analysis/normality_tests.py: 7,8
 matplotlib == 2.2.2
 
@@ -44,7 +38,6 @@ openpyxl == 2.5.3
 # scraper/one_off_changes/one_off_encoding_fix.py: 2
 # scraper/one_off_changes/one_off_missing_ded_append.py: 4
 # scraper/one_off_changes/one_off_pokemonizer.py: 3
-# scraper/pdf_fetcher.py: 9
 # scraper/transformer_xlsx.py: 6
 pandas == 0.23.0
 

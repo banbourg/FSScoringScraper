@@ -9,4 +9,5 @@ pod_analysis.py
 .idea/
 .ipynb_checkpoints/
 __pycache__/
-
+docs
+# For now...
