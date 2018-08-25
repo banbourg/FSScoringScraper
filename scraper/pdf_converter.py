@@ -35,6 +35,7 @@ def generate_random_email(mail_browser):
     email = mail_browser.find("input").get("value")
     name = email.partition("@")[0]
     password = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(8))
+    logger.info(f"Generated temp-mail details: {email}, {name}, {password}")
     return email, name, password
 
 
@@ -49,11 +50,11 @@ def create_pdftables_account(pdf_browser, email, name, password):
         pdf_browser.submit_form(sign_up_form, submit="become-member")
         check = pdf_browser.find("h1").get_text()
         assert check == "Check your email!"
-        logger.info(f"Signed up to pdftables with email {email}")
-        return
     except AssertionError as a:
         logger.error("Sign-up to pdftables did not succeed")
         sys.exit(1)
+    logger.info(f"Signed up to pdftables with email {email}")
+    return
 
 
 def fetch_activation_email(email):
@@ -72,6 +73,7 @@ def fetch_activation_email(email):
     except AssertionError as a:
         logger.error("Inbox request failed")
         sys.exit(1)
+    logger.info("Found activation email")
 
     try:
         link_search = re.search(r'(?:<a href=")(https://pdftables\.com/activate/[\w]+)(?:")', req.json()[0]["mail_html"])
@@ -79,15 +81,13 @@ def fetch_activation_email(email):
     except AssertionError as a:
         logger.error("Could not find activation link in email")
         sys.exit(1)
+    logger.info("Found activation link")
 
     activation_link = link_search.group(1)
     return activation_link
 
 
-def activate_pdftables_account(pdf_browser, activation_link, email, password):
-    # Activate account
-    pdf_browser.open(activation_link)
-
+def log_into_pdftables(pdf_browser, email, password):
     # Log in
     pdf_browser.open("https://pdftables.com/login")
     login_form = pdf_browser.get_form(id="form")
@@ -98,11 +98,15 @@ def activate_pdftables_account(pdf_browser, activation_link, email, password):
     except AssertionError as aerr:
         logger.error(f"Could not log in to pdf tables: {aerr})")
         sys.exit(1)
+    logger.info("Logged into pdftables")
+    return
+
 
 
 def get_api_key(pdf_browser):
     pdf_browser.open("https://pdftables.com/pdf-to-excel-api")
     pdf_api_key = pdf_browser.find("code").get_text()
+    logger.info(f"Got pdftables api key {pdf_api_key}")
     return pdf_api_key
 
 
@@ -113,9 +117,9 @@ def main():
     create_pdftables_account(pdf_browser, email, name, password)
     sleep(60)
     activation_link = fetch_activation_email(email)
-    activate_pdftables_account(pdf_browser, activation_link, email, password)
+    pdf_browser.open(activation_link)
+    log_into_pdftables(pdf_browser, email, password)
     pdf_api_key = get_api_key(pdf_browser)
-    print(pdf_api_key)
 
 
 if __name__ == '__main__':
