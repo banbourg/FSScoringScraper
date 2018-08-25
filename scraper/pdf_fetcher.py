@@ -9,7 +9,9 @@ import re
 import sys
 import logging
 
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
+LOG_FILENAME = 'log_pdf_fetcher.log'
+logging.basicConfig(# filename=LOG_FILENAME,
+                    format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
                     level=logging.INFO,
                     datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -23,16 +25,50 @@ except ImportError as exc:
 
 
 # ------------------------------------------- CHANGE SEARCH PARAMETERS HERE --------------------------------------------
-START_YEAR, END_YEAR = 2018, 2018
-GOOGLE_SEARCH_TERMS = ["asian+open"]
-    #["russia", "france", "america", "canada", "europeans", "wtt", "china", "nhk", "GPF", "continents",
-    #                   "olympic", "world", "bompard"]
+START_YEAR, END_YEAR = 2016, 2017
+GOOGLE_SEARCH_TERMS = ["lombardia+trophy", "nebelhorn+trophy", "finlandia+trophy", "autumn+classic+international"]
 PER_DISCIPLINE_SETTINGS = {"men": True, "ladies": True, "pairs": True, "dance": True}
+SENIOR_FLAG = 1 # set to 0 to search for juniors
 # ----------------------------------------------------------------------------------------------------------------------
 
+# CONSTANTS AND CONVERTER DICTIONARIES, NO NEED TO AMEND THESE EXCEPT IF ADDING NEW EVENTS
+date_pattern_1 = re.compile(r"(\d{1,2}[/\-.]\d{2}[/\-.]\d{4}).{1,6}\d{1,2}[/\-.]\d{2}[/\-.]\d{4}")
+date_pattern_2 = re.compile(r"((Jan(uary)?|Feb(ruary)?|Mar(ch)?|Apr(il)?|May|Jun(e)?|Jul(y)?|Aug(ust)?|"
+                            r"Sep(tember)?|Oct(ober)?|Nov(ember)?|Dec(ember)?)\s+\d{1,2},\s+\d{4}).{1,6}"
+                            r"(Jan(uary)?|Feb(ruary)?|Mar(ch)?|Apr(il)?|May|Jun(e)?|Jul(y)?|Aug(ust)?|"
+                            r"Sep(tember)?|Oct(ober)?|Nov(ember)?|Dec(ember)?)\s+\d{1,2},\s+\d{4}")
+date_pattern_3 = re.compile(r"(Jan(uary)?|Feb(ruary)?|Mar(ch)?|Apr(il)?|May|Jun(e)?|Jul(y)?|Aug(ust)?|Sep(tember)?|"
+                           r"Oct(ober)?|Nov(ember)?|Dec(ember)?)\s+\d{1,2}.{1,4}\d{1,2}.{1,4}\d{4}")
+root_domain_pattern = re.compile(r"^((?:http(?:s)?://)?(www)?[A-Za-z\d\-]{3,}\.[a-z\.]{2,6})(?:\/)")
 
-start_to_end_pattern = re.compile(r"\d{2}[/\-.]\d{2}[/\-.]\d{4}.+\d{2}[/\-.]\d{2}[/\-.]\d{4}")
-start_date_pattern = re.compile(r"\d{2}[/\-.]\d{2}[/\-.]\d{4}")
+MAX_TRIES = 10  # before timeout on .get() requests
+
+EXPECTED_DOMAIN = {"AO": "fsatresults", "Lombardia": "fisg", "USClassic": "usfigureskating", "Nepela": "kraso",
+                   "ACI": "skatecanada", "Nebelhorn": "isuresults", "Finlandia": "figureskatingresults",
+                   "Tallinn": "data.tallinntrophy", "Warsaw": "pfsa"}
+
+SEARCHTERM_TO_DBNAME = {"nhk": "NHK", "france": "TDF", "canada": "SC", "russia": "COR", "america": "SA", "china": "COC",
+                        "GPF": "GPF", "world": "WC", "continents": "4CC", "olympic": "OWG", "wtt": "WTT",
+                        "europeans": "EC", "bompard": "TDF", "asian+open": "AO", "lombardia+trophy": "Lombardia",
+                        "us+figure+skating+classic": "USClassic", "ondrej+nepela": "Nepela",
+                        "autumn+classic+international": "ACI", "nebelhorn+trophy": "Nebelhorn",
+                        "finlandia+trophy": "Finlandia", "talinn+trophy": "Tallinn", "warsaw+cup": "Warsaw"}
+
+DBNAME_TO_URLNAME = {"NHK": "gpjpn", "TDF": "gpfra", "SC": "gpcan", "COR": "gprus", "SA": "gpusa", "COC": "gpchn",
+                     "GPF": "gpf", "WC": "wc", "4CC": "fc", "OWG": "owg", "WTT": "wtt", "EC": "ec", "AO": "AO",
+                     "Lombardia": "lombardia", "Nepela": "nepela", "Finlandia": "CSFIN", "Nebelhorn": "nt",
+                     "ACI": "CSCAN"}
+
+H2_EVENTS = ["WC", "WTT", "4CC", "OWG", "EC"]
+
+ISU_A_COMPS = ["NHK", "TDF", "SC", "COR", "SA", "COC", "GPF", "WC", "4CC", "OWG", "WTT", "EC"]
+
+DISC_CODES = {"LADIES_CODES": {r"(?i)lad(?:y|ies)|women.*score": "Ladies", "0203": "Ladies", "0205": "Ladies"},
+              "MEN_CODES": {r"(?i)(?<!wo)men.*score": "Men", "0103": "Men", "0105": "Men"},
+              "PAIRS_CODES": {r"(?i)pairs.*score": "Pairs", "0303": "Pairs", "0305": "Pairs"},
+              "DANCE_CODES": {r"(?i)danc.*score": "Dance", "0403": "Dance", "0405": "Dance"}}
+HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) "
+                         "Chrome/68.0.3440.106 Safari/537.36"}
 
 # -- A CHEAT: My internet was being super slow so I pasted the output from step 1 below to avoid having to rerun it.
 # This covers '''
@@ -40,9 +76,9 @@ start_date_pattern = re.compile(r"\d{2}[/\-.]\d{2}[/\-.]\d{4}")
 
 
 def request_url(url, on_failure=None, *args):
-    """Requests provided url up to s.MAX_TRIES times, and implements error handler function if provided.
+    """Requests provided url up to MAX_TRIES times, and implements error handler function if provided.
 
-    Requests provided url up to s.MAX_TRIES times, and implements error handler function if provided - e.g. to fetch
+    Requests provided url up to MAX_TRIES times, and implements error handler function if provided - e.g. to fetch
     second page of google results in case of not correct match on first page. No default error handler function provided.
     Keyword arguments:
     url -- url to request
@@ -50,9 +86,9 @@ def request_url(url, on_failure=None, *args):
     terms_to_search -- list of competition names
     """
     r = None
-    for i in range(0, s.MAX_TRIES):
+    for i in range(0, MAX_TRIES):
         try:
-            r = requests.get(url, timeout=3)
+            r = requests.get(url, headers=HEADERS, timeout=3)
             r.raise_for_status()
         except requests.exceptions.Timeout as terr:
             logger.error(f"Timeout error on {url} on try {i+1}: {terr}")
@@ -92,42 +128,63 @@ def fetch_event_start_date(event_page, event, year):
     event_page -- BeautifulSoup parsed requests object
     year -- Year in which event took place (to double check dates)
     """
-
     # --- a. Fetch date of 1st day of comp (to allow ordering within season)
-    base_case = [_c.get_text() for _c in event_page.find_all("tr", "caption3")]
-    table_case = [_c.get_text() for _c in event_page.find_all("td") if str(year) in _c.get_text()]
-    text_case = [_c.get_text() for _c in event_page.find_all("p") if re.search(start_to_end_pattern, _c.get_text())]
-
-    date = None
-    if base_case:
-        date = base_case[0].partition(" - ")[0]
-    elif table_case:
-        date = table_case[0]
-    elif text_case:
-        try:
-            date = re.search(start_date_pattern, text_case[0]).group(0)
-        except AttributeError:
-            logger.error(f"Could not find start date pattern for {event} {year}")
-    else:
+    text = " ".join([s for s in event_page.strings])
+    text = "".join([i for i in text if i != "\t" and i != "\n"])
+    date_search_1 = re.search(date_pattern_1, text)
+    date_search_2 = re.search(date_pattern_2, text) if date_search_1 is None else date_search_1
+    date_search_3 = re.search(date_pattern_3, text) if date_search_2 is None else date_search_2
+    try:
+        date = date_search_3.group(1)
+    except AttributeError:
         logger.error(f"Could not find [begins]-[ends] date pattern for {event} {year}")
+    else:
+        # --- b. Convert to datetime date
+        date = date.replace(".", "/").replace("-", "/")
+        date_patterns = ["%d/%m/%Y", "%m/%d/%Y", "%Y/%m/%d", "%d %b %Y", "%B %d, %Y", "%b %d, %Y"]
 
-    # --- b. Convert to datetime date
-    date = date.replace(".", "/").replace("-", "/") if date else None
-    date_patterns = ["%d/%m/%Y", "%m/%d/%Y", "%Y/%m/%d", "%d %b %Y"]
-
-    event_start_date = None
-    if date:
+        event_start_date = None
         for pattern in date_patterns:
             try:
                 event_start_date = datetime.strptime(date, pattern).date()
             except ValueError:
                 pass
-    if not event_start_date:
-        logger.error(f"Could not find date pattern to parse start date for {event} {year}")
-    return event_start_date
+            else:
+                break
+        if not event_start_date:
+            logger.error(f"Could not find date pattern to parse start date for {event} {year}")
+        else:
+            return event_start_date
 
 
-def download_protocols(event_page, event_identifier, per_discipline_settings=PER_DISCIPLINE_SETTINGS):
+def generate_pdf_filename(event_dic, pdf_link, disc_code):
+    """Scrapes an event page for its start date, based on known page layouts and tags, and returns it in datetime.
+
+    Note: Uses specific BS tags to avoid picking up page update dates, 'last modified' dates etc by mistake. Three
+    cases were observed when scraping ISU pages for dates: (1) base case - date range for the event is stored in the
+    header (<tr> tags); (2) first special case (and new layout I think) schedule is stored in separate table below
+    "main", with no date range provided in title (<td> tags); (3) second special case - dates are written in text
+    (<p> tags)
+    Keyword arguments:
+    event_page -- BeautifulSoup parsed requests object
+    year -- Year in which event took place (to double check dates)
+    """
+    # Handle getting segment identifiers for new pdf naming schema
+    # (apparently in place for some A comps since 2017-18)
+    raw_name = pdf_link.rpartition("/")[2]
+    if re.search(r"data[0-9]{4}", raw_name):
+        length = "S" if disc_code[2:] == "03" else "F"
+        programme_type = "D" if disc == "Dance" else "P"
+        filename = "_".join([event_dic["name"] + str(event_dic["year"]), disc,
+                             length + programme_type]) + ".pdf"
+    else:
+        filename = event_dic["name"] + "_" + raw_name
+
+    return event_dic["start_date"].strftime("%y%m%d") + "_" + filename
+
+
+
+def download_pdf_protocols(event_page, event_identifier, per_discipline_settings=PER_DISCIPLINE_SETTINGS):
     """Downloads the pdf scoring protocols for the requested disciplines from the event page.
 
     Keyword arguments:
@@ -136,48 +193,32 @@ def download_protocols(event_page, event_identifier, per_discipline_settings=PER
     per_discipline_settings -- Dictionary of bools structured as follows {"men": True, "ladies": True, "pairs": True,
     "dance": True}
     """
-    for a in event_page.find_all("a"):
-        sublink = a.get("href")
+    all_sublinks = list(set([a.get("href") for a in event_page.find_all("a")]))
+    for sublink in all_sublinks:
         logger.info(f"Examining {sublink} for {event_identifier['name']} {event_identifier['year']}")
 
         # Loop through each discipline, checking the setting in settings dic and loading the correct dic of codes
         for disc in per_discipline_settings:
             if per_discipline_settings[disc]:
 
-                code_dic = s.DISC_CODES[disc.upper() + "_CODES"]
-
+                code_dic = DISC_CODES[disc.upper() + "_CODES"]
                 for code in code_dic:
-                    if code in str(sublink):  # if the sublink contains a code for one of the disciplines we want
+                    if re.search(code, str(sublink)):
                         logger.info(f"Code {code} matches {sublink}")
 
-                        # Handle getting segment identifiers for new pdf naming schema
-                        # (apparently in place for some A comps since 2017-18)
-                        raw_name = sublink.rpartition("/")[2]
-                        if re.search(r"data[0-9]{4}", raw_name):
-                            length = "S" if code[2:] == "03" else "F"
-                            programme_type = "D" if disc == "Dance" else "P"
-                            filename = "_".join([event_identifier["name"] + str(event_identifier["year"]), disc,
-                                                 length + programme_type]) + ".pdf"
-                        else:
-                            filename = raw_name
-                        dated_filename = event_identifier["start_date"].strftime("%y%m%d") + "_" + filename
+                        filename = generate_pdf_filename()
+                        full_url = construct_absolute_url(event_identifier["url"], sublink)
 
                         # Get contents of sublink
-                        if "index" in event_identifier["url"]:
-                            event_url = re.sub(r"\/index[A-Za-z\d]+\.htm[l]*$", "/", event_identifier["url"])
-                        else:
-                            event_url = event_identifier["url"]
-                        full_url = "http://" + event_url + sublink
-
                         try:
-                            req = urllib.request.Request(full_url)
+                            req = urllib.request.Request(full_url, headers=HEADERS)
                             res = urllib.request.urlopen(req)
                         except urllib.error.HTTPError as herr:
                             logger.error(f"HTTP {str(herr.code)} error opening {full_url}")
                         except urllib.error.URLError as uerr:
                             logger.error(f"URL error opening {full_url}: {uerr.reason}")
                         else:
-                            pdf = open(s.WRITE_PATH + dated_filename, "wb")
+                            pdf = open(s.WRITE_PATH + filename, "wb")
                             pdf.write(res.read())
                             pdf.close()
 
@@ -194,30 +235,58 @@ def return_first_google_result(start_year, end_year, terms_to_search):
     google_link_list = []
 
     for search_event in terms_to_search:
-        for search_year in (start_year, end_year + 1):
+        for search_year in range(start_year, end_year + 1):
 
-            db_event_name = s.SEARCHTERM_TO_DBNAME[search_event]
-            is_A_comp = True if db_event_name in s.ISU_A_COMPS else False
+            db_event_name = SEARCHTERM_TO_DBNAME[search_event]
+            is_A_comp = True if db_event_name in ISU_A_COMPS else False
             
-            domain = "isu+" #if is_A_comp else ""
-            search = "https://www.google.co.uk/search?q=" + domain + "results+" + search_event + "+" + str(search_year)
+            domain = "isu+" if is_A_comp else ""
+            cat = "senior+" if SENIOR_FLAG == 1 else "junior+"
+            search = "https://www.google.co.uk/search?q=" + domain + cat + "results+" + search_event + "+" + str(search_year)
+            logger.info(f"Running google search {search}")
 
             r = request_url(url=search, on_failure=None)
             html = BeautifulSoup(r.text, "html.parser")
             all_links = html.find_all("cite")
 
             # Set season
-            season = "SB" + str(search_year) if db_event_name not in s.H2_EVENTS else str(search_year - 1)
+            season = "SB" + str(search_year) if db_event_name not in H2_EVENTS else str(search_year - 1)
 
             for link in all_links:
-                if ("isuresults" in str(link) and is_A_comp) or ("results" in str(link) and not is_A_comp):  
-                    google_link_list.append((db_event_name, season, search_year, link.text))
+                isu_domain = True if is_A_comp and "isuresults" in link.text else False
+                other_fed_domain = True if not is_A_comp and EXPECTED_DOMAIN[db_event_name] in link.text else False
+                if isu_domain or other_fed_domain:
+                    google_link_list.append((search_event, db_event_name, season, search_year, link.text))
                     break
     logger.info("Performed search on all provided terms and years")
     return google_link_list
 
 
-def get_pdf_protocols(page_list, per_discipline_settings):
+def construct_absolute_url(subdomain_url, sublink):
+    """Combines a url and a relative link found on the url's page and returns one absolute url.
+
+    Two cases: (1) If sublink is relative to a subdomain (e.g. "xx.pdf"), strips "index" portion of the the subdomain
+    url and appends sublink to it (e.g. "pokemon.io/woot/index.html" becomes "pokemon.io/woot/"). (2) If sublink has an
+    address that is relative to the root domain (e.g. "/wahey/yeah/xx.pdf"), extract root domain only ("pokemon.io")
+    from subdomain url and append to that
+    subdomain_url -- The url of the page containing the sublinks, usually the competition homepage
+    sublink -- A relative link found on that page
+    """
+    if sublink[:4] == "http":
+        root = ""
+    elif sublink[0] == "/":
+        root = re.search(root_domain_pattern, subdomain_url).group(1)
+    elif "index" in subdomain_url:
+        root = re.sub(r"/index[A-Za-z\d]*\.htm[l]*$", "/", subdomain_url)
+    else:
+        root = subdomain_url
+
+    temp = root + sublink
+    constructed = "http://" + temp if temp[:4] != "http" else temp
+    return constructed
+
+
+def get_protocols(page_list, per_discipline_settings):
     """Scrapes each url provided for the urls of protocol pdfs that match the criteria provided.
 
     Keyword arguments:
@@ -228,27 +297,34 @@ def get_pdf_protocols(page_list, per_discipline_settings):
     dance -- bool to represent whether function should fetch Ice Dance protocols
     """
     flag = 0
-    for (event, season, year, link) in page_list:
+    for (search_term, event, season, year, link) in page_list:
 
-        logger.info(f"Scraping {event} {year} ({season}) at {link}")
+        # --- Check that the top google result is for the right hear (avoids "OWG 2016" search returning 2018 protocols)
+        # First check url, if that fails check page text
 
-        r = request_url("http://"+link)
-        event_page = BeautifulSoup(r.text, "html.parser")
-
-        # Check that the top google result is for the right hear (avoids "OWG 2016" search returning 2018 protocols)
-        isu_name = s.DBNAME_TO_ISUNAME[event]
+        logger.info(f"Checking {event} {year} ({season}) at {link}")
+        isu_name = DBNAME_TO_URLNAME[event]
         non_gpf_pattern = True if str(year) in link or (str(year)[-2:] in link and isu_name != "gpf") else False
         gpf_pattern = True if isu_name == "gpf" and str(year)[-2:] + str(year + 1)[-2:] in link else False
 
-        if isu_name in link and "jgp" not in link and (non_gpf_pattern or gpf_pattern):
-            
+        r = request_url("http://" + link if "http" not in link else link)
+        event_page = BeautifulSoup(r.content, "html5lib")
+
+        test = True if isu_name in link and "jgp" not in link and (non_gpf_pattern or gpf_pattern) else False
+        logger.info(f"Status of {link} for {event} {year} after URL test: {test}")
+        if not test:
+            text = " ".join([s for s in event_page.strings])
+            idents = search_term.split("+") + [str(year)]
+            test = True if all(i.lower() in text.lower() for i in idents) else False
+        logger.info(f"Status of {link} for {event} {year} after page content test: {test}")
+        if test:
             event_start_date = fetch_event_start_date(event_page, event, year)
             event_identifiers = {"name": event, "year": year, "start_date": event_start_date, "url": link}
-            download_protocols(event_page, event_identifiers, per_discipline_settings)
+            download_pdf_protocols(event_page, event_identifiers, per_discipline_settings)
             flag = 1
-
         else:
             logger.error(f"URL for {event} {year} ({link}) did not match expected naming patterns")
+
     if flag == 0:
         logger.error(f"Google results for {event} {year} did not return correct link")
 
@@ -257,4 +333,4 @@ if __name__ == '__main__':
     result_list = return_first_google_result(start_year=START_YEAR
                                              , end_year=END_YEAR
                                              , terms_to_search=GOOGLE_SEARCH_TERMS)
-    get_pdf_protocols(page_list=result_list, per_discipline_settings=PER_DISCIPLINE_SETTINGS)
+    get_protocols(page_list=result_list, per_discipline_settings=PER_DISCIPLINE_SETTINGS)

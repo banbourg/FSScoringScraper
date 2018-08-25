@@ -1,93 +1,122 @@
-import glob
+#!/bin/env python
+
 import requests
-from bs4 import BeautifulSoup
 from robobrowser import RoboBrowser
-import string
 import random
-import sys
 import hashlib
-from time import sleep
 import re
 
+import sys
+from time import sleep
+import string
+import logging
 
-READ_PATH, WRITE_PATH, DATE, VER = "", "", "", ""
-DATE_PATH, MAIL_API_KEY = "", ""
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
+                    level=logging.INFO,
+                    datefmt='%Y-%m-%d %H:%M:%S')
+
+logger = logging.getLogger(__name__)
+
 try:
-    from settings import *
+    import settings
 except ImportError as exc:
-    sys.stderr.write("Error: failed to import module ({})".format(exc))
+    logger.error(f"Failed to import settings module ({exc})")
     sys.exit(1)
 
-# files = sorted(glob.glob(READ_PATH + "*.csv"))
-# for f in files:
+# ----------------    IMPORTANT NOTES
+# CURRENTLY SET UP FOR YOU TO HAVE YOUR TEMP MAIL API KEY IN SETTINGS, SORRY. Also this has no error handling yet rip,
+# it just exits. RUN sleep(60) BETWEEN CREATING THE ACCOUNT AND FETCHING THE ACTIVATION EMAIL
+# CURRENTLY USING TWO SEPARATE BROWSERS TO KEEP THE RANDOMLY GENERATED EMAIL "ALIVE"
 
-# Generate a random email (temp mail API does not let you do this)
-mail_browser = RoboBrowser(parser="lxml", history=True)
-mail_browser.open("https://temp-mail.org/en/")
-email = mail_browser.find("input").get("value")
-name = email.partition("@")[0]
-password = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(8))
-print(email, name, password)
 
-# Fill in the form on pdftables to register
-api_browser = RoboBrowser(parser="lxml")
-api_browser.open("https://pdftables.com/join")
-sign_up_form = api_browser.get_form(id="form")
-sign_up_form["name"].value = name
-sign_up_form["email"].value = email
-sign_up_form["password"].value = password
-try:
-    api_browser.submit_form(sign_up_form, submit="become-member")
-    check = api_browser.find("h1").get_text()
-    assert check == "Check your email!"
-    print("Signed up with email {}".format(email))
-except AssertionError as a:
-    sys.stderr.write("Error: Sign-up did not succeed ({})".format(a))
-    sys.exit(1)
+def generate_random_email(mail_browser):
+    # Generate a random email (temp mail API does not let you do this)
+    mail_browser.open("https://temp-mail.org/en/")
+    email = mail_browser.find("input").get("value")
+    name = email.partition("@")[0]
+    password = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(8))
+    return email, name, password
 
-sleep(60)
 
-# Fetch activation email
-hash = hashlib.md5(email.encode("utf-8")).hexdigest()
-print(hash)
-endpoint = "https://privatix-temp-mail-v1.p.mashape.com/request/mail/id/" + hash + "/"
+def create_pdftables_account(pdf_browser, email, name, password):
+    # Fill in the form on pdftables to register
+    pdf_browser.open("https://pdftables.com/join")
+    sign_up_form = pdf_browser.get_form(id="form")
+    sign_up_form["name"].value = name
+    sign_up_form["email"].value = email
+    sign_up_form["password"].value = password
+    try:
+        pdf_browser.submit_form(sign_up_form, submit="become-member")
+        check = pdf_browser.find("h1").get_text()
+        assert check == "Check your email!"
+        logger.info(f"Signed up to pdftables with email {email}")
+        return
+    except AssertionError as a:
+        logger.error("Sign-up to pdftables did not succeed")
+        sys.exit(1)
 
-s = requests.Session()
-req = s.get(endpoint, headers={
-    "X-Mashape-Key": MAIL_API_KEY,
-    "Accept": "application/json"
-  })
 
-try:
-    assert isinstance(req.json(), list)
-except AssertionError as a:
-    sys.stderr.write("Error: Inbox requirest did not return list ({})".format(a))
-    sys.exit(1)
+def fetch_activation_email(email):
+    # Fetch activation email
+    hash = hashlib.md5(email.encode("utf-8")).hexdigest()
+    endpoint = "https://privatix-temp-mail-v1.p.mashape.com/request/mail/id/" + hash + "/"
 
-try:
-    link_search = re.search(r'(?:<a href=")(https:\/\/pdftables\.com\/activate\/[\w]+)(?:")', req.json()[0]["mail_html"])
-    assert link_search
-except AssertionError as a:
-    sys.stderr.write("Error: could not find activation link in email ({})".format(a))
-    sys.exit(1)
+    s = requests.Session()
+    req = s.get(endpoint, headers={
+        "X-Mashape-Key": settings.MAIL_API_KEY,
+        "Accept": "application/json"
+      })
 
-activation_link = link_search.group(1)
-print(activation_link)
+    try:
+        assert isinstance(req.json(), list)
+    except AssertionError as a:
+        logger.error("Inbox request failed")
+        sys.exit(1)
 
-# Activate account
-api_browser.open(activation_link)
+    try:
+        link_search = re.search(r'(?:<a href=")(https://pdftables\.com/activate/[\w]+)(?:")', req.json()[0]["mail_html"])
+        assert link_search
+    except AssertionError as a:
+        logger.error("Could not find activation link in email")
+        sys.exit(1)
 
-# Log in
-api_browser.open("https://pdftables.com/login")
-log_in_form = api_browser.get_form(id="form")
-log_in_form["email"].value = email
-log_in_form["password"].value = password
-try:
-    api_browser.submit_form(log_in_form, submit="login")
-except AssertionError as a:
-    sys.stderr.write("Error: Could not log in ({})".format(a))
-    sys.exit(1)
+    activation_link = link_search.group(1)
+    return activation_link
 
-api_browser.open("https://pdftables.com/pdf-to-excel-api")
-pdf_api_key = api_browser.find("code").get_text()
-print(pdf_api_key)
+
+def activate_pdftables_account(pdf_browser, activation_link, email, password):
+    # Activate account
+    pdf_browser.open(activation_link)
+
+    # Log in
+    pdf_browser.open("https://pdftables.com/login")
+    login_form = pdf_browser.get_form(id="form")
+    login_form["email"].value = email
+    login_form["password"].value = password
+    try:
+        pdf_browser.submit_form(login_form, submit="login")
+    except AssertionError as aerr:
+        logger.error(f"Could not log in to pdf tables: {aerr})")
+        sys.exit(1)
+
+
+def get_api_key(pdf_browser):
+    pdf_browser.open("https://pdftables.com/pdf-to-excel-api")
+    pdf_api_key = pdf_browser.find("code").get_text()
+    return pdf_api_key
+
+
+def main():
+    pdf_browser = RoboBrowser(parser="lxml")
+    mail_browser = RoboBrowser(parser="lxml")
+    email, name, password = generate_random_email(mail_browser)
+    create_pdftables_account(pdf_browser, email, name, password)
+    sleep(60)
+    activation_link = fetch_activation_email(email)
+    activate_pdftables_account(pdf_browser, activation_link, email, password)
+    pdf_api_key = get_api_key(pdf_browser)
+    print(pdf_api_key)
+
+
+if __name__ == '__main__':
+    main()
