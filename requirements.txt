@@ -59,6 +59,7 @@ recordlinkage == 0.12
 requests == 2.18.4
 
 # scraper/pdf_converter.py: 4
+PyPDF2 == 1.26.0
 robobrowser == 0.5.3
 
 # analysis/normality_tests.py: 5

@@ -5,7 +5,10 @@ from robobrowser import RoboBrowser
 import random
 import hashlib
 import re
+import pdftables_api
+import PyPDF2
 
+import os
 import sys
 from time import sleep
 import string
@@ -102,7 +105,6 @@ def log_into_pdftables(pdf_browser, email, password):
     return
 
 
-
 def get_api_key(pdf_browser):
     pdf_browser.open("https://pdftables.com/pdf-to-excel-api")
     pdf_api_key = pdf_browser.find("code").get_text()
@@ -110,7 +112,17 @@ def get_api_key(pdf_browser):
     return pdf_api_key
 
 
-def main():
+def get_csv(pdf_api_key, pdf_path, output_path):
+    c = pdftables_api.Client(pdf_api_key)
+    c.xlsx(pdf_path, output_path)
+
+
+def check_remaining_pages(pdf_api_key):
+    c = pdftables_api.Client(pdf_api_key)
+    return c.remaining()
+
+
+def new_api_key():
     pdf_browser = RoboBrowser(parser="lxml")
     mail_browser = RoboBrowser(parser="lxml")
     email, name, password = generate_random_email(mail_browser)
@@ -121,6 +133,44 @@ def main():
     log_into_pdftables(pdf_browser, email, password)
     pdf_api_key = get_api_key(pdf_browser)
 
+    return pdf_api_key
+
+
+def get_pdf_pages(file_path):
+    file = open(file_path, 'rb')
+    reader = PyPDF2.PdfFileReader(file)
+
+    return reader.numPages
+
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) == 2:
+        file_path = sys.argv[1]
+    else:
+        file_path = os.path.join(os.path.abspath(os.chdir('..')), "pdf_files")
+
+    pdfs = [f for f in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, f))]
+
+    page_count = 0
+    api_key = ''
+
+    for pdf in pdfs:
+
+        pdf_path = os.path.join(file_path, pdf)
+        csv_path = os.path.join(file_path, "converted_csvs", os.path.splitext(pdf)[0] + '.csv')
+
+        if page_count == 0:
+            api_key = new_api_key()
+            page_count = check_remaining_pages(api_key)
+
+        else:
+            if get_pdf_pages(pdf_path) < page_count:
+                api_key = new_api_key()
+                page_count = check_remaining_pages(api_key)
+
+        get_csv(api_key, pdf_path, csv_path)
+
+        page_count -= get_pdf_pages(pdf_path)
+
+
+
