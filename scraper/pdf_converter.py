@@ -115,6 +115,7 @@ def get_api_key(pdf_browser):
 def get_csv(pdf_api_key, pdf_path, output_path):
     c = pdftables_api.Client(pdf_api_key)
     c.xlsx(pdf_path, output_path)
+    logger.info(f'Converted pdf to csv and saved in path {output_path}')
 
 
 def check_remaining_pages(pdf_api_key):
@@ -168,9 +169,12 @@ if __name__ == '__main__':
                 api_key = new_api_key()
                 page_count = check_remaining_pages(api_key)
 
+        logger.info(f"Converting {pdf} to csv")
         get_csv(api_key, pdf_path, csv_path)
 
         page_count -= get_pdf_pages(pdf_path)
+
+    logger.info(f"Loaded all pdfs in {file_path}")
 
 
 
