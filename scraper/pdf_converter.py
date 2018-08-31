@@ -165,7 +165,7 @@ if __name__ == '__main__':
             page_count = check_remaining_pages(api_key)
 
         else:
-            if get_pdf_pages(pdf_path) < page_count:
+            if get_pdf_pages(pdf_path) > page_count:
                 api_key = new_api_key()
                 page_count = check_remaining_pages(api_key)
 
