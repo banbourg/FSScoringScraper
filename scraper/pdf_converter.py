@@ -9,6 +9,7 @@ import pdftables_api
 import PyPDF2
 
 import os
+from pathlib import Path
 import sys
 from time import sleep
 import string
@@ -112,9 +113,9 @@ def get_api_key(pdf_browser):
     return pdf_api_key
 
 
-def get_csv(pdf_api_key, pdf_path, output_path):
+def get_xlsx(pdf_api_key, pdf_path, output_path):
     c = pdftables_api.Client(pdf_api_key)
-    c.xlsx(pdf_path, output_path)
+    c.xlsx_single(pdf_path, output_path)
     logger.info(f'Converted pdf to csv and saved in path {output_path}')
 
 
@@ -148,33 +149,42 @@ if __name__ == '__main__':
     if len(sys.argv) == 2:
         file_path = sys.argv[1]
     else:
-        file_path = os.path.join(os.path.abspath(os.chdir('..')), "pdf_files")
+        file_path = os.path.join(Path(os.getcwd()).parent, "pdf_files")
 
     pdfs = [f for f in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, f))]
 
     page_count = 0
     api_key = ''
+    email_count = 0
+
+    output_path = os.path.join(file_path, "converted_excels")
+
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
 
     for pdf in pdfs:
 
         pdf_path = os.path.join(file_path, pdf)
-        csv_path = os.path.join(file_path, "converted_csvs", os.path.splitext(pdf)[0] + '.csv')
+        excel_path = os.path.join(output_path, os.path.splitext(pdf)[0] + ".xlsx")
+
+        if email_count >= 100 and get_pdf_pages(pdf_path) > page_count:
+            sys.exit("Daily email limit reached.")
 
         if page_count == 0:
             api_key = new_api_key()
             page_count = check_remaining_pages(api_key)
+            email_count += 1
 
         else:
             if get_pdf_pages(pdf_path) > page_count:
                 api_key = new_api_key()
                 page_count = check_remaining_pages(api_key)
+                email_count += 1
 
-        logger.info(f"Converting {pdf} to csv")
-        get_csv(api_key, pdf_path, csv_path)
+        logger.info(f"Converting {pdf} to excel")
+        get_xlsx(api_key, pdf_path, excel_path)
 
         page_count -= get_pdf_pages(pdf_path)
 
     logger.info(f"Loaded all pdfs in {file_path}")
-
-
 
