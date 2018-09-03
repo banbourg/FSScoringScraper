@@ -32,8 +32,8 @@ except ImportError as exc:
 
 
 # ------------------------------------------- CHANGE SEARCH PARAMETERS HERE --------------------------------------------
-START_YEAR, END_YEAR = 2014, 2017
-GOOGLE_SEARCH_TERMS = ["ondrej+nepela+trophy"]
+START_YEAR, END_YEAR = 2004, 2018
+GOOGLE_SEARCH_TERMS = ["nhk+trophy"]
 PER_DISCIPLINE_SETTINGS = {"men": True, "ladies": True, "pairs": True, "dance": True}
 SEARCH_CAT = "senior" # set to "junior" to search for juniors
 # ----------------------------------------------------------------------------------------------------------------------
@@ -69,7 +69,7 @@ class EventSearch:
                  url=None):
         """ Placeholder
         """
-        self.event = event.Event()
+        self.event = event.Event(search_phrase=search_phrase, search_year=search_year)
         self.category = category
         self.per_disc_settings = per_disc_settings
         self.expected_domain = EXPECTED_DOMAIN[self.event.name] if self.event.name in EXPECTED_DOMAIN else None
@@ -151,8 +151,8 @@ class EventSearch:
         """Performs google search for results from a given event & year, returns first result that passes tests/
         """
         domain = "isu+" if self.event.is_A_comp else ""
-        search = "https://www.google.co.uk/search?q=" + domain + self.category + "+results+" + self.event.search_string \
-                 + "+" + str(self.event.year)
+        search = "https://www.google.co.uk/search?q=" + domain + "+results+" + self.event.search_string \
+                 + "+" + str(self.event.year) #+ self.category
         logger.info(f"Running google search {search}")
 
         google_r = request_url(url=search, on_failure=None)
@@ -175,7 +175,7 @@ class EventSearch:
         """Scrapes an event page and returns its start date in datetime (extracted from a "start date - end date" range)
         """
         try:
-            self.start_date = start_date.StartDate(text_to_parse=self.homepage_text)
+            self.start_date = start_date.EventDate(year=self.event.year, text_to_parse=self.homepage_text)
         except ValueError:
             logger.error(f"Could not parse date from text for {self.event.name} {self.event.year}")
 
@@ -190,7 +190,7 @@ class EventSearch:
             filename = "_".join([self.event.name + str(self.event.year), event.DISC_CODES_DIC[disc_code], length + programme_type]) + ".pdf"
         else:
             filename = self.event.name + "_" + raw_name
-        return self.start_date.strftime("%y%m%d") + "_" + filename
+        return self.start_date.start_date.strftime("%y%m%d") + "_" + filename
 
     def download_pdf_protocols(self):
         """Downloads the pdf scoring protocols for the requested disciplines from the event page.
@@ -209,7 +209,7 @@ class EventSearch:
             for disc in self.per_disc_settings:
                 if self.per_disc_settings[disc]:
 
-                    for code in event.DISC_CODES_DIC[disc.upper() + "_CODES"]:
+                    for code in event.DISC_CODES_DICS[disc.upper() + "_CODES"]:
                         if re.search(code, str(sublink)) and "novice" not in str(sublink).lower():
                             logger.info(f"Code {code} matches {sublink}")
 
@@ -272,20 +272,20 @@ def request_url(url, on_failure=None, *args):
 
 
 if __name__ == '__main__':
-    # # If homepage search works, use this block of code
-    # for search_event in GOOGLE_SEARCH_TERMS:
-    #     for search_year in range(START_YEAR, END_YEAR + 1):
-    #         search = EventSearch(search_event, search_year)
-    #         success = search.set_event_homepage()
-    #         if not success:
-    #             logger.error(f"Could not find google result that passed tests for {search.name} {seach.year}")
-    #         else:
-    #             search.download_pdf_protocols()
-    #             logger.info(f"Downloaded protocols for {search.name} {search.year}")
+    # If homepage search works, use this block of code
+    for search_event in GOOGLE_SEARCH_TERMS:
+        for search_year in range(START_YEAR, END_YEAR + 1):
+            search = EventSearch(search_event, search_year)
+            success = search.set_event_homepage()
+            if not success:
+                logger.error(f"Could not find google result that passed tests for {search.name} {search.year}")
+            else:
+                search.download_pdf_protocols()
+                logger.info(f"Downloaded protocols for {search.event.name} {search.event.year}")
 
-    # If homepage needs to be inserted manually, uncomment and paste into "url=" below
-    search = EventSearch(search_phrase="ondrej+nepela+trophy", search_year=2014,
-                         url="http://www.kraso.sk/wp-content/uploads/sutaze/2014_2015/20141001_ont/html/")
-    search.set_start_date()
-    search.download_pdf_protocols()
+    # # If homepage needs to be inserted manually, uncomment and paste into "url=" below
+    # search = EventSearch(search_phrase="ondrej+nepela+trophy", search_year=2014,
+    #                      url="http://www.kraso.sk/wp-content/uploads/sutaze/2014_2015/20141001_ont/html/")
+    # search.set_start_date()
+    # search.download_pdf_protocols()
 

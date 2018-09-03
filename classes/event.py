@@ -28,7 +28,7 @@ H2_EVENTS = ["WC", "WTT", "4CC", "OWG", "EC"]
 
 ISU_A_COMPS = ["NHK", "TDF", "SC", "COR", "SA", "COC", "GPF", "WC", "4CC", "OWG", "WTT", "EC"]
 
-SEARCHTERM_TO_DBNAME = {"nhk": "NHK", "france": "TDF", "canada": "SC", "russia": "COR", "america": "SA", "china": "COC",
+SEARCHTERM_TO_DBNAME = {"nhk+trophy": "NHK", "france": "TDF", "canada": "SC", "russia": "COR", "america": "SA", "china": "COC",
                         "GPF": "GPF", "world": "WC", "continents": "4CC", "olympic": "OWG", "wtt": "WTT",
                         "europeans": "EC", "bompard": "TDF", "asian+open": "AO", "lombardia+trophy": "Lombardia",
                         "us+figure+skating+classic": "USClassic", "ondrej+nepela+trophy": "Nepela",
