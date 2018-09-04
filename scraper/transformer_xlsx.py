@@ -51,19 +51,21 @@ def reorder_cols(df, col_to_move, new_pos):
     cols.insert(new_pos, cols.pop(cols.index(col_to_move)))
     return df[cols]
 
+
 def find_protocol_coordinates(df):
     protocol_starts, protocol_ends = [], []
-    for i in df.index:
-        for j in df.columns:
+    for j in df.columns:
+        for i in df.index:
             if "Name" in str(df.iloc[i, j]):
                 protocol_starts.append(i)
-            if "Deductions:" in str(df.iloc[i, j]):
+            if "Deductions" in str(df.iloc[i, j]) and j < 4:
                 protocol_ends.append(i)
     return list(zip(protocol_starts, protocol_ends))
 
 
 def scrape_sheet(df, segment):
     protocol_coords = find_protocol_coordinates(df)
+    logger.debug(f"Protocol coodinates are {protocol_coords}")
     for c in protocol_coords:
         prot = protocol.CONSTRUCTOR_DIC[segment.discipline]["prot"](df, c, segment)
         for i in prot.row_range:
