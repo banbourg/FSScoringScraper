@@ -19,10 +19,13 @@ except ImportError as exc:
 NUMBER_AND_NAME_PATTERN = re.compile(r"^\d+\s+\D+")
 DED_TYPE_PATTERN = re.compile(r"[A-Z][^:\-0-9.]*")
 DED_POINT_PATTERN = re.compile(r"-*\d(?:\.0|\.00)*")
+DED_TOTAL_PATTERN = re.compile(r"(\d(?:\.0)*0*) -*\d+(?:\.0)*0*")
+
 DED_ALIGNMENT_DIC = {"fall": "falls" , "late start": "time violation"}
 
 EXPECTED_DED_TYPES = ['total', 'falls', 'time violation', 'costume failure', 'late start', 'music violation',
-                      'interruption in excess', 'costume & prop violation', 'illegal element/movement', 'extended lifts']
+                      'interruption in excess', 'costume & prop violation', 'illegal element/movement', 'extended lifts',
+                      'extra element']
 
 class DataRow:
     def __init__(self, raw_list=None, df=None, row=None, col_min=None):
@@ -76,8 +79,13 @@ class DataRow:
         # logger.debug(f"Cleaned list is {self.cleaned_list}")
         return self.cleaned_list
 
-    def clean_name_row(self):
-        self.cleaned_list = self.raw_list
+    def clean_name_row(self, mode):
+        if mode == "single line":
+            self.cleaned_list = self.raw_list
+        elif mode == "multiline":
+            self.cleaned_list = [c.rpartition("\n")[2] for c in self.raw_list]
+        else:
+            raise ValueError("Mode parameter must be set to either 'single line' or 'multiline'")
         if re.search(NUMBER_AND_NAME_PATTERN, str(self.cleaned_list[0])):
             split_cell = str(self.cleaned_list[0]).split(" ", 1)
             self.cleaned_list[0] = int(split_cell[0])
@@ -91,6 +99,10 @@ class DataRow:
         row_less_falls = [re.sub(r"\(\d+\)", "", str(r)) for r in self.raw_list[1:]]
         row_text = " ".join(row_less_falls)
         logger.debug(f"Row text after join is {row_text}")
+
+        row_text = re.sub(DED_TOTAL_PATTERN, r"\1", row_text)
+        logger.debug(f"Row text after total removal is {row_text}")
+
         ded_words = re.findall(DED_TYPE_PATTERN, row_text)
         ded_digits = re.findall(DED_POINT_PATTERN, row_text)
 
@@ -98,7 +110,7 @@ class DataRow:
         logger.debug(f"ded_digits after regex {ded_digits}")
 
         # Clean up ded types
-        ded_words = [DED_ALIGNMENT_DIC[d] if d.lower() in DED_ALIGNMENT_DIC else d.lower() for d in ded_words]
+        ded_words = [DED_ALIGNMENT_DIC[d] if d.lower().strip() in DED_ALIGNMENT_DIC else d.lower().strip() for d in ded_words]
         for d in ded_words:
             if d == 'total':
                 del d
@@ -108,19 +120,16 @@ class DataRow:
 
         # Remove other random numbers that might have ended up in the row, ensure all numbers negative
         ded_digits = [x for x in ded_digits if x is not None]
-        ded_digits = [-1 * int(x) if int(x) > 0 else int(x) for x in ded_digits]
+        ded_digits = [-1 * int(float(x)) if int(float(x)) > 0 else int(float(x)) for x in ded_digits]
 
-        if len(ded_words) != len(ded_digits[:-1]):
+        if len(ded_words) != len(ded_digits):
             logger.debug(f"Lol ya deductions lists are fucked girl: {ded_words} vs. {ded_digits}")
             sys.exit(1)
 
-        ded_dic = dict(zip(ded_words, ded_digits))
-        for d in ded_dic:
-            if ded_dic[d] == 0:
-                del ded_dic[d]
+        ded_dic_raw = dict(zip(ded_words, ded_digits))
+        ded_dic = {k: v for k, v in ded_dic_raw.items() if int(v) != 0}
         logger.debug(f"Returning deductions dic: {ded_dic})")
         return ded_dic
-
 
 def is_nan(x):
     return x is np.nan or x != x

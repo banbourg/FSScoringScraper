@@ -24,13 +24,16 @@ NAME_LIKE_PATTERN = re.compile(r"[A-Z]{2,}")
 class Protocol:
     def __init__(self, df, protocol_coordinates, segment):
         (row_start, row_end) = protocol_coordinates
+
         name_row = self._find_name_row(df=df, anchor_coords=(row_start, 0), size_of_sweep=(2, 4, 2))
+        logger.debug(f"Name row found, contains {name_row}")
+
         schema = self._name_row_schema(segment)
         self.discipline = segment.discipline
 
         self.row_range = range(row_start, row_end + 1)
         self.col_range = range(0, df.shape[1])
-        self.elt_list_ends =  None
+        self.elt_list_ends = None
 
         self.number_of_judges = self.count_judges(df)
 
@@ -48,13 +51,19 @@ class Protocol:
 
     def _find_name_row(self, df, anchor_coords, size_of_sweep):
         (row, col) = anchor_coords
-        (first_row_to_sweep, last_row_to_sweep, last_col_to_sweep) = size_of_sweep
+        # Case 1: Field headers and values in same cell:
+        anchor_row = datarow.DataRow(df=df, row=row, col_min=0)
+        for cell in anchor_row.raw_list:
+            if "\n" in cell:
+                return anchor_row.clean_name_row(mode="multiline")
 
+        # Case 2: Field headers and values in separate cells, not necessarily aligned
+        (first_row_to_sweep, last_row_to_sweep, last_col_to_sweep) = size_of_sweep
         name_row = []
         for r in range(row + first_row_to_sweep, row + last_row_to_sweep + 1):
             for c in range(0, col + last_col_to_sweep + 1):
                 if re.search(NAME_LIKE_PATTERN, str(df.iloc[r, c])):
-                    name_row = datarow.DataRow(df=df, row=r, col_min=0).clean_name_row()
+                    name_row = datarow.DataRow(df=df, row=r, col_min=0).clean_name_row(mode="single line")
                     break
             if name_row:
                 break
@@ -134,7 +143,7 @@ class Protocol:
             elt_row = datarow.DataRow(df=df, row=k, col_min=0).remove_dash_columns(judges=self.number_of_judges)
             self.elts.append(CONSTRUCTOR_DIC[self.discipline]["elt"](elt_row, self.discipline, self.number_of_judges))
 
-    def parse_deductions(self, df, i, j):
+    def parse_deductions(self, df, i, j, segment):
         """
         For clarity, here are the formatting issues we're trying to tackle:
         (1) Fall deductions may or may not be followed (or preceded) by # of falls in parentheses
@@ -147,55 +156,26 @@ class Protocol:
         :return:
         """
         logger.debug(f"Total deductions for this skate known to be {self.deductions.quantize(dec.Decimal('0'))}. "
-                     f"Attemptingit g to match...")
+                     f"Attempting to match...")
 
         if self.deductions.compare(dec.Decimal('0')) == dec.Decimal('0'):
             logger.debug(f"No deductions here, move along")
         else:
             logger.debug(f"RIP so we're doing this huh")
-            ded_dic = datarow.DataRow(df=df, row=i, col_min=j).clean_deductions_row()
+
+            # Older protocols present deductions over two rows, with two different models: total at end of top row or
+            # at end of bottom row (in which case
+            is_old_ded_format = True if segment.year < 2005 or segment.year == 2005 and segment.name == "OWG" else False
+            if not is_old_ded_format:
+                ded_dic = datarow.DataRow(df=df, row=i, col_min=j).clean_deductions_row(mode="standard")
+            else:
+                row_1 = datarow.DataRow(df=df, row=i, col_min=j)
+                row_2 = datarow.DataRow(df=df, row=i+1, col_min=j)
+                ded_dic = datarow.DataRow(raw_list=row_1.raw_list + row_2.raw_list).clean_deductions_row()
+
             if sum(ded_dic.values()) != int(self.deductions):
                 logger.debug("Some deductions are still missing, we're gonna have to go fetch the next row")
-
-            #
-            # # Special case for older protocols - scrape both lines
-            # old_protocol = True if (int(segment.season[-2:]) < 5 or (int(segment.season[-2:]) == 5 and event == 'OWG')) \
-            #     else False
-            #
-            # # Two models in old protocols: total at end of top row or at end of bottom row (in which case
-            # # bottom row contains three numbers
-            # if old_protocol:
-            #     ded_row_2 = []
-            #     return_row_list(i+1, j, raw_df, ded_row_2)
-            #     row_dic_2 = clean_ded_row(ded_row_2)
-            #     ded_words += row_dic_2['ded_words']
-            #     if event == 'OWG' or len(ded_digits) == 4:
-            #         # print '1 OLD PROTOCOL -- TOTAL ON TOP ROW'
-            #         ded_digits = ded_digits[:-1] + row_dic_2['ded_digits']
-            #     else:
-            #         assert len(row_dic_2['ded_digits']) == 3
-            #         # print '2 OLD PROTOCOL -- TOTAL ON BOTTOM ROW'
-            #         ded_digits += row_dic_2['ded_digits'][:-1]
-            # else:
-            #     if len(ded_words) == len(ded_digits):
-            #         del ded_digits[-1]
-            #
-            # del ded_words[0]
-            #
-            # # For old school protocols, remove all the headings where there was no actual deduction
-            # if old_protocol:
-            #     for z in range(len(ded_digits)-1, -1, -1):
-            #         if ded_digits[z] == 0:
-            #             del ded_words[z]
-            #             del ded_digits[z]
-            #
-            # if ded_words is not None:
-            #     for z in range(0, len(ded_words)):
-            #         #print '(', ded_words[z], ded_digits[z], ')'
-            #         segment_deductions_list.append((index, discipline, category, season, event, sub_event,
-            #                                         segment_competitors_list[-1][3], segment, ded_words[z],
-            #                                         ded_digits[z]))
-            #
+                sys.exit(1)
 
 class IceDanceProtocol(Protocol):
     def __init___(self, df, protocol_coordinates, segment):

@@ -7,7 +7,7 @@ import hashlib
 import re
 import pdftables_api
 import PyPDF2
-from tenacity import retry, wait_exponential, retry_if_result
+from tenacity import retry, wait_exponential, wait_fixed, retry_if_result
 
 import os
 from pathlib import Path
@@ -52,7 +52,8 @@ def is_lockout(browser_text):
         sys.exit(1)
 
 
-@retry(wait=wait_exponential(multiplier=1, min=60, max=7200), retry=retry_if_result(is_lockout))
+#@retry(wait=wait_exponential(multiplier=1, min=60, max=7200), retry=retry_if_result(is_lockout))
+@retry(wait=wait_fixed(60), retry=retry_if_result(is_lockout))
 def create_pdftables_account(pdf_browser, email, name, password):
     # Fill in the form on pdftables to register
     pdf_browser.open("https://pdftables.com/join")
@@ -187,9 +188,10 @@ def clean_up_directory():
     logger.info(f"Finished checks.")
 
 
-def main():
+if __name__ == '__main__':
     if len(sys.argv) == 2:
         file_path = sys.argv[1]
+        logger.debug(f"Passed in {file_path}")
     else:
         file_path = os.path.join(Path(os.getcwd()).parent, "pdf_files")
 
@@ -197,7 +199,7 @@ def main():
 
     page_count = 0
     api_key = ''
-    email_count = 36
+    email_count = 60
 
     output_path = os.path.join(file_path, "converted_excels")
     if not os.path.exists(output_path):
@@ -210,6 +212,7 @@ def main():
     for pdf in pdfs:
         filename = os.path.split(pdf)[1]
         basename = os.path.splitext(filename)[0]
+        logger.debug(f"Seeking to convert {filename}")
 
         pdf_path = os.path.join(file_path, filename)
         done_path = os.path.join(done_dir_path, filename)
@@ -238,8 +241,3 @@ def main():
         logger.info(f"Current page count: {page_count}") # Keeps breaking every so often so need this count
 
     logger.info(f"Loaded all pdfs in {file_path}")
-
-
-if __name__ == '__main__':
-    main()
-

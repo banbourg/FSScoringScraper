@@ -13,15 +13,18 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)-5s - %(message
                     datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
+old_pattern_dance_notation = re.compile(r"^(?i)([1-2]S[1-4])$")
 indiv_scored_elts = re.compile(r"^(?i)([A-Z]{2,})L([B1-4])\+[A-Z]{2,}M([B1-4])$")
 combo_nonjump_elts = re.compile(r"^(?i)([A-Z]{2,})([B1-4])\+([A-Z]{2,})([B1-4])$")
 pattern_dance = re.compile(r"^(1[A-Z]{2}|2[A-Z]{2})([B1-4])\+kp([YTN]{3,4})$")
 other_leveled_elts = re.compile(r"^(?i)([a-z]{2,})([B1-4]{0,1})$")
 jump = re.compile(r"[1-4](T|S|Lo|F|Lz|A|LZ|LO)")
 
-ELT_PATTERNS = {"IceDance": [indiv_scored_elts, combo_nonjump_elts, pattern_dance, other_leveled_elts]}
+
+ELT_PATTERNS = {"IceDance": [indiv_scored_elts, combo_nonjump_elts, pattern_dance, other_leveled_elts,
+                             old_pattern_dance_notation]}
 ELT_TYPES =  {"IceDance": {"Tw": "twizzles", "St": "steps", "Li": "lift", "Sp": "spin", "RH": "pattern_dance",
-                           "FS": "pattern_dance", "ChSl": "slide"},
+                           "FS": "pattern_dance", "ChSl": "slide", "1S": "pattern_dance", "2S": "pattern_dance"},
               "Pairs": {"Tw": "throw_twist", "Th": "throw_jump", "Li": "lift", "Sp": "spin", "Ds": "death_spiral",
                         "St": "steps"}
               }
@@ -85,9 +88,12 @@ class IceDanceElement(Element):
         self.elt_kps = elt_kps
 
     def _parse_elt_name(self, text):
-        keys = ["indiv_scored_elts", "combo_nonjump_elts", "pattern_dance", "other_leveled_elts"]
+        keys = ["indiv_scored_elts", "combo_nonjump_elts", "pattern_dance", "other_leveled_elts",
+                "old_pattern_dance_notation"]
+
         searches = [re.search(pattern, text) for pattern in ELT_PATTERNS["IceDance"]]
         filtered_searches = [s for s in searches if s is not None]
+
         if not filtered_searches:
             raise ValueError(f"Could not find elt matching expected patterns in {text}")
         dic = dict(zip(keys, searches))
@@ -108,6 +114,8 @@ class IceDanceElement(Element):
             elt_name = filtered_searches[0].group(1)
             try:
                 elt_level = int(filtered_searches[0].group(2))
+            except IndexError:
+                pass
             except ValueError:
                 pass
             try:
@@ -131,9 +139,44 @@ class PairsElement(Element):
 class SinglesElement(Element):
     def __init__(self, elt_row, disc, judges):
         logger.debug(elt_row)
-        elt_name, elt_level, elt_kp = self._parse_elt_name(elt_row, disc)
+        elt_name, elt_level = self._parse_elt_name(elt_row[1])
+
         elt_type = self._classify_elt(elt_name, disc)
         super().__init__(no=elt_row[0], name=elt_name, type=elt_type)
-        self.elt_kp = elt_kp
 
+    def _parse_elt_name(self, text):
+        keys = ["indiv_scored_elts", "combo_nonjump_elts", "pattern_dance", "other_leveled_elts",
+                "old_pattern_dance_notation"]
 
+        searches = [re.search(pattern, text) for pattern in ELT_PATTERNS["IceDance"]]
+        filtered_searches = [s for s in searches if s is not None]
+
+        if not filtered_searches:
+            raise ValueError(f"Could not find elt matching expected patterns in {text}")
+        dic = dict(zip(keys, searches))
+
+        elt_name, elt_level, elt_level_lady, elt_level_man = None, None, None, None
+        elt_1_name, elt_1_level, elt_2_name, elt_2_level, elt_kps = None, None, None, None, None
+        if dic["indiv_scored_elts"]:
+            elt_name = dic["indiv_scored_elts"].group(1)
+            elt_level_lady = dic["indiv_scored_elts"].group(2)
+            elt_level_man = dic["indiv_scored_elts"].group(3)
+        elif dic["combo_nonjump_elts"]:
+            elt_1_name = dic["combo_nonjump_elts"].group(1)
+            elt_1_level = dic["combo_nonjump_elts"].group(2)
+            elt_2_name = dic["combo_nonjump_elts"].group(3)
+            elt_2_level = dic["combo_nonjump_elts"].group(4)
+            elt_name = elt_1_name + "+" + elt_2_name
+        else:
+            elt_name = filtered_searches[0].group(1)
+            try:
+                elt_level = int(filtered_searches[0].group(2))
+            except IndexError:
+                pass
+            except ValueError:
+                pass
+            try:
+                elt_kps = filtered_searches[0].group(3)
+            except IndexError:
+                pass
+        return elt_name, elt_level, elt_level_lady, elt_level_man, elt_1_name, elt_1_level, elt_2_name, elt_2_level, elt_kps
