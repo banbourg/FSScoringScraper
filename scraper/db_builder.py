@@ -20,8 +20,8 @@ def upload_new_table(cursor, connection, engine, df, table_name):
 
     old, new = sql.Identifier(table_name + "_old"), sql.Identifier(table_name)
 
-    cursor.execute(sql.SQL("DROP TABLE IF EXISTS {};").format(old))
-    cursor.execute(sql.SQL("ALTER TABLE IF EXISTS {} RENAME TO {};").format(new, old))
+    cursor.execute(sql.SQL("DROP TABLE IF EXISTS {};").format(new))
+    #cursor.execute(sql.SQL("ALTER TABLE IF EXISTS {} RENAME TO {};").format(new, old))
     connection.commit()
     print(f"Removed old {table_name} table and renamed current to old.")
 
@@ -54,6 +54,7 @@ def main():
 
     cur.close()
     conn.close()
+
 
 if __name__ == "__main__":
     main()
