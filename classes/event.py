@@ -28,9 +28,12 @@ H2_EVENTS = ["WC", "WTT", "4CC", "OWG", "EC"]
 
 ISU_A_COMPS = ["NHK", "TDF", "SC", "COR", "SA", "COC", "GPF", "WC", "4CC", "OWG", "WTT", "EC"]
 
-SEARCHTERM_TO_DBNAME = {"nhk+trophy": "NHK", "france": "TDF", "canada": "SC", "russia": "COR", "america": "SA", "china": "COC",
-                        "GPF": "GPF", "world": "WC", "continents": "4CC", "olympic": "OWG", "wtt": "WTT",
-                        "europeans": "EC", "bompard": "TDF", "asian+open": "AO", "lombardia+trophy": "Lombardia",
+SEARCHTERM_TO_DBNAME = {"nhk+trophy": "NHK", "rostelecom+cup": "COR", "france": "TDF", "canada": "SC", "russia": "COR",
+                        "skate+america": "SA", "cup+of+china": "COC", "grand+prix+final": "GPF",
+                        "world+figure+skating+championships": "WC", "four+continents+championship": "4CC",
+                        "olympic+winter+games": "OWG", "world+team+trophy": "WTT",
+                        "european+figure+skating+championships": "EC",
+                        "trophee+eric+bompard": "TDF", "asian+open": "AO", "lombardia+trophy": "Lombardia",
                         "us+figure+skating+classic": "USClassic", "ondrej+nepela+trophy": "Nepela",
                         "autumn+classic+international": "ACI", "nebelhorn+trophy": "Nebelhorn",
                         "finlandia+trophy": "Finlandia", "tallinn+trophy": "Tallinn", "warsaw+cup": "Warsaw",
@@ -70,6 +73,7 @@ class Event:
             raise ValueError("Event must be constructed from either a filename, a homepage url or a search & year")
         self.url = homepage if homepage else None
         self.is_A_comp = True if self.name in ISU_A_COMPS else False
+        self.is_h2_event = True if self.name in H2_EVENTS else False
         self.season = self.__set_season() if self.year else None
         self.cs_flag = "CS" if self.name not in NATIONALS and not self.is_A_comp else None
 
@@ -97,7 +101,7 @@ class Event:
     def __set_season(self):
         """Sets FS season from event year by checking which half of the season the event in question takes place in
         """
-        season_start = self.year if self.name not in H2_EVENTS else self.year - 1
+        season_start = self.year if not self.is_h2_event else self.year - 1
         return "SB" + str(season_start)
 
 
@@ -230,10 +234,3 @@ class IceDanceSegmentProtocols(SegmentProtocols):
 class PairsSegmentProtocols(SegmentProtocols):
     def __init__(self, filename, discipline):
         super().__init__(filename, discipline)
-
-
-
-if __name__ == "__main__":
-    main()
-# To dos:
-#Quicker way to search through
