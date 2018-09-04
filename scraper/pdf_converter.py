@@ -7,6 +7,7 @@ import hashlib
 import re
 import pdftables_api
 import PyPDF2
+from tenacity import retry, wait_exponential, retry_if_result
 
 import os
 from pathlib import Path
@@ -28,11 +29,6 @@ except ImportError as exc:
     logger.error(f"Failed to import settings module ({exc})")
     sys.exit(1)
 
-# ----------------    IMPORTANT NOTES
-# CURRENTLY SET UP FOR YOU TO HAVE YOUR TEMP MAIL API KEY IN SETTINGS, SORRY. Also this has no error handling yet rip,
-# it just exits. RUN sleep(60) BETWEEN CREATING THE ACCOUNT AND FETCHING THE ACTIVATION EMAIL
-# CURRENTLY USING TWO SEPARATE BROWSERS TO KEEP THE RANDOMLY GENERATED EMAIL "ALIVE"
-
 
 def generate_random_email(mail_browser):
     # Generate a random email (temp mail API does not let you do this)
@@ -44,6 +40,19 @@ def generate_random_email(mail_browser):
     return email, name, password
 
 
+def is_lockout(browser_text):
+    if "too many requests" in browser_text.lower():
+        logger.info(f"Currently locked out")
+        return True
+    elif "check your email" in browser_text.lower():
+        logger.info(f"Got through")
+        return False
+    else:
+        logger.error(f"Found unexpected text in browser response {browser_text}")
+        sys.exit(1)
+
+
+@retry(wait=wait_exponential(multiplier=1, min=60, max=7200), retry=retry_if_result(is_lockout))
 def create_pdftables_account(pdf_browser, email, name, password):
     # Fill in the form on pdftables to register
     pdf_browser.open("https://pdftables.com/join")
@@ -53,18 +62,7 @@ def create_pdftables_account(pdf_browser, email, name, password):
     sign_up_form["password"].value = password
 
     pdf_browser.submit_form(sign_up_form, submit="become-member")
-    if pdf_browser.find("h1"):
-        check = pdf_browser.find("h1").get_text()
-    else:
-        logger.info(f"Content is {pdf_browser.parsed}")
-        sys.exit(1)
-    try:
-        assert check == "Check your email!"
-    except AssertionError as a:
-        logger.error(f"Sign-up to pdftables did not succeed: {a}")
-        sys.exit(1)
-    logger.info(f"Signed up to pdftables with email {email}")
-    return
+    return pdf_browser.parsed.get_text()
 
 
 def fetch_activation_email(email):
@@ -236,7 +234,8 @@ def main():
         page_count -= get_pdf_pages(pdf_path)
 
         os.rename(pdf_path, done_path)
-        logger.info(f"Current email count: {email_count}") # Keeps breaking every so often so need this count
+        logger.info(f"Current email count: {email_count}")
+        logger.info(f"Current page count: {page_count}") # Keeps breaking every so often so need this count
 
     logger.info(f"Loaded all pdfs in {file_path}")
 
