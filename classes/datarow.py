@@ -96,7 +96,11 @@ class DataRow:
         # Stringify and remove number of falls in brackets, split
         logger.debug(f"Raw deductions list is {self.raw_list}")
 
-        row_less_falls = [re.sub(r"\(\d+\)", "", str(r)) for r in self.raw_list[1:]]
+        split_row = []
+        for e in self.raw_list:
+            split_row.extend(str(e).split("\n"))
+
+        row_less_falls = [re.sub(r"\(\d+\)", "", str(r)) for r in split_row[1:]]
         row_text = " ".join(row_less_falls)
         logger.debug(f"Row text after join is {row_text}")
 

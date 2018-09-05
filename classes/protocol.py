@@ -3,6 +3,7 @@ import re
 import logging
 import pandas as pd
 import decimal as dec
+import unicodedata
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
                     level=logging.DEBUG,
@@ -25,8 +26,7 @@ class Protocol:
     def __init__(self, df, protocol_coordinates, segment):
         (row_start, row_end) = protocol_coordinates
 
-        name_row = self._find_name_row(df=df, anchor_coords=(row_start, 0), size_of_sweep=(2, 4, 2))
-        logger.debug(f"Name row found, contains {name_row}")
+        name_row = self._find_name_row(df=df, anchor_coords=(row_start, 0), size_of_sweep=(2, 4, 3))
 
         schema = self._name_row_schema(segment)
         self.discipline = segment.discipline
@@ -46,7 +46,7 @@ class Protocol:
         self.deductions = dec.Decimal(self.tss - self.tes - self.pcs)
 
         self.elts = []
-        logger.debug(f"Instantiated Skate object for {self.skater.printout} with total score {self.tss} and "
+        logger.debug(f"Instantiated Skate object for {unicodedata.normalize('NFKD', self.skater.printout).encode('ascii','ignore')} with total score {self.tss} and "
                      f"starting no. {self.starting_number}")
 
     def _find_name_row(self, df, anchor_coords, size_of_sweep):
@@ -135,7 +135,7 @@ class Protocol:
         pcs_df.rename_axis('judge', axis='columns', inplace=True)
         pcs_df.rename_axis('component', axis='index', inplace=True)
         self.pcs = pcs_df
-        logger.debug(f"Loaded pcs table for {self.skater.printout}")
+        logger.debug(f"Loaded pcs table for {unicodedata.normalize('NFKD', self.skater.printout).encode('ascii','ignore')}")
 
     def parse_tes_table(self, df, i, j):
         self._get_elt_list_location(df, i, j)

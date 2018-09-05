@@ -7,14 +7,17 @@ import pandas as pd
 from openpyxl import load_workbook
 import numpy as np
 from datetime import datetime
+import unicodedata
 
 import os
 import re
 import sys
 import logging
 
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
-                    level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
+logging.basicConfig(filename="transformer.log",
+                    format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
+                    level=logging.DEBUG,
+                    datefmt="%Y-%m-%d %H:%M:%S")
 
 logger = logging.getLogger(__name__)
 

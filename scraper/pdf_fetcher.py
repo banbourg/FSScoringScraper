@@ -71,10 +71,10 @@ class EventSearch:
         self.expected_domain = EXPECTED_DOMAIN[self.event.name] if self.event.name in EXPECTED_DOMAIN else None
         self.fed_abbrev = DBNAME_TO_URLNAME[self.event.name] if self.event.name in DBNAME_TO_URLNAME else None
         self.homepage_url = url
-        self.homepage, self.homepage_text = self.__get_homepage_content()
+        self.homepage, self.homepage_text = self._get_homepage_content()
         self.start_date = None
 
-    def __get_homepage_content(self):
+    def _get_homepage_content(self):
         if self.homepage_url:
             r = request_url("http://" + self.homepage_url if "http" not in self.homepage_url else self.homepage_url)
             page = BeautifulSoup(r.content, "html5lib")
@@ -84,7 +84,7 @@ class EventSearch:
         else:
             return None, None
 
-    def __test_result(self, url):
+    def _test_result(self, url):
         """Checks that a google search hit satisfies the condition that make it a likely event homepage
         (e.g. that it occurs in the expected year, was posted on the expected domain, etc.)
         """
@@ -130,7 +130,7 @@ class EventSearch:
             logger.info(f"URL {url} failed tests for {self.event.name} {self.event.year}.")
             return False, None, None
 
-    def __construct_absolute_url(self, sublink):
+    def _construct_absolute_url(self, sublink):
         """Combines a url and a relative link found on the url's page and returns one absolute url.
 
         Two cases: (1) If sublink is relative to a subdomain (e.g. "xx.pdf"), strips "index" portion of the the subdomain
@@ -162,7 +162,7 @@ class EventSearch:
         google_page = BeautifulSoup(google_r.text, "html.parser")
 
         for l in google_page.find_all("cite"):
-            test, homepage, homepage_text = self.__test_result(url=l.text)
+            test, homepage, homepage_text = self._test_result(url=l.text)
             if test:
                 self.homepage_url = l.text
                 self.homepage = homepage
@@ -219,7 +219,7 @@ class EventSearch:
                             logger.info(f"Code {code} matches {sublink}")
 
                             filename = self.generate_pdf_filename(pdf_link=sublink, disc_code=code)
-                            full_url = self.__construct_absolute_url(sublink=sublink)
+                            full_url = self._construct_absolute_url(sublink=sublink)
 
                             # Get contents of sublink
                             try:

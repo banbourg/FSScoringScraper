@@ -1,5 +1,6 @@
 import re
 import logging
+import unicodedata
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
                     level=logging.DEBUG,
@@ -28,7 +29,7 @@ class SinglesSkater(Person):
     def __init__(self, name_row):
         super().__init__(name_string=name_row[1], fed=name_row[2])
         self.printout = self.full_name
-        logger.debug(f"Instantiated SinglesSkater with name {self.full_name}, fed {self.federation}")
+        logger.debug(f"Instantiated SinglesSkater with name {unicodedata.normalize('NFKD', self.full_name).encode('ascii','ignore')}, fed {self.federation}")
 
 
 class Team:
@@ -38,5 +39,5 @@ class Team:
         self.man = Person(name_string=names[1], fed=name_row[2])
         self.team_name = self.lady.tight_last_name + "/" + self.man.tight_last_name
         self.printout = self.team_name
-        logger.debug(f"Instantiated Team with name {self.team_name}, fed {self.lady.federation}")
+        logger.debug(f"Instantiated Team with name {unicodedata.normalize('NFKD', self.team_name).encode('ascii','ignore')}, fed {self.lady.federation}")
 
