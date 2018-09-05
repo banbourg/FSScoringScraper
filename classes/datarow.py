@@ -21,11 +21,11 @@ DED_TYPE_PATTERN = re.compile(r"[A-Z][^:\-0-9.]*")
 DED_POINT_PATTERN = re.compile(r"-*\d(?:\.0|\.00)*")
 DED_TOTAL_PATTERN = re.compile(r"(\d(?:\.0)*0*) -*\d+(?:\.0)*0*")
 
-DED_ALIGNMENT_DIC = {"fall": "falls" , "late start": "time violation"}
+DED_ALIGNMENT_DIC = {"fall": "falls" , "late start": "time violation", "illegal element": "illegal element/movement"}
 
 EXPECTED_DED_TYPES = ['total', 'falls', 'time violation', 'costume failure', 'late start', 'music violation',
                       'interruption in excess', 'costume & prop violation', 'illegal element/movement', 'extended lifts',
-                      'extra element']
+                      'extra element', 'illegal element']
 
 class DataRow:
     def __init__(self, raw_list=None, df=None, row=None, col_min=None):
@@ -110,7 +110,8 @@ class DataRow:
         logger.debug(f"ded_digits after regex {ded_digits}")
 
         # Clean up ded types
-        ded_words = [DED_ALIGNMENT_DIC[d] if d.lower().strip() in DED_ALIGNMENT_DIC else d.lower().strip() for d in ded_words]
+        ded_words = [DED_ALIGNMENT_DIC[d.lower().strip()] if d.lower().strip() in DED_ALIGNMENT_DIC
+                     else d.lower().strip() for d in ded_words]
         for d in ded_words:
             if d == 'total':
                 del d

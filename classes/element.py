@@ -18,15 +18,20 @@ indiv_scored_elts = re.compile(r"^(?i)([A-Z]{2,})L([B1-4])\+[A-Z]{2,}M([B1-4])$"
 combo_nonjump_elts = re.compile(r"^(?i)([A-Z]{2,})([B1-4])\+([A-Z]{2,})([B1-4])$")
 pattern_dance = re.compile(r"^(1[A-Z]{2}|2[A-Z]{2})([B1-4])\+kp([YTN]{3,4})$")
 other_leveled_elts = re.compile(r"^(?i)([a-z]{2,})([B1-4]{0,1})$")
-jump = re.compile(r"[1-4](T|S|Lo|F|Lz|A|LZ|LO)")
+jumps = re.compile(r"([1-4](Eu|T|S|Lo|F|Lz|A|LZ|LO))([!e<*]{0,3})\+*(COMBO|SEQ|REP)*")
+new_spins = re.compile(r"([A-Za-z]+Sp)([B1-4])(p([1-4]))*(V)*")
 
 
 ELT_PATTERNS = {"IceDance": [indiv_scored_elts, combo_nonjump_elts, pattern_dance, other_leveled_elts,
-                             old_pattern_dance_notation]}
-ELT_TYPES =  {"IceDance": {"Tw": "twizzles", "St": "steps", "Li": "lift", "Sp": "spin", "RH": "pattern_dance",
-                           "FS": "pattern_dance", "ChSl": "slide", "1S": "pattern_dance", "2S": "pattern_dance"},
-              "Pairs": {"Tw": "throw_twist", "Th": "throw_jump", "Li": "lift", "Sp": "spin", "Ds": "death_spiral",
-                        "St": "steps"}
+                             old_pattern_dance_notation],
+                "Singles": [jumps, new_spins, other_leveled_elts]
+                }
+ELT_TYPES =  {"IceDance": {"Tw": "twizzles", "St": "steps", "Li": "lift", "Sp": "spin", "RH": "pattern dance",
+                           "FS": "pattern dance", "ChSl": "slide", "1S": "pattern_dance", "2S": "pattern dance",
+                           "PiF": "pivot"},
+              "Pairs": {"Tw": "throw twist", "Th": "throw jump", "Li": "lift", "Sp": "spin", "Ds": "death spiral",
+                        "St": "steps"},
+              "Singles": {"St": "steps", "SpSq": "spiral", "ChSq": "choreo", "ChSp": "spiral", r"Sp": "spin"}
               }
 
 
@@ -52,10 +57,11 @@ class Element:
             return None
 
     def _classify_elt(self, elt_name, disc):
-        for key in ELT_TYPES[disc]:
+        meta_disc = disc if disc != "Ladies" and disc != "Men" else "Singles"
+        for key in ELT_TYPES[meta_disc]:
             if key in elt_name:
-                return ELT_TYPES[disc][key]
-        if re.search(jump, elt_name):
+                return ELT_TYPES[meta_disc][key]
+        if re.search(jumps, elt_name):
             return "jump"
         logger.error(f"Could not find element type for {elt_name}")
         sys.exit(1)
@@ -136,47 +142,49 @@ class PairsElement(Element):
         return True
 # ADD FETCHING CALLS
 
+
 class SinglesElement(Element):
     def __init__(self, elt_row, disc, judges):
         logger.debug(elt_row)
-        elt_name, elt_level = self._parse_elt_name(elt_row[1])
+        elt_name, elt_level, jump_list, call_list, flag_list, no_positions, failed_spin_flag = self._parse_elt_name(elt_row[1])
 
         elt_type = self._classify_elt(elt_name, disc)
-        super().__init__(no=elt_row[0], name=elt_name, type=elt_type)
+        bv, goe, sov_goe, total = self._parse_elt_scores(elt_row, judges)
+
+        super().__init__(no=elt_row[0], name=elt_name, type=elt_type, bv=bv, goe=goe, sov_goe=sov_goe, total=total)
 
     def _parse_elt_name(self, text):
-        keys = ["indiv_scored_elts", "combo_nonjump_elts", "pattern_dance", "other_leveled_elts",
-                "old_pattern_dance_notation"]
+        keys = ["jumps", "new_spins", "other_leveled_elts"]
 
-        searches = [re.search(pattern, text) for pattern in ELT_PATTERNS["IceDance"]]
-        filtered_searches = [s for s in searches if s is not None]
+        searches = [re.findall(pattern, text) for pattern in ELT_PATTERNS["Singles"]]
+        filtered_searches = [s for s in searches if s != []]
 
         if not filtered_searches:
             raise ValueError(f"Could not find elt matching expected patterns in {text}")
         dic = dict(zip(keys, searches))
 
-        elt_name, elt_level, elt_level_lady, elt_level_man = None, None, None, None
-        elt_1_name, elt_1_level, elt_2_name, elt_2_level, elt_kps = None, None, None, None, None
-        if dic["indiv_scored_elts"]:
-            elt_name = dic["indiv_scored_elts"].group(1)
-            elt_level_lady = dic["indiv_scored_elts"].group(2)
-            elt_level_man = dic["indiv_scored_elts"].group(3)
-        elif dic["combo_nonjump_elts"]:
-            elt_1_name = dic["combo_nonjump_elts"].group(1)
-            elt_1_level = dic["combo_nonjump_elts"].group(2)
-            elt_2_name = dic["combo_nonjump_elts"].group(3)
-            elt_2_level = dic["combo_nonjump_elts"].group(4)
-            elt_name = elt_1_name + "+" + elt_2_name
+        elt_level, no_positions, failed_spin_flag = None, None, None
+        jump_list, call_list, flag_list = [], [], []
+        if dic["jumps"]:
+            sorted_tuples = [list(t) for t in zip(*dic["jumps"])]
+            logger.debug(f"dic[jumps] contains {sorted_tuples}")
+
+            elt_name = "+".join(sorted_tuples[0])
+
+            jump_list = sorted_tuples[0]
+            call_list = [c if c != "" else None for c in sorted_tuples[2]]
+            flag_list = [f if f != "" else None for f in sorted_tuples[3]]
         else:
-            elt_name = filtered_searches[0].group(1)
+            logger.debug(f"Filtered searches is {filtered_searches}")
+            elt_name = filtered_searches[0][0][0]
+            elt_level = filtered_searches[0][0][1]
             try:
-                elt_level = int(filtered_searches[0].group(2))
+                no_positions = int(filtered_searches[0][0][3]) if filtered_searches[0][0][3] != "" else None
             except IndexError:
                 pass
-            except ValueError:
-                pass
             try:
-                elt_kps = filtered_searches[0].group(3)
+                failed_spin_flag = 1 if filtered_searches[0][0][4] == "V" else None
             except IndexError:
                 pass
-        return elt_name, elt_level, elt_level_lady, elt_level_man, elt_1_name, elt_1_level, elt_2_name, elt_2_level, elt_kps
+
+        return elt_name, elt_level, jump_list, call_list, flag_list, no_positions, failed_spin_flag

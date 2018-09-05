@@ -39,8 +39,6 @@ calls = ['!', 'e', '<', '<<', '*', '+REP', 'V1', 'V2', 'x', 'X', 'V']
 
 key_cols = ['discipline', 'category', 'season', 'event', 'sub_event', 'skater_name', 'segment']
 
-#inv_map = {v: k for k, v in my_map.items()}
-
 
 # --------------------------------------- REGEX PATTERNS ---------------------------------------
 combo_pattern = re.compile(r"\+[0-9]")
