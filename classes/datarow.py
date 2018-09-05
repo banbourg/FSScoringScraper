@@ -18,8 +18,8 @@ except ImportError as exc:
 
 NUMBER_AND_NAME_PATTERN = re.compile(r"^\d+\s+\D+")
 DED_TYPE_PATTERN = re.compile(r"[A-Z][^:\-0-9.]*")
-DED_POINT_PATTERN = re.compile(r"-*\d(?:\.0|\.00)*")
-DED_TOTAL_PATTERN = re.compile(r"(\d(?:\.0)*0*) -*\d+(?:\.0)*0*")
+DED_POINT_PATTERN = re.compile(r"(?<!\d)-*\d(?:\.00|\.0)*")
+DED_TOTAL_PATTERN = re.compile(r"(\d(?:\.0|\.00)*) -*\d+(?:\.0)*0*")
 
 DED_ALIGNMENT_DIC = {"fall": "falls" , "late start": "time violation", "illegal element": "illegal element/movement"}
 
@@ -97,8 +97,17 @@ class DataRow:
         logger.debug(f"Raw deductions list is {self.raw_list}")
 
         split_row = []
-        for e in self.raw_list:
-            split_row.extend(str(e).split("\n"))
+        i = 0
+        while i < len(self.raw_list):
+            if "\n" not in str(self.raw_list[i]):
+                split_row.append(str(self.raw_list[i]))
+                i += 1
+            else:
+                this_cell = str(self.raw_list[i]).split("\n")
+                next_cell = str(self.raw_list[i+1]).split("\n")
+                split_row.extend([this_cell[0], next_cell[0], this_cell[1], next_cell[1]])
+                i+= 2
+        logger.debug(f"Row text after split is {split_row}")
 
         row_less_falls = [re.sub(r"\(\d+\)", "", str(r)) for r in split_row[1:]]
         row_text = " ".join(row_less_falls)
