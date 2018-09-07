@@ -55,8 +55,8 @@ def reorder_cols(df, col_to_move, new_pos):
 
 def find_protocol_coordinates(df):
     protocol_starts, protocol_ends = [], []
-    for j in df.columns:
-        for i in df.index:
+    for i in df.index:
+        for j in range(0,6):
             if "Name" in str(df.iloc[i, j]):
                 protocol_starts.append(i)
             if "Deductions" in str(df.iloc[i, j]) and j < 4:

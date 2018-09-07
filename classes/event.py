@@ -54,7 +54,7 @@ SEGMENT_LIST = ["SP", "FS", "SD", "FP", "FD", "OD", "CD", "RD", "QA", "QB", "Pre
 SEGMENT_CORRECTIONS = {"Prelim": "QA", "FP": "FS"}
 SUB_EVENT_DIC = {"Team": "team", "Preliminary": "qual", "QA": "qual_1", "QB": "qual_2"}
 SEG_IDENTIFIER_COLUMNS = ['index', 'season', 'event_start_date', 'cs_flag', 'event', 'sub_event', 'category', 'discipline',
-                      'skater_name', 'segment']
+                          'skater_name', 'segment']
 
 class Event:
     def __init__(self, filename=None, search_phrase=None, search_year=None, homepage=None):

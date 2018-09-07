@@ -142,7 +142,7 @@ class Protocol:
         disc = "Singles" if self.discipline == "Ladies" or self.discipline == "Men" else self.discipline
         for k in range(self.elt_list_starts, self.elt_list_ends):
             elt_row = datarow.DataRow(df=df, row=k, col_min=0).remove_dash_columns(judges=self.number_of_judges)
-            self.elts.append(CONSTRUCTOR_DIC[self.discipline]["elt"](elt_row, self.discipline, self.number_of_judges))
+            self.elts.append(CONSTRUCTOR_DIC[self.discipline]["elt"](elt_row, self.number_of_judges))
 
     def parse_deductions(self, df, i, j, segment):
         """
