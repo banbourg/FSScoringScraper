@@ -26,7 +26,7 @@ class Protocol:
     def __init__(self, df, protocol_coordinates, segment):
         (row_start, row_end) = protocol_coordinates
 
-        name_row = self._find_name_row(df=df, anchor_coords=(row_start, 0), size_of_sweep=(2, 4, 3))
+        name_row = self._find_name_row(df=df, anchor_coords=(row_start, 0), size_of_sweep=(1, 4, 3))
 
         schema = self._name_row_schema(segment)
         self.discipline = segment.discipline
@@ -54,7 +54,7 @@ class Protocol:
         # Case 1: Field headers and values in same cell:
         anchor_row = datarow.DataRow(df=df, row=row, col_min=0)
         for cell in anchor_row.raw_list:
-            if "\n" in cell:
+            if "Name\n" in cell:
                 return anchor_row.clean_name_row(mode="multiline")
 
         # Case 2: Field headers and values in separate cells, not necessarily aligned
@@ -166,9 +166,9 @@ class Protocol:
 
             # Older protocols present deductions over two rows, with two different models: total at end of top row or
             # at end of bottom row (in which case
-            is_old_ded_format = True if segment.year < 2005 or segment.year == 2005 and segment.name == "OWG" else False
+            is_old_ded_format = True if segment.year < 2005 or segment.year == 2005 and segment.name in event.H2_EVENTS else False
             if not is_old_ded_format:
-                ded_dic = datarow.DataRow(df=df, row=i, col_min=j).clean_deductions_row(mode="standard")
+                ded_dic = datarow.DataRow(df=df, row=i, col_min=j).clean_deductions_row()
             else:
                 row_1 = datarow.DataRow(df=df, row=i, col_min=j)
                 row_2 = datarow.DataRow(df=df, row=i+1, col_min=j)

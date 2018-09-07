@@ -41,18 +41,31 @@ class DataRow:
         self.cleaned_list = []
 
     def remove_dash_columns(self, judges):
+        # Context: sometimes protocols include 1-2 random columns of dashes between the end of the goe scores and the
+        # total scores. But sometimes unmarked elements are also denoted by a dash. Also I hate this.
         self.cleaned_list = self.raw_list
-        if "-" in self.raw_list:
-            if self.raw_list.count("-") > 1:
-                self.cleaned_list = ["NS" if x == "-" else x for x in self.raw_list]
-            else:
-                self.cleaned_list.remove("-")
-        try:
-            assert len(self.cleaned_list) == (5 + judges)
-        except AssertionError:
-            logger.error(f"Elt row does not have expected length: {self.raw_list}, {self.cleaned_list}")
-            sys.exit(1)
-        return self.cleaned_list
+
+        test = [x for x in self.raw_list if x != "-"]
+        if len(test) == (5 + judges):
+            self.cleaned_list = test
+            return self.cleaned_list
+
+        test_2 = ["NS" if x == "-" else x for x in self.raw_list]
+        if len(test_2) == (5 + judges):
+            self.cleaned_list = test_2
+            return self.cleaned_list
+
+        if (len(test_2) - 5 - judges) == 1 and test_2[-2] == "NS":
+            del test_2[-2]
+            self.cleaned_list = test_2
+            return self.cleaned_list
+
+        if (len(test_2) - 5 - judges) == 2 and test_2[-3:-1] == ["NS", "NS"]:
+            del test_2[-3:-1]
+            self.cleaned_list = test_2
+            return self.cleaned_list
+
+        sys.exit(f"Elt row does not have expected length: {self.raw_list}, {self.cleaned_list}")
 
     def clean_scores_row(self, mode):
         # logger.debug(f"Raw list is {self.raw_list}")
@@ -61,18 +74,18 @@ class DataRow:
                                 for raw_score in str(raw_cell).split()]:
                 if mode == "decimal":
                     try:
-                        self.cleaned_list.append(dec.Decimal(c))
-                    except:
+                        self.cleaned_list.append(dec.Decimal(str(c)))
+                    except (dec.InvalidOperation, ValueError):
                         pass
                 elif mode == "float":
                     try:
                         self.cleaned_list.append(float(c))
-                    except:
+                    except ValueError:
                         pass
                 elif mode == "int":
                     try:
-                        self.cleaned_list.append(int(c))
-                    except:
+                        self.cleaned_list.append(int(float(c)))
+                    except ValueError:
                         self.cleaned_list.append(0)
                 else:
                     raise ValueError("Please set 'mode' parameter to 'float' or 'int'")

@@ -1,6 +1,7 @@
 import re
 import logging
 import unicodedata
+import sys
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
                     level=logging.DEBUG,
@@ -35,8 +36,11 @@ class SinglesSkater(Person):
 class Team:
     def __init__(self, name_row):
         names = re.split(" / | - ", name_row[1])
-        self.lady = Person(name_string=names[0], fed=name_row[2])
-        self.man = Person(name_string=names[1], fed=name_row[2])
+        try:
+            self.lady = Person(name_string=names[0], fed=name_row[2])
+            self.man = Person(name_string=names[1], fed=name_row[2])
+        except IndexError as ie:
+            sys.exit(f"Index error on one of {names}, {name_row}: {ie}")
         self.team_name = self.lady.tight_last_name + "/" + self.man.tight_last_name
         self.printout = self.team_name
         logger.debug(f"Instantiated Team with name {unicodedata.normalize('NFKD', self.team_name).encode('ascii','ignore')}, fed {self.lady.federation}")

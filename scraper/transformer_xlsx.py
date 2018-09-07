@@ -80,19 +80,29 @@ def scrape_sheet(df, segment):
 
 
 def main():
+    done_dir_path = os.path.join(settings.READ_PATH, "done")
+    if not os.path.exists(done_dir_path):
+        os.makedirs(done_dir_path)
+
     files = sorted(glob.glob(settings.READ_PATH + '*.xlsx'))
     for f in files:
-        filename = f.rpartition("/")[2].rpartition(".")[0]
-        logger.info(f"Attempting to read {filename}")
+        filename = f.rpartition("/")[2]
+        basename = filename.rpartition(".")[0]
+
+        logger.info(f"Attempting to read {basename}")
 
         # Initialise SegmentProtocols object
         disc = event.parse_discipline(filename)
-        seg = protocol.CONSTRUCTOR_DIC[disc]["seg_obj"](filename, disc)
+        seg = protocol.CONSTRUCTOR_DIC[disc]["seg_obj"](basename, disc)
 
         wb = load_workbook(f)
         for sheet in wb.sheetnames:
             raw_df = pd.DataFrame(wb[sheet].values)
             scrape_sheet(raw_df, seg)
+
+        current_path = os.path.join(settings.READ_PATH, filename)
+        done_path = os.path.join(done_dir_path, filename)
+        os.rename(current_path, done_path)
 
 
 if __name__ == "__main__":
