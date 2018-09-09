@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 
 old_pattern_dance_notation = re.compile(r"^(?i)([1-4]S[1-4])([B1-4])*(\**)$")
 indiv_scored_elts = re.compile(r"^(?i)([A-Z]{2,})L([B1-4])\+[A-Z]{2,}M([B1-4])$")
-combo_nonjump_elts = re.compile(r"^(?i)([A-Z]{2,})([B1-4])(\**)\+([A-Z]{2,})([B1-4])(\**)$")
+combo_nonjump_elts = re.compile(r"^(?i)([A-Z]{2,})([B1-4])*(\**)\+([A-Z]{2,})([B1-4])*(\**)$")
 pattern_dance = re.compile(r"^(1[A-Z]{2}|2[A-Z]{2})([B1-4])\+kp([YTN]{3,4})(\**)$")
-other_leveled_elts = re.compile(r"^(?i)([a-z]{2,}(?<!Sp))([B1-4]{0,1})(\**)$")
-throw_jumps = re.compile(r"^([1-4](Eu|T|S|Lo|F|Lz|A|LZ|LO)Th)([!e<*]{0,3})$")
+other_leveled_elts = re.compile(r"^(?i)([a-z]{2,}(?<!Sp|Th|Eu|Lz|LZ|LO|Lo))([B1-4]{0,1})(\**)$")
+throw_jumps = re.compile(r"^([1-4]*(Eu|T|S|Lo|F|Lz|A|LZ|LO)Th)([!e<*]{0,3})$")
 jumps = re.compile(r"^([1-4]*(Eu|T(?!w)|S|Lo|F|Lz|A|LZ|LO)(?![A-Za-z]))([!e<*]{0,3})\+*(COMBO|SEQ|REP)*")
 spins = re.compile(r"^([A-Za-z]*Sp)(([B1-4])p)*([1-4])*(V([1-5])|V)*(\**)$")
 pairs_elts = re.compile(r"^([1-5][A-Za-z]{2,3}(?<!Th|Eu|Lz|LZ|LO|Lo)(?<![TSFA]))([B1-4])*(\**)$")
@@ -126,9 +126,9 @@ def _parse_pairs_elts(match_list, dic):
 
 def _parse_elt_scores(elt_row, judges):
     cutoff = -1 - judges
-    factored_totals = datarow.DataRow(raw_list=elt_row[2:cutoff]).clean_scores_row(mode="decimal")
-    bv, sov_goe = dec.Decimal(factored_totals[0]), dec.Decimal(factored_totals[1])
-    goe = datarow.DataRow(raw_list=elt_row[cutoff:-1]).clean_scores_row(mode="int")
+    factored_totals = datarow.ScoreRow(mode="decimal", raw_list=elt_row[2:cutoff])
+    bv, sov_goe = dec.Decimal(factored_totals.clean[0]), dec.Decimal(factored_totals.clean[1])
+    goe = datarow.ScoreRow(mode="int", raw_list=elt_row[cutoff:-1]).clean
     total = dec.Decimal(str(elt_row[-1]))
     return bv, goe, sov_goe, total
 

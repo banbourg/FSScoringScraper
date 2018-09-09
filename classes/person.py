@@ -28,19 +28,19 @@ class Person:
 
 class SinglesSkater(Person):
     def __init__(self, name_row):
-        super().__init__(name_string=name_row[1], fed=name_row[2])
+        super().__init__(name_string=name_row.clean[1], fed=name_row.clean[2])
         self.printout = self.full_name
         logger.debug(f"Instantiated SinglesSkater with name {unicodedata.normalize('NFKD', self.full_name).encode('ascii','ignore')}, fed {self.federation}")
 
 
 class Team:
     def __init__(self, name_row):
-        names = re.split(" / | - ", name_row[1])
+        names = re.split(" / | - ", name_row.clean[1])
         try:
-            self.lady = Person(name_string=names[0], fed=name_row[2])
-            self.man = Person(name_string=names[1], fed=name_row[2])
+            self.lady = Person(name_string=names[0], fed=name_row.clean[2])
+            self.man = Person(name_string=names[1], fed=name_row.clean[2])
         except IndexError as ie:
-            sys.exit(f"Index error on one of {names}, {name_row}: {ie}")
+            sys.exit(f"Index error on one of {names}, {name_row.clean}: {ie}")
         self.team_name = self.lady.tight_last_name + "/" + self.man.tight_last_name
         self.printout = self.team_name
         logger.debug(f"Instantiated Team with name {unicodedata.normalize('NFKD', self.team_name).encode('ascii','ignore')}, fed {self.lady.federation}")

@@ -27,10 +27,9 @@ class Protocol:
         (row_start, row_end) = protocol_coordinates
 
         name_row = self._find_name_row(df=df, anchor_coords=(row_start, 0), size_of_sweep=(1, 4, 3))
+        schema = self._find_name_row_schema(segment)
 
-        schema = self._name_row_schema(segment)
         self.discipline = segment.discipline
-
         self.row_range = range(row_start, row_end + 1)
         self.col_range = range(0, df.shape[1])
         self.elt_list_ends = None
@@ -38,10 +37,10 @@ class Protocol:
         self.number_of_judges = self.count_judges(df)
 
         self.skater = CONSTRUCTOR_DIC[segment.discipline]["competitor"](name_row)
-        self.starting_number = int(name_row[3]) if schema == "new" else None
-        self.tss = dec.Decimal(str(name_row[4])) if schema == "new" else dec.Decimal(str(name_row[3]))
-        self.tes = dec.Decimal(str(name_row[5])) if schema == "new" else dec.Decimal(str(name_row[4]))
-        self.pcs = dec.Decimal(str(name_row[6])) if schema == "new" else dec.Decimal(str(name_row[5]))
+        self.starting_number = int(name_row.clean[3]) if schema == "new" else None
+        self.tss = dec.Decimal(str(name_row.clean[4])) if schema == "new" else dec.Decimal(str(name_row.clean[3]))
+        self.tes = dec.Decimal(str(name_row.clean[5])) if schema == "new" else dec.Decimal(str(name_row.clean[4]))
+        self.pcs = dec.Decimal(str(name_row.clean[6])) if schema == "new" else dec.Decimal(str(name_row.clean[5]))
         logger.debug(f"Scores are tss {self.tss}, tes {self.tes}, pcs {self.pcs}")
         self.deductions = dec.Decimal(self.tss - self.tes - self.pcs)
 
@@ -53,28 +52,20 @@ class Protocol:
         (row, col) = anchor_coords
         # Case 1: Field headers and values in same cell:
         anchor_row = datarow.DataRow(df=df, row=row, col_min=0)
-        for cell in anchor_row.raw_list:
+        for cell in anchor_row.raw:
             if "Name\n" in cell:
-                return anchor_row.clean_name_row(mode="multiline")
+                return datarow.NameRow(mode="multiline", df=df, row=row, col_min=0)
 
         # Case 2: Field headers and values in separate cells, not necessarily aligned
         (first_row_to_sweep, last_row_to_sweep, last_col_to_sweep) = size_of_sweep
-        name_row = []
         for r in range(row + first_row_to_sweep, row + last_row_to_sweep + 1):
             for c in range(0, col + last_col_to_sweep + 1):
                 if re.search(NAME_LIKE_PATTERN, str(df.iloc[r, c])):
-                    name_row = datarow.DataRow(df=df, row=r, col_min=0).clean_name_row(mode="single line")
-                    break
-            if name_row:
-                break
-        try:
-            assert name_row
-        except AssertionError:
-            logger.error(f"Could not find name row that matched expected pattern in sweep from {anchor_coords}")
-            sys.exit(1)
-        return name_row
+                    return datarow.NameRow(mode="single line", df=df, row=r, col_min=0)
 
-    def _name_row_schema(self, segment):
+        sys.exit(f"Could not find name row that matched expected pattern in sweep from {anchor_coords}")
+
+    def _find_name_row_schema(self, segment):
         if int(segment.season[2:]) >= 2009 or (int(segment.season[2:]) == 2008 and segment.name in ['WTT', 'WC']):
             return "new"
         else:
@@ -90,7 +81,7 @@ class Protocol:
         # Get number of elements in the programme (e.g. when some are invalid there might be 14 instead of 13)
         self.elt_list_starts = i + increment
         for row in range(self.elt_list_starts, df.shape[0] + 1):
-            concat_row = " ".join([str(cell) for cell in datarow.DataRow(df=df, row=row, col_min=0).raw_list])
+            concat_row = " ".join([str(cell) for cell in datarow.DataRow(df=df, row=row, col_min=0).raw])
             if "Program Components" in concat_row:
                 break
         self.elt_list_ends = row if row == df.shape[0] else row - 1
@@ -110,7 +101,7 @@ class Protocol:
             for i in self.row_range:
                 if "Skating Skills" in str(df.iloc[i, j]):
                     self.pcs_start_row = i
-                    counter = datarow.DataRow(df=df, row=i, col_min=j).clean_scores_row(mode="decimal")
+                    counter = datarow.ScoreRow(mode="decimal", df=df, row=i, col_min=j).clean
                     break
             if counter:
                 break
@@ -121,12 +112,11 @@ class Protocol:
     def parse_pcs_table(self, df, i, j):
         component_names, pcs_scores = [], []
         for k in range(i, i + 6):
-            data = datarow.DataRow(df=df, row=k, col_min=j)
-            raw = data.raw_list
-            scores = data.clean_scores_row(mode="decimal")
-            if len(scores) >= self.number_of_judges:
-                component_names.append(raw[0])
-                pcs_scores.append(scores[1:-1])
+            all_cells = datarow.DataRow(df=df, row=k, col_min=j).raw
+            scores = datarow.ScoreRow(mode="decimal", raw_list=all_cells)
+            if len(scores.clean) >= self.number_of_judges:
+                component_names.append(all_cells[0])
+                pcs_scores.append(scores.clean[1:-1])
             else:
                 break
 
@@ -139,9 +129,8 @@ class Protocol:
 
     def parse_tes_table(self, df, i, j):
         self._get_elt_list_location(df, i, j)
-        disc = "Singles" if self.discipline == "Ladies" or self.discipline == "Men" else self.discipline
         for k in range(self.elt_list_starts, self.elt_list_ends):
-            elt_row = datarow.DataRow(df=df, row=k, col_min=0).remove_dash_columns(judges=self.number_of_judges)
+            elt_row = datarow.ScoreRow(df=df, row=k, col_min=0).remove_dash_columns(judges=self.number_of_judges)
             self.elts.append(CONSTRUCTOR_DIC[self.discipline]["elt"](elt_row, self.number_of_judges))
 
     def parse_deductions(self, df, i, j, segment):
@@ -166,17 +155,27 @@ class Protocol:
 
             # Older protocols present deductions over two rows, with two different models: total at end of top row or
             # at end of bottom row (in which case
-            is_old_ded_format = True if segment.year < 2005 or segment.year == 2005 and segment.name in event.H2_EVENTS else False
-            if not is_old_ded_format:
-                ded_dic = datarow.DataRow(df=df, row=i, col_min=j).clean_deductions_row()
-            else:
-                row_1 = datarow.DataRow(df=df, row=i, col_min=j)
-                row_2 = datarow.DataRow(df=df, row=i+1, col_min=j)
-                ded_dic = datarow.DataRow(raw_list=row_1.raw_list + row_2.raw_list).clean_deductions_row()
+            is_old_ded_format = True if segment.year < 2005 or (segment.year == 2005 and segment.name in event.H2_EVENTS) \
+                or (segment.year == 2006 and segment.name == "OWG") else False
 
-            if sum(ded_dic.values()) != int(self.deductions):
-                logger.debug("Some deductions are still missing, we're gonna have to go fetch the next row")
-                sys.exit(1)
+            ded_dic = datarow.DeductionRow(df=df, row=i, col_min=j).ded_dictionary
+            if sum(ded_dic.values()) == int(self.deductions):
+                return ded_dic
+
+            row_1 = datarow.DataRow(df=df, row=i, col_min=j).raw
+            row_2 = datarow.DataRow(df=df, row=i + 1, col_min=j).raw
+            ded_dic_2 = datarow.DeductionRow(raw=row_1 + row_2).ded_dictionary
+            logger.debug(f"what the fuuuuuuuuu {ded_dic_2.values()}")
+            if is_old_ded_format and sum(ded_dic_2.values()) == int(self.deductions):
+                return ded_dic_2
+
+            row_3 = datarow.DataRow(df=df, row=i + 2, col_min=j).raw
+            ded_dic_3 = datarow.DeductionRow(raw=row_1 + row_2 + row_3).ded_dictionary
+            if is_old_ded_format and sum(ded_dic_3.values()) == int(self.deductions):
+                return ded_dic_3
+
+            sys.exit("Some deductions are still missing")
+
 
 class IceDanceProtocol(Protocol):
     def __init___(self, df, protocol_coordinates, segment):
