@@ -29,24 +29,27 @@ class Protocol:
         name_row = self._find_name_row(df=df, anchor_coords=(row_start, 0), size_of_sweep=(1, 4, 3))
         schema = self._find_name_row_schema(segment)
 
+        self.season = segment.season
         self.discipline = segment.discipline
         self.row_range = range(row_start, row_end + 1)
         self.col_range = range(0, df.shape[1])
         self.elt_list_ends = None
 
         self.number_of_judges = self.count_judges(df)
-
+        
         self.skater = CONSTRUCTOR_DIC[segment.discipline]["competitor"](name_row)
         self.starting_number = int(name_row.clean[3]) if schema == "new" else None
-        self.tss = dec.Decimal(str(name_row.clean[4])) if schema == "new" else dec.Decimal(str(name_row.clean[3]))
-        self.tes = dec.Decimal(str(name_row.clean[5])) if schema == "new" else dec.Decimal(str(name_row.clean[4]))
-        self.pcs = dec.Decimal(str(name_row.clean[6])) if schema == "new" else dec.Decimal(str(name_row.clean[5]))
-        logger.debug(f"Scores are tss {self.tss}, tes {self.tes}, pcs {self.pcs}")
-        self.deductions = dec.Decimal(self.tss - self.tes - self.pcs)
+        self.tss_total = dec.Decimal(str(name_row.clean[4])) if schema == "new" else dec.Decimal(str(name_row.clean[3]))
+        self.tes_total = dec.Decimal(str(name_row.clean[5])) if schema == "new" else dec.Decimal(str(name_row.clean[4]))
+        self.pcs_total = dec.Decimal(str(name_row.clean[6])) if schema == "new" else dec.Decimal(str(name_row.clean[5]))
+        logger.debug(f"Scores are tss {self.tss_total}, tes {self.tes_total}, pcs {self.pcs_total}")
+        self.deductions = dec.Decimal(self.tss_total - self.tes_total - self.pcs_total)
 
         self.elts = []
-        logger.debug(f"Instantiated Skate object for {unicodedata.normalize('NFKD', self.skater.printout).encode('ascii','ignore')} with total score {self.tss} and "
-                     f"starting no. {self.starting_number}")
+        self.pcs_detail = None
+        self.ded_detail = []
+        logger.debug(f"Instantiated Skate object for {unicodedata.normalize('NFKD', self.skater.printout).encode('ascii','ignore')} "
+                     f"with total score {self.tss_total} and starting no. {self.starting_number}")
 
     def _find_name_row(self, df, anchor_coords, size_of_sweep):
         (row, col) = anchor_coords
@@ -101,7 +104,7 @@ class Protocol:
             for i in self.row_range:
                 if "Skating Skills" in str(df.iloc[i, j]):
                     self.pcs_start_row = i
-                    counter = datarow.ScoreRow(mode="decimal", df=df, row=i, col_min=j).clean
+                    counter = datarow.PCSRow(mode="decimal", df=df, row=i, col_min=j).clean
                     break
             if counter:
                 break
@@ -112,26 +115,32 @@ class Protocol:
     def parse_pcs_table(self, df, i, j):
         component_names, pcs_scores = [], []
         for k in range(i, i + 6):
-            all_cells = datarow.DataRow(df=df, row=k, col_min=j).raw
-            scores = datarow.ScoreRow(mode="decimal", raw_list=all_cells)
-            if len(scores.clean) >= self.number_of_judges:
-                component_names.append(all_cells[0])
-                pcs_scores.append(scores.clean[1:-1])
-            else:
-                break
+            component = datarow.PCSRow(judges=self.number_of_judges, df=df, row=k, col_min=j)
+            component_names.append(component.row_label)
+            pcs_scores.append(component.clean)
+
+            # all_cells = datarow.DataRow(df=df, row=k, col_min=j).raw
+            # scores = datarow.PCSRow(mode="decimal", raw_list=all_cells)
+            # if len(scores.clean) >= self.number_of_judges:
+            #     component_names.append(all_cells[0])
+            #     pcs_scores.append(scores.clean[1:-1])
+            # else:
+            #     break
 
         judge_col_headers = ["j" + str(j).zfill(2) for j in range(1, self.number_of_judges + 1)]
         pcs_df = pd.DataFrame(pcs_scores, index=component_names, columns=judge_col_headers)
-        pcs_df.rename_axis('judge', axis='columns', inplace=True)
-        pcs_df.rename_axis('component', axis='index', inplace=True)
-        self.pcs = pcs_df
-        logger.debug(f"Loaded pcs table for {unicodedata.normalize('NFKD', self.skater.printout).encode('ascii','ignore')}")
+        pcs_df.rename_axis('judge', axis='columns', inplace=True).rename_axis('component', axis='index', inplace=True)
+        self.pcs_df = pcs_df
+        logger.debug(f"Loaded pcs table for "
+                     f"{unicodedata.normalize('NFKD', self.skater.printout).encode('ascii','ignore')}")
 
     def parse_tes_table(self, df, i, j):
         self._get_elt_list_location(df, i, j)
         for k in range(self.elt_list_starts, self.elt_list_ends):
-            elt_row = datarow.ScoreRow(df=df, row=k, col_min=0).remove_dash_columns(judges=self.number_of_judges)
-            self.elts.append(CONSTRUCTOR_DIC[self.discipline]["elt"](elt_row, self.number_of_judges))
+            elt_row = datarow.GOERow(df=df, row=k, col_min=0)
+            logger.debug(f"Elt row is {elt_row.row_label}, {elt_row.clean}")
+
+            self.elts.append(CONSTRUCTOR_DIC[self.discipline]["elt"](elt_row, self.season))
 
     def parse_deductions(self, df, i, j, segment):
         """
@@ -158,21 +167,24 @@ class Protocol:
             is_old_ded_format = True if segment.year < 2005 or (segment.year == 2005 and segment.name in event.H2_EVENTS) \
                 or (segment.year == 2006 and segment.name == "OWG") else False
 
-            ded_dic = datarow.DeductionRow(df=df, row=i, col_min=j).ded_dictionary
+            ded_dic = datarow.DeductionRow(df=df, row=i, col_min=j).ded_detail
             if sum(ded_dic.values()) == int(self.deductions):
-                return ded_dic
+                self.ded_detail = ded_dic
+                return
 
             row_1 = datarow.DataRow(df=df, row=i, col_min=j).raw
             row_2 = datarow.DataRow(df=df, row=i + 1, col_min=j).raw
-            ded_dic_2 = datarow.DeductionRow(raw=row_1 + row_2).ded_dictionary
+            ded_dic_2 = datarow.DeductionRow(raw=row_1 + row_2).ded_detail
             logger.debug(f"what the fuuuuuuuuu {ded_dic_2.values()}")
             if is_old_ded_format and sum(ded_dic_2.values()) == int(self.deductions):
-                return ded_dic_2
+                self.ded_detail = ded_dic_2
+                return
 
             row_3 = datarow.DataRow(df=df, row=i + 2, col_min=j).raw
-            ded_dic_3 = datarow.DeductionRow(raw=row_1 + row_2 + row_3).ded_dictionary
+            ded_dic_3 = datarow.DeductionRow(raw=row_1 + row_2 + row_3).ded_detail
             if is_old_ded_format and sum(ded_dic_3.values()) == int(self.deductions):
-                return ded_dic_3
+                self.ded_detail = ded_dic_3
+                return
 
             sys.exit("Some deductions are still missing")
 
@@ -193,55 +205,12 @@ class SinglesProtocol(Protocol):
 
 
 
-        # for call_notation in calls:
-        #     numbers[0] = numbers[0].replace(call_notation, '').strip()
-
-#         #Clean elt name, capture any missing reqs, start to separate elt and level info
-#         missing_req_search = re.search(r'V\d+', elt_row[1])
-#         if missing_req_search is not None:
-#             missing_reqs = missing_req_search.group(0)[1:]
-#             elt_row[1] = elt_row[1].replace(missing_req_search.group(0), '')
-#         else:
-#             missing_reqs = None
-#
-#         elt_less_calls = clean_elt_name(elt_row[1], calls)
-
-
-    # def __get_goe(self, df, i, j):
-    #
-    # def get_element_calls(self, df, i, j):
-    #
-    # def get_elt_scores(self, df, i, j):
-
 
 #                     elif 'Elements' in str(raw_df.iloc[i, j]):
 #                         single_goe_list = []
 #                         single_calls_list = []
 #                         single_scores_list = []
 #                         elt_id_list = []
-#
-#
-#                                 # Separate jumps from non jumps - not all non-jump elements have levels or no_positions
-#                                 lvl_regex = re.search(r'\d+$', elt_less_calls)
-#                                 non_jump_regex = re.search(r'[a-y]', elt_less_calls)
-#                                 lo_regex = re.search(r'Lo', elt_less_calls)
-#                                 if lvl_regex is not None or (non_jump_regex is not None and lo_regex is None):
-#                                     elt_type = 'non_jump'
-#                                     if lvl_regex is not None:
-#                                         level = lvl_regex.group(0)
-#                                         split = re.split('(\d+)', elt_less_calls)
-#                                         elt_name = split[0]
-#                                         assert len(split[:-1]) in [2, 4]
-#                                         no_positions = split[1] if len(split[:-1]) == 4 else 'NA'
-#                                     else:
-#                                         level = None
-#                                         elt_name = elt_less_calls
-#                                         no_positions = None
-#                                 else:
-#                                     elt_type = 'jump'
-#                                     level = None
-#                                     elt_name = elt_less_calls
-#                                     no_positions = None
 #
 #                                 # Some jumps are just labeled "Lz" instead of "1Lz"; others are labelled "LZ"
 #                                 rot_regex_1 = re.search(r'^\d+', elt_less_calls)
@@ -254,15 +223,6 @@ class SinglesProtocol(Protocol):
 #                                         elt_name = re.sub(r'\+' + jump + r'$', '+1' + jump, elt_name)
 #                                         elt_name = re.sub(r'\+' + jump + r'\+', '+1' + jump + '+', elt_name)
 #
-#                                 # POPULATE TECH CALL FLAGS
-#                                 invalid = 1 if any('*' in str(cell) for cell in elt_row) else 0
-#                                 h2 = 1 if any('x' in str(cell) for cell in elt_row) else 0
-#
-#                                 seq_flag, combo_flag = 0, 0
-#                                 if '+SEQ' in elt_name:
-#                                     seq_flag = 1
-#                                 elif len(combo_regex.findall(elt_name)) > 0 or '+COMBO' in elt_name:
-#                                     combo_flag = 1
 #
 #                                 # Note: Distinction between UR and Downgrade was brought in from SB2011
 #                                 # multiple calls per jumping pass

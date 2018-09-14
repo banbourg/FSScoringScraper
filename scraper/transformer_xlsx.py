@@ -8,6 +8,7 @@ from openpyxl import load_workbook
 import numpy as np
 from datetime import datetime
 import unicodedata
+from sqlalchemy import create_engine
 
 import os
 import re
@@ -67,6 +68,8 @@ def find_protocol_coordinates(df):
 def scrape_sheet(df, segment):
     protocol_coords = find_protocol_coordinates(df)
     logger.debug(f"Protocol coodinates are {protocol_coords}")
+
+    sheet_protocols = []
     for c in protocol_coords:
         prot = protocol.CONSTRUCTOR_DIC[segment.discipline]["prot"](df, c, segment)
         for i in prot.row_range:
@@ -77,33 +80,87 @@ def scrape_sheet(df, segment):
                     prot.parse_tes_table(df, i, j)
                 elif "Deductions" in str(df.iloc[i, j]) and j < 4:
                     prot.parse_deductions(df, i, j, segment)
+        sheet_protocols.append(prot)
+    return sheet_protocols
 
 
-def main():
-    done_dir_path = os.path.join(settings.READ_PATH, "done")
+def write_protocols_to_staging(engine, protocol_list):
+    for protocol in protocol_list:
+
+
+        df.to_sql(table_name, engine, chunksize=10000, if_exists=MODE, index=False)
+
+    return True
+
+def write_protocols_to_csv(protocol_list, write_path)
+
+
+
+
+def transform_and_load(read_path, write_path, counter, db_credentials):
+    done_dir_path = os.path.join(read_path, "done")
     if not os.path.exists(done_dir_path):
         os.makedirs(done_dir_path)
 
-    files = sorted(glob.glob(settings.READ_PATH + '*.xlsx'))
+    sheet_count, protocol_list = 0, []
+    engine = create_engine("postgresql://" + db_credentials["un"] + ":" + db_credentials["pw"] + "@" +
+                           db_credentials["host"] + ":" + db_credentials["port"] + "/" + db_credentials["db_name"],
+                           echo=False)
+
+    # ---- If tables don't exist yet, set up schema
+
+
+
+    # ---- Iteratively read through converted .xlsx and populate tables
+    files = sorted(glob.glob(read_path + '*.xlsx'))
     for f in files:
         filename = f.rpartition("/")[2]
         basename = filename.rpartition(".")[0]
 
         logger.info(f"Attempting to read {basename}")
 
-        # Initialise SegmentProtocols object
         disc = event.parse_discipline(filename)
         seg = protocol.CONSTRUCTOR_DIC[disc]["seg_obj"](basename, disc)
 
         wb = load_workbook(f)
         for sheet in wb.sheetnames:
             raw_df = pd.DataFrame(wb[sheet].values)
-            scrape_sheet(raw_df, seg)
+            protocol_list.append(scrape_sheet(raw_df, seg))
+            sheet_count += 1
 
-        current_path = os.path.join(settings.READ_PATH, filename)
+            if sheet_count % counter == 0:
+                write_protocols_to_staging(engine, protocol_list)
+                write_protocols_to_csv(protocol_list, write_path)
+                protocol_list = []
+
+        current_path = os.path.join(read_path, filename)
         done_path = os.path.join(done_dir_path, filename)
         os.rename(current_path, done_path)
 
 
+
+
 if __name__ == "__main__":
-    main()
+
+    # # FOR YOGEETA AND YOGEETA ONLY
+    # try:
+    #     assert len(sys.argv) in [3,4]
+    # except AssertionError:
+    #     sys.exit("Please pass in the path to the xlsx dir, the path to which the csv backup should be written, and
+    #               (optionally) an integer counter (for frequency at which results get written to the staging table,
+    #               default is every 10 sheets), in that order")
+    #
+    # read_path = sys.argv[1]
+    # write_path = sys.argv[2]
+    # try:
+    #     counter = int(sys.argv[1])
+    # except (IndexError, TypeError):
+    #     counter = 10
+
+    db_credentials = settings.DB_CREDENTIALS()
+    read_path = settings.READ_PATH
+    write_path = settings.WRITE_PATH
+    counter = 10
+
+
+    transform_and_load(read_path, write_path, counter, db_credentials)

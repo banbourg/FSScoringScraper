@@ -34,18 +34,19 @@ def upload_new_table(cursor, connection, engine, df, table_name):
         print(f"Could not populate {table_name} table, as it already exists")
         exit()
 
+
 def modify_table(cursor, connection, engine, df, table_name):
 
-	# Grabbing new table and finding maximum line_id in previously existing table
+    # Grabbing new table and finding maximum line_id in previously existing table
     old_table, new_table = sql.Identifier(table_name + "_old"), sql.Identifier(table_name)
     cursor.execute(sql.SQL("SELECT MAX(line_id) AS max_index FROM {};".format(old_table)))
     max_result = cursor.fetchall()
 
-	# Indexing new data frame beginning from the largest line_id of the existing table
+    # Indexing new data frame beginning from the largest line_id of the existing table
 
     df.insert(0, "Index", range(max_result+1, max_result+len(df)))
 
-	# Creating staging table
+    # Creating staging table
 
     try:
         df.to_sql(new_staging, engine, chunksize=10000, index="Index")
@@ -54,11 +55,13 @@ def modify_table(cursor, connection, engine, df, table_name):
         print(f"Could not create staging table")
         sys.exit()
 
-	# Dropping staging table
+    # Dropping staging table
     cursor.execute(sql.SQL("DROP TABLE {};").format(new_staging))
 
-	# Appending to table
+    # Appending to table
     df.to_sql(table_name, engine, if_exists="append",index=False)
+
+
 
 def main():
     conn = psycopg2.connect(database=DB, user=UN, password=PW, host=H, port=PORT)

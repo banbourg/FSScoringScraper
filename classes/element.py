@@ -19,11 +19,12 @@ old_pattern_dance_notation = re.compile(r"^(?i)([1-4]S[1-4])([B1-4])*(\**)$")
 indiv_scored_elts = re.compile(r"^(?i)([A-Z]{2,})L([B1-4])\+[A-Z]{2,}M([B1-4])$")
 combo_nonjump_elts = re.compile(r"^(?i)([A-Z]{2,})([B1-4])*(\**)\+([A-Z]{2,})([B1-4])*(\**)$")
 pattern_dance = re.compile(r"^(1[A-Z]{2}|2[A-Z]{2})([B1-4])\+kp([YTN]{3,4})(\**)$")
-other_leveled_elts = re.compile(r"^(?i)([a-z]{2,}(?<!Sp|Th|Eu|Lz|LZ|LO|Lo))([B1-4]{0,1})(\**)$")
+other_leveled_elts = re.compile(r"^(?i)([a-z]{2,}(?<!Sp|Th|Eu|Lz|LZ|LO|Lo))([B1-4]?)(\**)$")
 throw_jumps = re.compile(r"^([1-4]*(Eu|T|S|Lo|F|Lz|A|LZ|LO)Th)([!e<*]{0,3})$")
+old_twists = re.compile(r"^([1-4]*(Eu|T|S|Lo|F|Lz|A|LZ|LO)Tw)([B1-4])*(\*)*$")
 jumps = re.compile(r"^([1-4]*(Eu|T(?!w)|S|Lo|F|Lz|A|LZ|LO)(?![A-Za-z]))([!e<*]{0,3})\+*(COMBO|SEQ|REP)*")
 spins = re.compile(r"^([A-Za-z]*Sp)(([B1-4])p)*([1-4])*(V([1-5])|V)*(\**)$")
-pairs_elts = re.compile(r"^([1-5][A-Za-z]{2,3}(?<!Th|Eu|Lz|LZ|LO|Lo)(?<![TSFA]))([B1-4])*(\**)$")
+pairs_elts = re.compile(r"^([1-5][A-Za-z]{2,3}(?<!Th|Eu|Lz|LZ|LO|Lo)(?<![TSFA])(?<!TTw|STw|FTw|ATw))([B1-4])*(\**)$")
 
 
 ELT_TYPES = {"IceDance": {"Tw": "twizzles", "St": "steps", "Li": "lift", "Sp": "spin", "RH": "pattern dance",
@@ -50,6 +51,7 @@ def _parse_jumps(match_list, dic):
     dic["combo_flag"] = 1 if "+" in dic["elt_name"] or "COMBO" in flag_list else 0
     dic["rep_flag"] = 1 if "REP" in flag_list else 0
     dic["seq_flag"] = 1 if "SEQ" in flag_list else 0
+
     return dic
 
 
@@ -110,50 +112,61 @@ def _parse_throw_jumps(match_list, dic):
     return dic
 
 
-def _parse_other_leveled_elts(match_list, dic):
+def _parse_leveled_elts(match_list, dic):
     dic["elt_name"] = match_list[0][0]
     dic["elt_level"] = match_list[0][1] if match_list[0][1] != "" else None
     dic["invalid_flag"] = 1 if match_list[0][2] == "*" else 0
     return dic
 
 
-def _parse_pairs_elts(match_list, dic):
+def _parse_old_twists(match_list, dic):
     dic["elt_name"] = match_list[0][0]
-    dic["elt_level"] = match_list[0][1] if match_list[0][1] != "" else None
-    dic["invalid_flag"] = 1 if match_list[0][2] == "*" else 0
+    dic["elt_level"] = match_list[0][2] if match_list[0][2] != "" else None
+    dic["invalid_flag"] = 1 if match_list[0][3] == "*" else 0
     return dic
 
 
-def _parse_elt_scores(elt_row, judges):
-    cutoff = -1 - judges
-    factored_totals = datarow.ScoreRow(mode="decimal", raw_list=elt_row[2:cutoff])
-    bv, sov_goe = dec.Decimal(factored_totals.clean[0]), dec.Decimal(factored_totals.clean[1])
-    goe = datarow.ScoreRow(mode="int", raw_list=elt_row[cutoff:-1]).clean
-    total = dec.Decimal(str(elt_row[-1]))
+def _parse_elt_scores(elt_row):
+    bv, sov_goe = dec.Decimal(elt_row.clean[0]), dec.Decimal(elt_row.clean[1])
+    goe = elt_row.clean[2:-1]
+    total = dec.Decimal(str(elt_row.clean[-1]))
     return bv, goe, sov_goe, total
 
 
 EXPECTED_PATTERNS = {"IceDance": [indiv_scored_elts, combo_nonjump_elts, spins, pattern_dance, other_leveled_elts,
                                   old_pattern_dance_notation],
                      "Singles": [jumps, spins, other_leveled_elts],
-                     "Pairs": [throw_jumps, jumps, spins, pairs_elts, other_leveled_elts]
+                     "Pairs": [throw_jumps, jumps, spins, old_twists, pairs_elts, other_leveled_elts]
                      }
 
 PATTERN_PARSERS = {jumps: _parse_jumps,
                    indiv_scored_elts: _parse_indiv_scored_elts,
                    combo_nonjump_elts: _parse_combo_nonjump_elts,
                    pattern_dance: _parse_pattern_dance,
-                   other_leveled_elts: _parse_other_leveled_elts,
+                   other_leveled_elts: _parse_leveled_elts,
                    old_pattern_dance_notation: _parse_old_pattern_dances,
+                   old_twists: _parse_old_twists,
                    spins: _parse_spins,
                    throw_jumps: _parse_throw_jumps,
-                   pairs_elts: _parse_pairs_elts
+                   pairs_elts: _parse_leveled_elts
                    }
 
 
 def parse_elt_name(text, meta_disc, parsed_dic):
     keys = PATTERN_PARSERS.keys() & set(EXPECTED_PATTERNS[meta_disc])
     parser_subset = {k: PATTERN_PARSERS[k] for k in keys}
+
+    # Check for H2 flag
+    if text.endswith(" x"):
+        parsed_dic["h2_flag"] = 1
+        text = text[:-2]
+
+    # Remove any calls we'll need to impute later
+    if " " in text:
+        calls_to_impute = text.partition(" ")[2]
+        text = text.partition(" ")[0]
+    else:
+        calls_to_impute = None
 
     # Check only one match
     searches = [re.findall(p, text) for p in EXPECTED_PATTERNS[meta_disc]]
@@ -163,10 +176,55 @@ def parse_elt_name(text, meta_disc, parsed_dic):
     elif len(filtered_searches) > 1:
         raise ValueError(f"Found multiple parsing possibilities for {text}: {searches}")
 
-    # Use parser specific to each detected pattern
+    # Use parser specific to each detected pattern, and impute any calls
     for pattern in parser_subset:
         if re.findall(pattern, text):
-            return parser_subset[pattern](match_list=re.findall(pattern, text), dic=parsed_dic)
+            return parser_subset[pattern](match_list=re.findall(pattern, text), dic=parsed_dic,
+                                          calls_to_impute=calls_to_impute), calls_to_impute
+
+
+def _impute_jump_calls(parsed_dic, jump_name, calls_to_impute):
+    jumps_list = jump_name.split("+")
+    if parsed_dic["combo_flag"] == 0 and parsed_dic["seq_flag"] == 0:
+        parsed_dic["call_dic"][1] += calls_to_impute
+        calls_to_impute = None
+    else:
+        edge_calls = [ec for ec in ["e", "!"] if ec in calls_to_impute]
+        if len(edge_calls) > 1:
+            sys.exit(f"Err your jumps have multiple edge calls to impute fuck your life: {calls_to_impute}")
+        if edge_calls:
+            no_edge_jumps, edge_jump_placement = 0, []
+            for i in range(0, len(jumps_list)):
+                if any(x in jumps_list[i] for x in ["F", "Lz"]):
+                    no_edge_jumps += 1
+                    edge_jump_placement.append(i + 1)
+            if no_edge_jumps == 1:
+                parsed_dic["call_dic"][edge_jump_placement[0]] += edge_calls[0]
+                calls_to_impute = calls_to_impute.replace(edge_calls[0], "")
+            elif no_edge_jumps == 0:
+                sys.exit(f"Found an edge call but no edge jumps so fuck me I guess {jumps_list}, "
+                         f"{calls_to_impute}")
+    return parsed_dic, calls_to_impute
+
+def _convert_call_dic(call_dic, season):
+    logger.debug(f"Call dic is {call_dic}")
+    converted_dic = {}
+    for i in range(1, len(call_dic) + 1):
+        jump = "jump_" + str(i) + "_"
+        if int(season[-2:]) < 11:
+            converted_dic[jump + "_ur"] = 1 if "<" in call_dic[i] else 0
+            converted_dic[jump + "_downgrade"] = 0
+        else:
+            converted_dic[jump + "_ur"] = 1 if "<" in call_dic[i] and "<<" not in call_dic[i] else 0
+            converted_dic[jump + "_downgrade"] = 1 if "<<" in call_dic[i] else 0
+        converted_dic[jump + "_sev_edge"] = 1 if "e" in call_dic[i] else 0
+        converted_dic[jump + "_unc_edge"] = 1 if "!" in call_dic[i] else 0
+
+    for call in ["ur", "downgrade", "sev_edge", "unc_edge"]:
+        converted_dic[call + "_flag"] = 1 if 1 in [v for k, v in converted_dic.items() if k.endswith(call)] else 0
+
+    logger.debug(f"Converted call dic is {converted_dic}")
+    return converted_dic
 
 
 class Element:
@@ -197,17 +255,17 @@ class Element:
 
 
 class IceDanceElement(Element):
-    def __init__(self, elt_row, judges):
-        logger.debug(f"raw elt row is {elt_row}")
+    def __init__(self, elt_row, season):
+        logger.debug(f"raw elt row is {elt_row.row_label}, {elt_row.clean}")
         parsed_dic = {"elt_name": None, "elt_1_name": None, "elt_2_name": None,
                       "elt_level": None, "elt_level_lady": None, "elt_level_man": None,
                       "elt_1_level": None, "elt_2_level": None, "elt_kps": None,
-                      "elt_1_invalid": 0, "elt_2_invalid": 0, "invalid_flag": 0}
+                      "elt_1_invalid": 0, "elt_2_invalid": 0, "invalid_flag": 0, "h2_flag": 0}
 
-        parsed_dic = parse_elt_name(text=elt_row[1], meta_disc="IceDance", parsed_dic=parsed_dic)
-        bv, goe, sov_goe, total = _parse_elt_scores(elt_row, judges)
+        parsed_dic, calls_to_impute = parse_elt_name(text=elt_row.row_label, meta_disc="IceDance", parsed_dic=parsed_dic)
+        bv, goe, sov_goe, total = _parse_elt_scores(elt_row.clean)
 
-        super().__init__(meta_disc="IceDance", no=elt_row[0], name=parsed_dic["elt_name"], bv=bv, goe=goe,
+        super().__init__(meta_disc="IceDance", no=elt_row.number, name=parsed_dic["elt_name"], bv=bv, goe=goe,
                          sov_goe=sov_goe, total=total,
                          invalid_flag=parsed_dic["invalid_flag"])
 
@@ -219,42 +277,51 @@ class IceDanceElement(Element):
 
 
 class SinglesElement(Element):
-    def __init__(self, elt_row, judges):
-        logger.debug(f"raw elt row is {elt_row}")
+    def __init__(self, elt_row, season):
+        logger.debug(f"raw elt row is {elt_row.row_label}, {elt_row.clean}")
         parsed_dic = {"elt_name": None, "jump_list": None, "call_dic": None,
                       "elt_level": None, "no_positions": None, "failed_spin_flag": None,
                       "missed_reqs": None, "combo_flag": None, "seq_flag": None, "rep_flag": None,
-                      "invalid_flag": 0}
+                      "invalid_flag": 0, "h2_flag": 0}
 
-        parsed_dic = parse_elt_name(text=elt_row[1], meta_disc="Singles", parsed_dic=parsed_dic)
-        bv, goe, sov_goe, total = _parse_elt_scores(elt_row, judges)
+        parsed_dic, calls_to_impute = parse_elt_name(text=elt_row.row_label, meta_disc="Singles", parsed_dic=parsed_dic)
+        bv, goe, sov_goe, total = _parse_elt_scores(elt_row.clean)
 
-        super().__init__(meta_disc="Singles", no=elt_row[0], name=parsed_dic["elt_name"], bv=bv, goe=goe,
+        super().__init__(meta_disc="Singles", no=elt_row.number, name=parsed_dic["elt_name"], bv=bv, goe=goe,
                          sov_goe=sov_goe, total=total,
                          invalid_flag=parsed_dic["invalid_flag"])
 
-        self.jump_list, self.call_dic = parsed_dic["jump_list"], parsed_dic["call_dic"]
+        self.jump_list = parsed_dic["jump_list"]
         self.elt_level = parsed_dic["elt_level"]
         self.no_positions, self.failed_spin_flag = parsed_dic["no_positions"], parsed_dic["failed_spin_flag"]
         self.missed_reqs, self.combo_flag = parsed_dic["missed_reqs"], parsed_dic["combo_flag"]
         self.seq_flag, self.rep_flag = parsed_dic["seq_flag"], parsed_dic["rep_flag"]
+
+        if self.type == "jump":
+            parsed_dic, calls_to_impute = _impute_jump_calls(parsed_dic=parsed_dic, jump_name=parsed_dic["elt_name"],
+                                                             calls_to_impute=calls_to_impute)
+
+        self.call_dic = _convert_call_dic(parsed_dic["call_dic"], season)
 
 
 class PairsElement(Element):
-    def __init__(self, elt_row, judges):
-        logger.debug(f"raw elt row is {elt_row}")
+    def __init__(self, elt_row, season):
+        logger.debug(f"raw elt row is {elt_row.row_label}, {elt_row.clean}")
         parsed_dic = {"elt_name": None, "jump_list": None, "call_dic": None,
                       "elt_level": None, "no_positions": None, "failed_spin_flag": None,
                       "missed_reqs": None, "combo_flag": None, "seq_flag": None, "rep_flag": None,
-                      "invalid_flag": 0}
-        parsed_dic = parse_elt_name(text=elt_row[1], meta_disc="Pairs", parsed_dic=parsed_dic)
-        bv, goe, sov_goe, total = _parse_elt_scores(elt_row, judges)
+                      "invalid_flag": 0, "h2_flag": 0}
 
-        super().__init__(meta_disc="Pairs", no=elt_row[0], name=parsed_dic["elt_name"], bv=bv, goe=goe,
+        parsed_dic, calls_to_impute = parse_elt_name(text=elt_row.row_label, meta_disc="Pairs", parsed_dic=parsed_dic)
+        bv, goe, sov_goe, total = _parse_elt_scores(elt_row.clean)
+
+        super().__init__(meta_disc="Pairs", no=elt_row.number, name=parsed_dic["elt_name"], bv=bv, goe=goe,
                          sov_goe=sov_goe, total=total, invalid_flag=parsed_dic["invalid_flag"])
 
-        self.jump_list, self.call_dic = parsed_dic["jump_list"], parsed_dic["call_dic"]
+        self.jump_list = parsed_dic["jump_list"]
         self.elt_level = parsed_dic["elt_level"]
         self.no_positions, self.failed_spin_flag = parsed_dic["no_positions"], parsed_dic["failed_spin_flag"]
         self.missed_reqs, self.combo_flag = parsed_dic["missed_reqs"], parsed_dic["combo_flag"]
         self.seq_flag, self.rep_flag = parsed_dic["seq_flag"], parsed_dic["rep_flag"]
+
+        self.call_dic = _convert_call_dic(parsed_dic["call_dic"], season)

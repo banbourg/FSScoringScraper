@@ -221,10 +221,6 @@ class SinglesSegmentProtocols (Segment):
     def __init__(self, filename=None, search_phrase=None, year=None, sublink=None):
         super().__init__(filename, search_phrase, year, sublink)
 
-        #
-        # def return_isu_abbrev(self, s):
-        #     temp = [_f for _f in re.split(r'(\d+)', s) if _f]
-        # return temp[0]
 
 class IceDanceSegmentProtocols(SegmentProtocols):
     def __init__(self, filename, discipline):

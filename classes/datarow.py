@@ -22,7 +22,7 @@ DED_POINT_PATTERN = re.compile(r"(?<!\d)-*\d(?:\.00|\.0)*")
 DED_TOTAL_PATTERN = re.compile(r"(\d(?:\.0|\.00)*) -*\d+(?:\.0)*0*")
 
 # TO DO - more efficient approach here
-DED_ALIGNMENT_DIC = {"fall": "falls" , "late start": "time violation", "illegal element": "illegal element/movement",
+DED_ALIGNMENT_DIC = {"fall": "falls", "late start": "time violation", "illegal element": "illegal element/movement",
                      "costume violation": "costume & prop violation", "extra element by verif": "extra element",
                      "illegal element / movement": "illegal element/movement"}
 
@@ -34,7 +34,7 @@ EXPECTED_DED_TYPES = ["total", "falls", "time violation", "costume failure", "la
 
 class DataRow:
     def __init__(self, raw_list=None, df=None, row=None, col_min=None):
-        if df is not None and row >= 0 and col_min >=0 and not raw_list:
+        if df is not None and row >= 0 and col_min >= 0 and not raw_list:
             self.raw = []
             for col in range(col_min, len(df.columns)):
                 if df.iloc[row, col] is not None and not is_nan(df.iloc[row, col]):
@@ -47,66 +47,86 @@ class DataRow:
 
 
 class ScoreRow(DataRow):
-    def __init__(self, mode=None, raw_list=None, df=None, row=None, col_min=None):
+    def __init__(self, mode, raw_list=None, df=None, row=None, col_min=None):
         super().__init__(raw_list, df, row, col_min)
-        if mode:
-            self.clean_scores_row(mode)
+        logger.debug(f"Raw score list is {self.raw}")
 
-    def remove_dash_columns(self, judges):
+        self.split_list = self._split_and_trim()
+        self.split_index = self._get_data_start_index(mode)
+
+    def _split_and_trim(self):
+        split = []
+        for c in self.raw:
+            split.extend(str(c).split())
+        return [r.strip() for r in split]
+
+    def _get_data_start_index(self, mode):
+        check_cell = 0 if mode == "pcs" else 1
+        try:
+            assert not is_digit_cell(self.split_list[check_cell])
+        except AssertionError:
+            sys.exit(f"{mode} row is fucked, content not as expected: {self.raw}")
+
+        for i in range(0, len(self.split_list)):
+            if is_digit_cell(self.split_list[i]):
+                return i
+        sys.exit(f"Row is fucked, couldn't find any numbers in it: {self.raw}")
+
+    def _remove_dash_columns(self, mode, judges, row_list):
         # Context: sometimes protocols include 1-2 random columns of dashes between the end of the goe scores and the
         # total scores. But sometimes unmarked elements are also denoted by a dash. Also I hate this.
-        self.clean = self.raw
+        offset = 3 if mode == "goe" else 2
 
-        test = [x for x in self.raw if x != "-"]
-        if len(test) == (5 + judges):
-            self.clean = test
-            return self.clean
+        test = [x for x in row_list if x != "-"]
+        if len(test) == (offset + judges):
+            return test
 
-        test_2 = ["NS" if x == "-" else x for x in self.raw]
-        if len(test_2) == (5 + judges):
-            self.clean = test_2
-            return
-
-        if (len(test_2) - 5 - judges) == 1 and test_2[-2] == "NS":
+        test_2 = ["NS" if x == "-" else x for x in row_list]
+        if len(test_2) == (offset + judges):
+            return test_2
+        elif (len(test_2) - offset - judges) == 1 and test_2[-2] == "NS":
             del test_2[-2]
-            self.clean = test_2
-            return
-
-        if (len(test_2) - 5 - judges) == 2 and test_2[-3:-1] == ["NS", "NS"]:
+            return test_2
+        elif (len(test_2) - offset - judges) == 2 and test_2[-3:-1] == ["NS", "NS"]:
             del test_2[-3:-1]
-            self.clean = test_2
-            return
-
-        if (len(test_2) - 5 - judges) == 3 and test_2[-4:-1] == ["NS", "NS", "NS"]:
+            return test_2
+        elif (len(test_2) - offset - judges) == 3 and test_2[-4:-1] == ["NS", "NS", "NS"]:
             del test_2[-4:-1]
-            self.clean = test_2
-            return
+            return test_2
+        sys.exit(f"Elt row does not have expected length: {self.raw}, {row_list}")
 
-        sys.exit(f"Elt row does not have expected length: {self.raw}, {self.clean}")
 
-    def clean_scores_row(self, mode):
-        logger.debug(f"Raw scores list is {self.raw}")
-        for raw_cell in self.raw:
-            for c in [re.sub(r"[^\-0-9.]", "", raw_score.replace(",", ".").strip())
-                                for raw_score in str(raw_cell).split()]:
-                if mode == "decimal":
-                    try:
-                        self.clean.append(dec.Decimal(str(c)))
-                    except (dec.InvalidOperation, ValueError):
-                        pass
-                elif mode == "float":
-                    try:
-                        self.clean.append(float(c))
-                    except ValueError:
-                        pass
-                elif mode == "int":
-                    try:
-                        self.clean.append(int(float(c)))
-                    except ValueError:
-                        self.clean.append(0)
-                else:
-                    raise ValueError("Please set 'mode' parameter to 'float' or 'int'")
+class PCSRow(ScoreRow):
+    def __init__(self, judges, raw_list=None, df=None, row=None, col_min=None):
+        super().__init__(mode="pcs", raw_list=raw_list, df=df, row=row, col_min=col_min)
+
+        self.row_label = " ".join(self.split_list[0:self.split_index])
+        self._clean_pcs_row(judges)
+
+    def _clean_pcs_row(self, judges):
+        scores = self._remove_dash_columns(mode="pcs", judges=judges, row_list=self.split_list[self.split_index:])
+        self.clean = coerce_to_num_type(list_=[r.replace(",", ".") for r in scores], target_type="decimal")
         logger.debug(f"Cleaned scores list is {self.clean}")
+
+
+class GOERow(ScoreRow):
+    def __init__(self, judges, raw_list=None, df=None, row=None, col_min=None):
+        super().__init__(mode="goe", raw_list=raw_list, df=df, row=row, col_min=col_min)
+
+        self.row_no = int(self.split_list[0])
+        self.row_label = " ".join(self.split_list[1:self.split_index])
+        self._clean_goe_row(judges)
+
+    def _clean_goe_row(self, judges):
+        temp = self.split_list[self.split_index:]
+        if "x" in temp:
+            self.row_label += " x"
+            temp.remove("x")
+        scores = [r.replace(",", ".") for r in self._remove_dash_columns(mode="pcs", judges=judges, row_list=temp)]
+        one = coerce_to_num_type(list_=scores[0:2], target_type="decimal")
+        two = coerce_to_num_type(list_=scores[2:-1], target_type="int")
+        three = coerce_to_num_type(list_=scores[-1], target_type="decimal")
+        self.clean = one + two + three
 
 
 class NameRow(DataRow):
@@ -130,7 +150,7 @@ class NameRow(DataRow):
 class DeductionRow(DataRow):
     def __init__(self, raw=None, df=None, row=None, col_min=None):
         super().__init__(raw, df, row, col_min)
-        self.ded_dictionary = self.parse_deduction_dictionary()
+        self.ded_detail = self.parse_deduction_dictionary()
 
     def _split_on_colon(self):
         split_row = []
@@ -234,7 +254,7 @@ def is_text_cell(x):
 
 
 def is_digit_cell(x):
-    return True if re.match(r"^[\d.\n]+$", x) else False
+    return True if re.match(r"^[\d., \n]+$", x) else False
 
 
 def is_nan(x):
@@ -247,3 +267,25 @@ def is_int(x):
 
 def is_ded_type_string(x):
     return True if "deductions" not in str(x).lower() and "score" not in str(x).lower() else False
+
+
+def coerce_to_num_type(list_, target_type):
+    coerced_list = []
+    for c in list_:
+        if target_type == "decimal":
+            try:
+                coerced_list.append(dec.Decimal(str(c)))
+            except (dec.InvalidOperation, ValueError):
+                pass
+        elif target_type == "float":
+            try:
+                coerced_list.append(float(c))
+            except ValueError:
+                pass
+        elif target_type == "int":
+            try:
+                coerced_list.append(int(float(c)))
+            except ValueError:
+                pass
+        else:
+            raise ValueError("Please set 'mode' parameter to 'float' or 'int'")
