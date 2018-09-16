@@ -7,34 +7,41 @@ PyPDF2 == 1.26.0
 # analysis/impute_falls.py: 6
 # analysis/normality_tests.py: 4
 # analysis/variance_analysis.py: 4
-# scraper/appendandreindex.py: 6
-# scraper/db_builder.py: 5
+# scraper/db_builder.py: 6
 # scraper/name_matcher.py: 10
 # scraper/one_off_changes/one_off_missing_ded_append.py: 5
 SQLAlchemy == 1.2.7
 
 # scraper/isu_judge_scraper.py: 4
-# scraper/pdf_fetcher.py: 4
+# scraper/pdf_fetcher.py: 5
 beautifulsoup4 == 4.6.0
 
 # analysis/impute_falls.py: 7
 dash == 0.25.0
 
+# analysis/impute_falls.py: 8
+dash-core-components == 0.29.0
+
+# analysis/impute_falls.py: 9
+dash-html-components == 0.12.0
+
 # analysis/normality_tests.py: 7,8
 matplotlib == 2.2.2
 
+# classes/datarow.py: 4
+# classes/event.py: 9
 # scraper/name_matcher.py: 4
-# scraper/transformer_xlsx.py: 8
 numpy == 1.14.3
 
-# scraper/transformer_xlsx.py: 7
+# classes/event.py: 6
 openpyxl == 2.5.3
 
 # analysis/impute_falls.py: 3,10
 # analysis/normality_tests.py: 3
 # analysis/variance_analysis.py: 3
-# scraper/appendandreindex.py: 4
-# scraper/db_builder.py: 3
+# classes/event.py: 8
+# classes/protocol.py: 4
+# scraper/db_builder.py: 4
 # scraper/generate_summary.py: 3
 # scraper/isu_judge_scraper.py: 7
 # scraper/name_matcher.py: 5
@@ -42,7 +49,6 @@ openpyxl == 2.5.3
 # scraper/one_off_changes/one_off_encoding_fix.py: 2
 # scraper/one_off_changes/one_off_missing_ded_append.py: 4
 # scraper/one_off_changes/one_off_pokemonizer.py: 3
-# scraper/transformer_xlsx.py: 6
 pandas == 0.23.0
 
 # scraper/pdf_converter.py: 8
@@ -51,8 +57,7 @@ pdftables_api == 1.0.0
 # analysis/impute_falls.py: 11
 plotly == 3.1.1
 
-# scraper/appendandreindex.py: 2,3
-# scraper/db_builder.py: 1,2
+# scraper/db_builder.py: 2,3
 # scraper/name_matcher.py: 6,9
 # scraper/one_off_changes/one_off_missing_ded_append.py: 3
 # scraper/one_off_changes/one_off_pokemonizer.py: 1,2
@@ -63,7 +68,7 @@ recordlinkage == 0.12
 
 # scraper/isu_judge_scraper.py: 3
 # scraper/pdf_converter.py: 3
-# scraper/pdf_fetcher.py: 3
+# scraper/pdf_fetcher.py: 4
 requests == 2.18.4
 
 # scraper/pdf_converter.py: 4

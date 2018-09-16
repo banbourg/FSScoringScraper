@@ -122,6 +122,9 @@ class GOERow(ScoreRow):
         if "x" in temp:
             self.row_label += " x"
             temp.remove("x")
+        elif "X" in temp:
+            self.row_label += " x"
+            temp.remove("X")
         scores = [r.replace(",", ".") for r in self._remove_dash_columns(mode="pcs", judges=judges, row_list=temp)]
         one = coerce_to_num_type(list_=scores[0:2], target_type="decimal")
         two = coerce_to_num_type(list_=scores[2:-1], target_type="int")

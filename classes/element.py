@@ -206,6 +206,7 @@ def _impute_jump_calls(parsed_dic, jump_name, calls_to_impute):
                          f"{calls_to_impute}")
     return parsed_dic, calls_to_impute
 
+
 def _convert_call_dic(call_dic, season):
     logger.debug(f"Call dic is {call_dic}")
     converted_dic = {}
@@ -228,10 +229,11 @@ def _convert_call_dic(call_dic, season):
 
 
 class Element:
-    def __init__(self, meta_disc, no, name, bv, goe, sov_goe, total, invalid_flag):
+    def __init__(self, meta_disc, id, no, name, bv, goe, sov_goe, total, invalid_flag):
         if sum([bv, sov_goe]).compare(total) != dec.Decimal("0"):
             raise ValueError(f"Instantiation of element {name} failed as bv ({bv}) and goe ({sov_goe}) did not sum to "
                              f"total ({total})")
+        self.id = id
         self.meta_discipline = meta_disc
         self.name = name
         self.no = no
@@ -255,7 +257,7 @@ class Element:
 
 
 class IceDanceElement(Element):
-    def __init__(self, elt_row, season):
+    def __init__(self, elt_row, season, last_row_dic):
         logger.debug(f"raw elt row is {elt_row.row_label}, {elt_row.clean}")
         parsed_dic = {"elt_name": None, "elt_1_name": None, "elt_2_name": None,
                       "elt_level": None, "elt_level_lady": None, "elt_level_man": None,
@@ -265,9 +267,8 @@ class IceDanceElement(Element):
         parsed_dic, calls_to_impute = parse_elt_name(text=elt_row.row_label, meta_disc="IceDance", parsed_dic=parsed_dic)
         bv, goe, sov_goe, total = _parse_elt_scores(elt_row.clean)
 
-        super().__init__(meta_disc="IceDance", no=elt_row.number, name=parsed_dic["elt_name"], bv=bv, goe=goe,
-                         sov_goe=sov_goe, total=total,
-                         invalid_flag=parsed_dic["invalid_flag"])
+        super().__init__(meta_disc="IceDance", id=last_row_dic["elements"], no=elt_row.number, name=parsed_dic["elt_name"], bv=bv, goe=goe,
+                         sov_goe=sov_goe, total=total, invalid_flag=parsed_dic["invalid_flag"])
 
         self.elt_1_name, self.elt_2_name = parsed_dic["elt_1_name"], parsed_dic["elt_2_name"]
         self.elt_level = parsed_dic["elt_level"]
@@ -277,7 +278,7 @@ class IceDanceElement(Element):
 
 
 class SinglesElement(Element):
-    def __init__(self, elt_row, season):
+    def __init__(self, elt_row, season, last_row_dic):
         logger.debug(f"raw elt row is {elt_row.row_label}, {elt_row.clean}")
         parsed_dic = {"elt_name": None, "jump_list": None, "call_dic": None,
                       "elt_level": None, "no_positions": None, "failed_spin_flag": None,
@@ -287,9 +288,8 @@ class SinglesElement(Element):
         parsed_dic, calls_to_impute = parse_elt_name(text=elt_row.row_label, meta_disc="Singles", parsed_dic=parsed_dic)
         bv, goe, sov_goe, total = _parse_elt_scores(elt_row.clean)
 
-        super().__init__(meta_disc="Singles", no=elt_row.number, name=parsed_dic["elt_name"], bv=bv, goe=goe,
-                         sov_goe=sov_goe, total=total,
-                         invalid_flag=parsed_dic["invalid_flag"])
+        super().__init__(meta_disc="Singles", id=last_row_dic["elements"], no=elt_row.number, name=parsed_dic["elt_name"], bv=bv, goe=goe,
+                         sov_goe=sov_goe, total=total, invalid_flag=parsed_dic["invalid_flag"])
 
         self.jump_list = parsed_dic["jump_list"]
         self.elt_level = parsed_dic["elt_level"]
@@ -305,7 +305,7 @@ class SinglesElement(Element):
 
 
 class PairsElement(Element):
-    def __init__(self, elt_row, season):
+    def __init__(self, elt_row, season, last_row_dic):
         logger.debug(f"raw elt row is {elt_row.row_label}, {elt_row.clean}")
         parsed_dic = {"elt_name": None, "jump_list": None, "call_dic": None,
                       "elt_level": None, "no_positions": None, "failed_spin_flag": None,
@@ -315,8 +315,8 @@ class PairsElement(Element):
         parsed_dic, calls_to_impute = parse_elt_name(text=elt_row.row_label, meta_disc="Pairs", parsed_dic=parsed_dic)
         bv, goe, sov_goe, total = _parse_elt_scores(elt_row.clean)
 
-        super().__init__(meta_disc="Pairs", no=elt_row.number, name=parsed_dic["elt_name"], bv=bv, goe=goe,
-                         sov_goe=sov_goe, total=total, invalid_flag=parsed_dic["invalid_flag"])
+        super().__init__(meta_disc="Pairs", id=last_row_dic["elements"], no=elt_row.number, name=parsed_dic["elt_name"],
+                         bv=bv, goe=goe, sov_goe=sov_goe, total=total, invalid_flag=parsed_dic["invalid_flag"])
 
         self.jump_list = parsed_dic["jump_list"]
         self.elt_level = parsed_dic["elt_level"]
