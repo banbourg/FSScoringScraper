@@ -23,7 +23,7 @@ NAME_LIKE_PATTERN = re.compile(r"[A-Z]{2,}")
 
 
 class Protocol:
-    def __init__(self, df, protocol_coordinates, segment, last_row_dic, skater_list):
+    def __init__(self, df, protocol_coordinates, segment, skater_list, last_row_dic, cursor):
         (row_start, row_end) = protocol_coordinates
 
         name_row = self._find_name_row(df=df, anchor_coords=(row_start, 0), size_of_sweep=(1, 4, 3))
@@ -37,9 +37,8 @@ class Protocol:
 
         self.number_of_judges = self.count_judges(df)
         
-        self.skater = CONSTRUCTOR_DIC[segment.discipline]["competitor"](name_row, last_row_dic, skater_list)
-        if self.skater.id == last_row_dic["competitors"]:
-            last_row_dic["competitors"] += 1
+        self.skater = CONSTRUCTOR_DIC[segment.discipline]["competitor"](name_row, skater_list, last_row_dic,
+                                                                        self.season, cursor)
 
         self.starting_number = int(name_row.clean[3]) if schema == "new" else None
         self.tss_total = dec.Decimal(str(name_row.clean[4])) if schema == "new" else dec.Decimal(str(name_row.clean[3]))
@@ -194,8 +193,8 @@ class Protocol:
 
     def get_skate_dic(self, segment):
         dic = {"segment_id": segment.id, "competitor_id": self.skater.id, "tes": self.tes_total,
-                "pcs": self.pcs_total, "tss": self.tss_total, "ded": self.deductions,
-                "starting_number": self.starting_number, "number_of_judges": self.number_of_judges}
+               "pcs": self.pcs_total, "tss": self.tss_total, "ded": self.deductions,
+               "starting_number": self.starting_number, "number_of_judges": self.number_of_judges}
         return dic
 
     def get_pcs_df(self, segment):
@@ -207,4 +206,4 @@ class Protocol:
 CONSTRUCTOR_DIC = {"IceDance": {"competitor": person.Team, "elt": element.IceDanceElement},
                    "Pairs": {"competitor": person.Team, "elt": element.PairsElement},
                    "Ladies": {"competitor": person.SinglesSkater, "elt": element.SinglesElement},
-                   "Men": {"competitor":person.SinglesSkater, "elt": element.SinglesElement}}
+                   "Men": {"competitor": person.SinglesSkater, "elt": element.SinglesElement}}

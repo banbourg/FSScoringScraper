@@ -62,13 +62,13 @@ def find_protocol_coordinates(df):
     return list(zip(protocol_starts, protocol_ends))
 
 
-def scrape_sheet(df, segment, last_row_dic, skater_list):
+def scrape_sheet(df, segment, last_row_dic, skater_list, cur):
     protocol_coords = find_protocol_coordinates(df)
     logger.debug(f"Protocol coordinates are {protocol_coords}")
 
     for c in protocol_coords:
-        prot = protocol.Protocol(df, c, segment, last_row_dic, skater_list)
-        last_row_dic["competitors"] += 1
+        prot = protocol.Protocol(df=df, protocol_coordinates=c, segment=segment, last_row_dic=last_row_dic,
+                                 skater_list=skater_list, cursor=cur)
 
         for i in prot.row_range:
             for j in prot.col_range:
@@ -118,7 +118,7 @@ def transform_and_load(read_path, write_path, naming_schema, counter, db_credent
     ids, skater_list = {}, []
     for x in ["deductions", "pcs", "goe", "elements", "segments", "competitors", "officials", "panels", "skates"]:
         name = x + naming_schema
-        ids[x] = db_builder.get_last_row_num(table_name=name, cursor=cur) + 1
+        ids[x] = db_builder.get_last_row_key(table_name=name, cursor=cur) + 1
 
     # --- 3. Iteratively read through converted .xlsx and populate tables
     segment_list = []
@@ -141,7 +141,7 @@ def transform_and_load(read_path, write_path, naming_schema, counter, db_credent
         wb = load_workbook(f)
         for sheet in wb.sheetnames:
             raw_df = pd.DataFrame(wb[sheet].values)
-            scrape_sheet(raw_df, seg, ids, skater_list)
+            scrape_sheet(df=raw_df, segment=seg, last_row_dic=ids, skater_list=skater_list, cur=cur)
             segment_list.append(seg)
 
         if file_count % counter == 0:

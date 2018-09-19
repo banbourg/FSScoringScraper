@@ -88,7 +88,7 @@ class Event:
 
     def _set_season(self):
         season_start = self.year if not self.is_h2_event else self.year - 1
-        return "SB" + str(season_start)
+        return "sb" + str(season_start)
 
 
 class Segment(Event):

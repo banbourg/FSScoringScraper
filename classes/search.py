@@ -3,6 +3,9 @@
 
 import requests
 from bs4 import BeautifulSoup
+import pandas as pd
+
+import unittest
 
 import urllib.request, urllib.error, urllib.parse
 
@@ -48,7 +51,7 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleW
 ROOT_DOMAIN_PATTERN = re.compile(r"^((?:http(?:s)?://)?(www)?[A-Za-z\d\-]{3,}\.[a-z.]{2,6})(?:/)")
 
 JUDGE_PAGE_TITLE = re.compile(r"(Team)?(Junior)? (Men|Ladies|Ice Dance|Pairs)( Single Skating)? - (Short|Rhythm|Free) "
-                              r"(Program|Dance)")
+                              r"(Program|Dance|Skating)")
 
 SEARCHTERM_TO_DBNAME = {"nhk+trophy": "NHK", "rostelecom+cup": "COR", "france": "TDF", "canada": "SC", "russia": "COR",
                         "skate+america": "SA", "cup+of+china": "COC", "grand+prix+final": "GPF",
@@ -234,9 +237,10 @@ class EventSearch:
                                 pdf.write(res.read())
                                 pdf.close()
 
-    def scrape_judging_panel(self, event, last_row_dic, panel_list, judge_list):
+    def scrape_judging_panel(self, last_row_dic, list_of_panels, list_of_officials, season, cursor):
 
-        all_sublinks = list(set([a.get("href") for a in self.homepage.find_all("a")]))
+        all_sublinks = sorted(list(set([a.get("href") for a in self.homepage.find_all("a")])))
+        logger.debug(f"Found {len(all_sublinks)} sublinks: {all_sublinks}")
         for sublink in all_sublinks:
             logger.debug(f"Examining {sublink} for {self.event.name} {self.event.year}")
 
@@ -250,64 +254,20 @@ class EventSearch:
 
                     # --- Set segment, sub_event, discipline and category
                     segment = title_search.group(5)[0] + title_search.group(6)[0]
-                    discipline = "IceDance" if title_search.group(3) == "Ice Dance" else title_search.group(5)
+                    discipline = "IceDance" if title_search.group(3) == "Ice Dance" else title_search.group(3)
                     category = "Jr" if title_search.group(2) == "Junior" else "Sr"
                     sub_event = title_search.group(1)
 
                     # --- Extract and clean panel data
                     roles_table = [re.sub(r"\n+", "", td.get_text()).strip() for td in page.find_all('td')]
+                    roles_table = [r for r in roles_table if r != ""]
                     logger.debug(f"Roles table is {roles_table}")
 
-                    segment_judges = []
+                    p = person.Panel(roles_table, last_row_dic, list_of_officials, sub_event, category, discipline,
+                                     segment, season, cursor)
 
-                    # Find increment (sometimes country appears twice)
-                    indices = [roles_table.index(r) for r in
-                               ["Referee", "Technical Controller", "Technical Controller"]]
-                    first_entry = min(indices)
-                    increment = 4 if (roles_table[first_entry + 2] == roles_table[first_entry + 3]) else 3
-                    last = 16 * increment
-
-                    for i in range(first_entry, last, increment):
-                        # Align 'judge' notation with the one used in scoring tables
-                        if 'Judge' in roles_table[i] or 'No.' in roles_table[i]:
-                            role = "J" + str(roles_table[i][-1]).zfill(2)
-                        else:
-                            role = roles_table[i]
-
-                        official = person.Official(name_string=roles_table[i+1], fed=roles_table[i+2],
-                                                   last_row_dic=last_row_dic, judge_list=judge_list)
-
-                        # Construct and append tuple
-                        segment_judges.append((season, year, event, sub_event, discipline, category, segment,
-                                               role, name, raw_roles[i + 2]))
-                    except IndexError:
-                        sys.exit(f"Fewer officials than expected in {self.event.name} {self.event.year} "
-                                 f"{discipline} {category} {segment}")
-
-                    print('segment judges: ', segment_judges)
-                    event_judges.extend(segment_judges)
-
-            all_judges.extend(event_judges)
-
-            labels = ['season', 'year', 'event', 'sub_event', 'discipline', 'category', 'segment', 'role', 'name',
-                      'country']
-
-            df = pd.DataFrame.from_records(all_judges, columns=labels)
-
-            # def get_country(row):
-            #     if row['country'] != 'ISU':
-            #         return row['country']
-            #     else:
-            #         res = df.loc[(df['country'] != 'ISU') & (df['name'] == row['name'])] \
-            #             .assign(year_diff=(df['year']-row['year']).abs())
-            #         return res.loc[res['year_diff'].idxmin(), 'country'] if not res.empty else 'ISU'
-            #
-            # df['country'] = df.apply(get_country, axis=1)
-            #
-            # print(df)
-
-            path = os.path.expanduser('~/Desktop/bias/output/')
-            df.to_csv(path + 'judges_1617to1718.csv', mode='a', header=True)
+                    logger.debug(f"Segment judges: {vars(p)}")
+                    list_of_panels.append(p)
 
 
 def request_url(url, on_failure=None, *args):
@@ -334,19 +294,16 @@ def request_url(url, on_failure=None, *args):
                 on_failure(*args)
                 break
             else:
-                logger.error(f"HTTP error on {url}, no do overs: {herr}")
-                sys.exit(1)
+                sys.exit(f"HTTP error on {url}, no do overs: {herr}")
         except requests.exceptions.TooManyRedirects as rerr:
             if on_failure:
                 logger.error(f"HTTP error on {url}, implementing alternative: {rerr}")
                 on_failure(*args)
                 break
             else:
-                logger.error(f"HTTP error on {url}, no do overs: {rerr}")
-                sys.exit(1)
+                sys.exit(f"HTTP error on {url}, no do overs: {rerr}")
         except requests.exceptions.RequestException as err:
-            logger.error(f"Failed on {url}: {err}")
-            sys.exit(1)
+            sys.exit(f"Failed on {url}: {err}")
         break
     return r
 
@@ -362,10 +319,20 @@ def _get_page_content(url=None):
         return None, None
 
 
-def remove_newlines(str):
-    return str.replace('\r', '').replace('\n', '')
+def remove_newlines(a_string):
+    return a_string.replace("\r", "").replace("\n", "")
 
+
+class SearchTests(unittest.TestCase):
+    def test_judges(self):
+        loo, lop = [], []
+        event_search = EventSearch(search_phrase="grand+prix+final", search_year=2014, category="senior",
+                                   per_disc_settings={"men": True, "ladies": True, "pairs": True, "dance": True},
+                                   url="http://www.isuresults.com/results/gpf1415/")
+        event_search.set_start_date()
+        event_search.scrape_judging_panel(last_row_dic={"officials": 1}, list_of_officials=loo, list_of_panels=lop,
+                                          season=event_search.event.season)
+        assert len(lop) == 16
 
 if __name__ == "__main__":
-    # Woot tests
-
+    unittest.main()
