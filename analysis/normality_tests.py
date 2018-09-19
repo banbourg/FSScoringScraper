@@ -13,7 +13,7 @@ WRITE_PATH = ""
 
 try:
     from settings import *
-    from scraper import trimmed_mean
+    from bias.scripts import trimmed_mean
 except ImportError as ex:
     sys.stderr.write("Error: failed to import custom module ({})".format(ex))
     pass

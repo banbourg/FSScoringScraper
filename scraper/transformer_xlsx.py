@@ -62,13 +62,13 @@ def find_protocol_coordinates(df):
     return list(zip(protocol_starts, protocol_ends))
 
 
-def scrape_sheet(df, segment, last_row_dic, skater_list, cur):
+def scrape_sheet(df, segment, last_row_dic, skater_list, conn_dic):
     protocol_coords = find_protocol_coordinates(df)
     logger.debug(f"Protocol coordinates are {protocol_coords}")
 
     for c in protocol_coords:
         prot = protocol.Protocol(df=df, protocol_coordinates=c, segment=segment, last_row_dic=last_row_dic,
-                                 skater_list=skater_list, cursor=cur)
+                                 skater_list=skater_list, conn_dic=conn_dic)
 
         for i in prot.row_range:
             for j in prot.col_range:
@@ -113,6 +113,7 @@ def transform_and_load(read_path, write_path, naming_schema, counter, db_credent
     # --- 1. Initiate connections and fetch ids
     conn, engine = db_builder.initiate_connections(db_credentials)
     cur = conn.cursor()
+    conn_dic = {"conn": conn, "engine": engine, "cursor": cur}
 
     # --- 2. Get max table rows for append
     ids, skater_list = {}, []
@@ -141,12 +142,12 @@ def transform_and_load(read_path, write_path, naming_schema, counter, db_credent
         wb = load_workbook(f)
         for sheet in wb.sheetnames:
             raw_df = pd.DataFrame(wb[sheet].values)
-            scrape_sheet(df=raw_df, segment=seg, last_row_dic=ids, skater_list=skater_list, cur=cur)
+            scrape_sheet(df=raw_df, segment=seg, last_row_dic=ids, skater_list=skater_list, conn_dic=conn_dic)
             segment_list.append(seg)
 
         if file_count % counter == 0:
             convert_to_dics(segment_list)
-            segments_df = write_to_staging(pd.DataFrame(segment_list), "segments" + naming_schema, cur, conn, engine)
+            segments_df = write_to_staging(pd.DataFrame(segment_list), "segments" + naming_schema, conn_dic)
             write_to_csv(segments_df, "segments" + naming_schema, write_path)
 
             df_dic = convert_to_dfs(seg)

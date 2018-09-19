@@ -25,6 +25,7 @@ try:
     import event
     import start_date
     import person
+    import db_builder
 except ImportError as exc:
     sys.exit(f"Failed to import module ({exc})")
 
@@ -122,7 +123,7 @@ class EventSearch:
         event_page = BeautifulSoup(r.content, "html5lib")
         raw_text = " ".join([s for s in event_page.strings])
         compact_text = "".join([i for i in raw_text if i != "\t" and i != "\n"])
-        required_strings = self.event.search_string.split("+") + [str(self.event.year)]
+        required_strings = self.search_string.split("+") + [str(self.event.year)]
         text_test = all(i.lower() in compact_text.lower() for i in required_strings)
 
         logger.debug(f"sum url test {sum(url_test)} text test {text_test}")
@@ -158,7 +159,7 @@ class EventSearch:
         """Performs google search for results from a given event & year, returns first result that passes tests/
         """
         domain = "isu" if self.event.is_A_comp else ""
-        search = "https://www.google.co.uk/search?q=" + domain + "+results+" + self.event.search_string \
+        search = "https://www.google.co.uk/search?q=" + domain + "+results+" + self.search_string \
                  + "+" + str(self.event.year)  # + self.category
         logger.info(f"Running google search {search}")
 
@@ -237,9 +238,10 @@ class EventSearch:
                                 pdf.write(res.read())
                                 pdf.close()
 
-    def scrape_judging_panel(self, last_row_dic, list_of_panels, list_of_officials, season, cursor):
+    def scrape_judging_panel(self, last_row_dic, list_of_panels, list_of_officials, season, conn_dic):
 
-        all_sublinks = sorted(list(set([a.get("href") for a in self.homepage.find_all("a")])))
+        all_sublinks = sorted(list(set([a.get("href") for a in self.homepage.find_all("a") if
+                                        a.get("href") is not None])))
         logger.debug(f"Found {len(all_sublinks)} sublinks: {all_sublinks}")
         for sublink in all_sublinks:
             logger.debug(f"Examining {sublink} for {self.event.name} {self.event.year}")
@@ -264,7 +266,7 @@ class EventSearch:
                     logger.debug(f"Roles table is {roles_table}")
 
                     p = person.Panel(roles_table, last_row_dic, list_of_officials, sub_event, category, discipline,
-                                     segment, season, cursor)
+                                     segment, season, conn_dic)
 
                     logger.debug(f"Segment judges: {vars(p)}")
                     list_of_panels.append(p)
@@ -325,14 +327,17 @@ def remove_newlines(a_string):
 
 class SearchTests(unittest.TestCase):
     def test_judges(self):
+        conn, engine = db_builder.initiate_connections(settings.DB_CREDENTIALS)
+        conn_dic = {"conn": conn, "engine": engine, "cursor": conn.cursor()}
         loo, lop = [], []
         event_search = EventSearch(search_phrase="grand+prix+final", search_year=2014, category="senior",
                                    per_disc_settings={"men": True, "ladies": True, "pairs": True, "dance": True},
                                    url="http://www.isuresults.com/results/gpf1415/")
         event_search.set_start_date()
         event_search.scrape_judging_panel(last_row_dic={"officials": 1}, list_of_officials=loo, list_of_panels=lop,
-                                          season=event_search.event.season)
+                                          season=event_search.event.season, conn_dic=conn_dic)
         assert len(lop) == 16
+
 
 if __name__ == "__main__":
     unittest.main()

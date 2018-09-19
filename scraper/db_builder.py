@@ -41,51 +41,47 @@ def upload_new_table(cursor, connection, engine, df, table_name):
 
 
 def check_table_exists(table_name, cursor):
-    existence_query = sql.SQL(f"SELECT EXISTS(SELECT * FROM information_schema.tables WHERE "
-                              f"table_name='{table_name}');")
-    return cursor.execute(existence_query)
+    cursor.execute("SELECT EXISTS(SELECT * FROM information_schema.tables WHERE table_name=%s);", (table_name,))
+    return cursor.fetchone()[0]
 
 
 def get_last_row_key(table_name, cursor):
-    current_table = sql.Identifier(table_name)
     table_exists = check_table_exists(table_name, cursor)
     if table_exists:
-        cursor.execute(sql.SQL(f"SELECT MAX(id) AS max_index FROM {current_table};"))
-        return cursor.fetchone()
-    else:
-        return 0
+        cursor.execute(sql.SQL("SELECT MAX(id) FROM {};").format(sql.Identifier(table_name)))
+        res = cursor.fetchone()
+        logger.info(res)
+        if res:
+            if res[0]:
+                return int(res[0])
+
+    logger.info(f"Table {table_name} does not exist yet")
+    return 0
 
 
-def create_staging_table(df, engine, table_name):
+def create_staging_table(df, conn_dic, table_name, fetch_last_row=False):
+    if fetch_last_row:
+        last_row_num = get_last_row_key(table_name, conn_dic["cursor"])
+        df.insert(0, "id", range(last_row_num + 1, last_row_num + 1 + len(df)))
+
     staging_name = table_name + "_staging"
     try:
-        df.to_sql(staging_name, engine, chunksize=10000, index=False)
+        df.to_sql(staging_name, conn_dic["engine"], chunksize=10000, index=False)
     except ValueError:
         sys.exit(f"Could not create staging table {staging_name}")
     logger.info(f"Created staging table {staging_name}")
-    return staging_name
 
 
-def modify_table(cursor, connection, engine, df, table_name, fetch_last_row=False):
-    if fetch_last_row:
-        last_row_num = get_last_row_key(table_name, cursor)
-        df.insert(0, "id", range(last_row_num + 1, last_row_num + 1 + len(df)))
-
-    # Create staging table
-    staging_name = create_staging_table(df, engine, table_name)
-
-    input("Press Enter to continue...")
-
+def write_to_final_table(df, table_name, conn_dic):
+    staging_name = table_name + "_staging"
     # Dropping staging table
-    cursor.execute(sql.SQL("DROP TABLE {};").format(sql.Identifier(staging_name)))
+    conn_dic["cursor"].execute(sql.SQL("DROP TABLE {};").format(sql.Identifier(staging_name)))
     logger.info(f"Dropped staging table {staging_name}")
 
     # Appending to table
-    df.to_sql(table_name, engine, if_exists="append", index=False)
-    connection.commit()
+    df.to_sql(table_name, conn_dic["engine"], if_exists="append", index=False)
+    conn_dic["conn"].commit()
     logger.info(f"Wrote to {table_name}")
-
-    return df
 
 
 def initiate_connections(credentials_dic):

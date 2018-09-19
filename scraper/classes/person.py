@@ -45,7 +45,7 @@ def flatten_dict(init_dict):
 
 
 class Person:
-    def __init__(self, name_string, person_list, last_row_dic, season_observed, fed_observed, mode, cursor):
+    def __init__(self, name_string, person_list, last_row_dic, season_observed, fed_observed, mode, conn_dic):
 
         self.first_name, self.last_name, self.tight_first_name, self.tight_last_name = _parse_name(name_string)
         self.full_name = self.first_name + " " + self.last_name
@@ -54,26 +54,31 @@ class Person:
             if self.fed_dic[k] == "OAR":
                 self.fed_dic[k] = "RUS"
 
-        self.id = self._check_and_complete_record(person_list, last_row_dic, season_observed, mode, cursor)
+        self.id = self._check_and_complete_record(person_list, last_row_dic, season_observed, mode, conn_dic)
 
-    def _check_and_complete_record(self, person_list, last_row_dic, season_observed, mode, cursor):
-
-        if db_builder.check_table_exists(mode, cursor):
+    def _check_and_complete_record(self, person_list, last_row_dic, season_observed, mode, conn_dic):
+        field = season_observed + "_fed"
+        if db_builder.check_table_exists(mode, conn_dic["cursor"]):
             table = sql.Identifier(mode)
-            field = season_observed + "_fed"
-
-            cursor.execute(sql.SQL(f"SELECT id, {field} FROM {table} WHERE name = '{self.full_name}';"))
-            prev_id = cursor.fetchall()
-            assert prev_id is None or len(prev_id) == 1
+            conn_dic["cursor"].execute(sql.SQL("SELECT id, {} FROM {} WHERE full_name=%s;")
+                                       .format(sql.Identifier(field), table),
+                                       (self.full_name,))
+            prev_id = conn_dic["cursor"].fetchall()
+            try:
+                assert len(prev_id) in [0,1]
+            except AssertionError as ae:
+                logger.error(f"prev_id returned {prev_id}: {ae}")
 
             if prev_id:
-                if prev_id[0][1] is None:
-                    cursor.execute(sql.SQL(f"UPDATE {table} SET {field} = {self.fed_dic[field]} WHERE id = {prev_id};"))
+                if prev_id[0][1] is None or (prev_id[0][1] == "ISU" and self.fed_dic[field] != "ISU"):
+                    query = sql.SQL("UPDATE {} SET {} = %s WHERE id = %s;").format(table, sql.Identifier(field))
+                    conn_dic["cursor"].execute(query, (self.fed_dic[field], prev_id[0][0]))
+                    conn_dic["conn"].commit()
                 return int(prev_id[0][0])
 
         for person in person_list:
             if person.full_name == self.full_name:
-                if season_observed + "_fed" not in person.fed_dic:
+                if field not in person.fed_dic or (person.fed_dic[field] == "ISU" and self.fed_dic[field] != "ISU"):
                     person.fed_dic[season_observed + "_fed"] = self.fed_dic[season_observed + "_fed"]
                 return int(person.id)
 
@@ -86,11 +91,11 @@ class Person:
 
 
 class SinglesSkater(Person):
-    def __init__(self, name_row, skater_list, last_row_dic, season_observed, cursor):
+    def __init__(self, name_row, skater_list, last_row_dic, season_observed, conn_dic):
 
         super().__init__(name_string=name_row.clean[1], person_list=skater_list, last_row_dic=last_row_dic,
                          season_observed=season_observed, fed_observed=name_row.clean[2], mode="competitors",
-                         cursor=cursor)
+                         conn_dic=conn_dic)
 
         self.printout = self.full_name
 
@@ -100,15 +105,15 @@ class SinglesSkater(Person):
 
 
 class Team:
-    def __init__(self, name_row, skater_list, last_row_dic, season_observed, cursor):
+    def __init__(self, name_row, skater_list, last_row_dic, season_observed, conn_dic):
         names = re.split(" / | - ", name_row.clean[1])
         try:
             self.lady = Person(name_string=names[0], person_list=skater_list, last_row_dic=last_row_dic,
                                season_observed=season_observed, fed_observed=name_row.clean[2], mode="competitors",
-                               cursor=cursor)
+                               conn_dic=conn_dic)
             self.man = Person(name_string=names[1], person_list=skater_list, last_row_dic=last_row_dic,
                               season_observed=season_observed, fed_observed=name_row.clean[2], mode="competitors",
-                              cursor=cursor)
+                              conn_dic=conn_dic)
         except IndexError as ie:
             sys.exit(f"Index error on one of {names}, {name_row.clean}: {ie}")
 
@@ -137,11 +142,11 @@ class Team:
 
 
 class Official(Person):
-    def __init__(self, name_string, last_row_dic, list_of_officials, season_observed, fed, cursor):
+    def __init__(self, name_string, last_row_dic, list_of_officials, season_observed, fed, conn_dic):
         name = name_string.partition(" ")[2] if "." in name_string else name_string
 
         super().__init__(name_string=name, person_list=list_of_officials, last_row_dic=last_row_dic,
-                         season_observed=season_observed, fed_observed=fed, mode="officials", cursor=cursor)
+                         season_observed=season_observed, fed_observed=fed, mode="officials", conn_dic=conn_dic)
 
         logger.debug(f"Instantiated official with id {self.id}, name "
                      f"{unicodedata.normalize('NFKD', self.full_name).encode('ascii','ignore')}, fed "
@@ -150,7 +155,7 @@ class Official(Person):
 
 class Panel:
     def __init__(self, roles_table, last_row_dic, list_of_officials, sub_event, category, discipline, segment,
-                 season_observed, cursor):
+                 season_observed, conn_dic):
         self.role_dic = {}
         self.sub_event = sub_event
         self.category = category
@@ -163,20 +168,19 @@ class Panel:
                        ["Referee", "Technical Controller", "Technical Controller"]]
             first_entry = min(indices)
             increment = 4 if (roles_table[first_entry + 2] == roles_table[first_entry + 3]) else 3
-            last = 16 * increment
-            logger.debug(f"Table starts at {first_entry}, incrementing by {increment}, len {len(roles_table)}, "
-                         f"stopping at {last}")
+            logger.debug(f"Table starts at {first_entry}, incrementing by {increment}, len {len(roles_table)}")
 
-            for i in range(first_entry, min(last, len(roles_table) - 2), increment):
+            for i in range(first_entry, len(roles_table) - (increment - 1), increment):
                 logger.debug(f"i is {i}")
                 # Align 'judge' notation with the one used in scoring tables
                 if 'Judge' in roles_table[i] or 'No.' in roles_table[i]:
-                    role = "J" + str(roles_table[i][-1]).zfill(2)
+                    role = "J" + str(roles_table[i].partition("No.")[2].strip()).zfill(2)
                 else:
                     role = roles_table[i]
 
                 official = Official(name_string=roles_table[i + 1], fed=roles_table[i + 2], last_row_dic=last_row_dic,
-                                    list_of_officials=list_of_officials, season_observed=season_observed, cursor=cursor)
+                                    list_of_officials=list_of_officials, season_observed=season_observed,
+                                    conn_dic=conn_dic)
 
                 self.role_dic[role] = official.id
         else:
@@ -189,13 +193,13 @@ class Panel:
 class PersonTests(unittest.TestCase):
     def test_judges(self):
         conn, engine = db_builder.initiate_connections(settings.DB_CREDENTIALS)
-        cursor = conn.cursor()
+        cur = conn.cursor()
         lr = {"officials": 34}
         lof = []
-        o1 = Official("Mrs. Akiko SUZUKI", lr, lof, "SB2013", "JPN", cursor)
-        o2 = Official("Mr. Nobunari ODA", lr, lof, "SB2013", "JPN", cursor)
-        o2 = Official("Mr. Nobunari ODA", lr, lof, "SB2014", "JPN", cursor)
-        logger.debug(f"Next id assigned will be {lr['officials']}", cursor)
+        o1 = Official("Mrs. Akiko SUZUKI", lr, lof, "SB2013", "JPN", {"conn": conn, "cursor": cur})
+        o2 = Official("Mr. Nobunari ODA", lr, lof, "SB2013", "JPN", {"conn": conn, "cursor": cur})
+        o2 = Official("Mr. Nobunari ODA", lr, lof, "SB2014", "JPN", {"conn": conn, "cursor": cur})
+        logger.debug(f"Next id assigned will be {lr['officials']}", {"conn": conn, "cursor": cur})
         assert len(lof) == 2
         assert lr["officials"] == 36
 

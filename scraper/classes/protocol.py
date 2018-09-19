@@ -23,7 +23,7 @@ NAME_LIKE_PATTERN = re.compile(r"[A-Z]{2,}")
 
 
 class Protocol:
-    def __init__(self, df, protocol_coordinates, segment, skater_list, last_row_dic, cursor):
+    def __init__(self, df, protocol_coordinates, segment, skater_list, last_row_dic, conn_dic):
         (row_start, row_end) = protocol_coordinates
 
         name_row = self._find_name_row(df=df, anchor_coords=(row_start, 0), size_of_sweep=(1, 4, 3))
@@ -38,7 +38,7 @@ class Protocol:
         self.number_of_judges = self.count_judges(df)
         
         self.skater = CONSTRUCTOR_DIC[segment.discipline]["competitor"](name_row, skater_list, last_row_dic,
-                                                                        self.season, cursor)
+                                                                        self.season, conn_dic)
 
         self.starting_number = int(name_row.clean[3]) if schema == "new" else None
         self.tss_total = dec.Decimal(str(name_row.clean[4])) if schema == "new" else dec.Decimal(str(name_row.clean[3]))
