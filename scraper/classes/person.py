@@ -1,4 +1,5 @@
 import re
+import os
 import logging
 import unicodedata
 import sys
@@ -11,6 +12,7 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)-5s - %(message
                     datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
+sys.path.extend([os.path.abspath("../.."), os.path.abspath("..")])
 
 try:
     import db_builder
@@ -22,9 +24,10 @@ except ImportError as exc:
 def _parse_name(full_name):
     exploded_name = full_name.split(" ")
     first_name_list, last_name_list = [], []
-    for w in [word.replace(".", "") for word in exploded_name]:
-        if len(w) > 1 and (w[1].isupper() or w[:2] == "Mc" or w[:2] == "O'" or (w[:3] == "Mac" and w[3].isupper())):
-            last_name_list.append(w)
+    for w in [word.replace(".", "").strip() for word in exploded_name]:
+        if len(w) > 1 and (w[1].isupper() or w[:2] == "Mc" or w[:2] == "O'" or (w[:3] == "Mac" and w[3].isupper())
+        or w == "van" or w == "von"):
+            last_name_list.append(w.upper())
         else:
             first_name_list.append(w)
     return " ".join(first_name_list), " ".join(last_name_list), "".join(first_name_list), "".join(last_name_list)
@@ -49,6 +52,7 @@ class Person:
 
         self.first_name, self.last_name, self.tight_first_name, self.tight_last_name = _parse_name(name_string)
         self.full_name = self.first_name + " " + self.last_name
+        self.tight_full_name = self.tight_first_name + " " + self.tight_last_name
         self.fed_dic = {season_observed + "_fed": fed_observed}
         for k in self.fed_dic:
             if self.fed_dic[k] == "OAR":
@@ -60,9 +64,9 @@ class Person:
         field = season_observed + "_fed"
         if db_builder.check_table_exists(mode, conn_dic["cursor"]):
             table = sql.Identifier(mode)
-            conn_dic["cursor"].execute(sql.SQL("SELECT id, {} FROM {} WHERE full_name=%s;")
+            conn_dic["cursor"].execute(sql.SQL("SELECT id, {} FROM {} WHERE tight_full_name=%s;")
                                        .format(sql.Identifier(field), table),
-                                       (self.full_name,))
+                                       (self.tight_full_name,))
             prev_id = conn_dic["cursor"].fetchall()
             try:
                 assert len(prev_id) in [0,1]
@@ -77,7 +81,7 @@ class Person:
                 return int(prev_id[0][0])
 
         for person in person_list:
-            if person.full_name == self.full_name:
+            if person.tight_full_name == self.tight_full_name:
                 if field not in person.fed_dic or (person.fed_dic[field] == "ISU" and self.fed_dic[field] != "ISU"):
                     person.fed_dic[season_observed + "_fed"] = self.fed_dic[season_observed + "_fed"]
                 return int(person.id)
@@ -143,7 +147,10 @@ class Team:
 
 class Official(Person):
     def __init__(self, name_string, last_row_dic, list_of_officials, season_observed, fed, conn_dic):
-        name = name_string.partition(" ")[2] if "." in name_string else name_string
+        non_break_space = u"\xa0"
+        name_string = name_string.replace(non_break_space, " ").strip()
+
+        name = re.sub(pattern=r"M(rs|r|s)\.? ", repl="", string=name_string)
 
         super().__init__(name_string=name, person_list=list_of_officials, last_row_dic=last_row_dic,
                          season_observed=season_observed, fed_observed=fed, mode="officials", conn_dic=conn_dic)
@@ -196,12 +203,14 @@ class PersonTests(unittest.TestCase):
         cur = conn.cursor()
         lr = {"officials": 34}
         lof = []
-        o1 = Official("Mrs. Akiko SUZUKI", lr, lof, "SB2013", "JPN", {"conn": conn, "cursor": cur})
-        o2 = Official("Mr. Nobunari ODA", lr, lof, "SB2013", "JPN", {"conn": conn, "cursor": cur})
-        o2 = Official("Mr. Nobunari ODA", lr, lof, "SB2014", "JPN", {"conn": conn, "cursor": cur})
+        o1 = Official("Mrs. Akiko SUZUKI", lr, lof, "sb2013", "JPN", {"conn": conn, "cursor": cur})
+        o2 = Official("Mr Nobunari ODA", lr, lof, "sb2013", "JPN", {"conn": conn, "cursor": cur})
+        o3 = Official("Ms Nobunari ODA", lr, lof, "sb2014", "JPN", {"conn": conn, "cursor": cur})
         logger.debug(f"Next id assigned will be {lr['officials']}", {"conn": conn, "cursor": cur})
+        logger.debug(vars(o2))
         assert len(lof) == 2
         assert lr["officials"] == 36
+        assert o3.full_name == "Nobunari ODA"
 
 
 if __name__ == "__main__":
