@@ -17,20 +17,23 @@ logger = logging.getLogger(__name__)
 
 
 old_pattern_dance_notation = re.compile(r"^(?i)([1-4]S[1-4])([B1-4])*(\**)$")
+another_old_pattern_dance_notation = re.compile(r"^(?i)((?:GW|VW|R|CC)[1-2]S(?:e|q))([B1-4])*(?:\+kp([YTN]{3,4}))*(\**)$")
 indiv_scored_elts = re.compile(r"^(?i)([A-Z]{2,})L([B1-4])\+[A-Z]{2,}M([B1-4])$")
 combo_nonjump_elts = re.compile(r"^(?i)([A-Z]{2,})([B1-4])*(\**)\+([A-Z]{2,})([B1-4])*(\**)$")
 pattern_dance = re.compile(r"^(1[A-Z]{2}|2[A-Z]{2})([B1-4])\+kp([YTN]{3,4})(\**)$")
 other_leveled_elts = re.compile(r"^(?i)([a-z]{2,}(?<!Sp|Th|Eu|Lz|LZ|LO|Lo))([B1-4]?)(\**)$")
 throw_jumps = re.compile(r"^([1-4]*(Eu|T|S|Lo|F|Lz|A|LZ|LO)Th)([!e<*]{0,3})$")
-old_twists = re.compile(r"^([1-4]*(Eu|T|S|Lo|F|Lz|A|LZ|LO)Tw)([B1-4])*(\*)*$")
-jumps = re.compile(r"\b([1-4]*(Eu|T(?!w)|S|Lo|F|Lz|A|LZ|LO)(?![A-Za-z]))([!e<*]{0,3})\+*(COMBO|SEQ|REP)*")
+old_lifts = re.compile(r"^([1-5]*(?:Eu|T|S|Lo|F|Lz|A|LZ|LO)Li)([B1-4])([!e<*]{0,3})$")
+old_twists = re.compile(r"^([1-4]*(Eu|T|S|Lo|F|Lz|A|LZ|LO)Tw)([B1-4])*([!e<*]{0,3})$")
+jumps = re.compile(r"\b([1-4]*(Eu|T(?!w)|S|Lo|F|Lz|A|LZ|LO)(?![A-Za-z]))([<*]{0,3})\+*(COMBO|SEQ|REP)*")
 spins = re.compile(r"^([A-Za-z]*Sp)(([B1-4])p)*([1-4])*(V([1-5])|V)*(\**)$")
-pairs_elts = re.compile(r"^([1-5][A-Za-z]{2,3}(?<!Th|Eu|Lz|LZ|LO|Lo)(?<![TSFA])(?<!TTw|STw|FTw|ATw))([B1-4])*(\**)$")
+pairs_elts = re.compile(r"^([1-5][A-Za-z]{2,3}(?<!Th|Eu|Lz|LZ|LO|Lo)(?<![TSFA])(?<!TTw|STw|FTw|ATw|ALi|TLi|FLi|SLi))"
+                        r"([B1-4])*(\**)$")
 
 
 ELT_TYPES = {"IceDance": {"Tw": "twizzles", "St": "steps", "Li": "lift", "Sp": "spin", "RH": "pattern dance",
                           "FS": "pattern dance", "ChSl": "slide", "1S": "pattern_dance", "2S": "pattern dance",
-                          "PiF": "pivot"},
+                          "PiF": "pivot", "GW": "pattern dance", "CC": "pattern dance"},
              "Pairs": {"Tw": "throw twist", "Th": "throw jump", "Li": "lift", "Sp": "spin", "Ds": "death spiral",
                        "St": "steps"},
              "Singles": {"St": "steps", "SpSq": "spiral", "ChSq": "choreo", "ChSp": "spiral", r"Sp": "spin"}
@@ -67,6 +70,22 @@ def _parse_old_pattern_dances(match_list, dic):
     dic["invalid_flag"] = 1 if match_list[0][2] == "*" else 0
     return dic
 
+
+def _parse_other_old_pattern_dances(match_list, dic):
+    logger.debug(f"Match list is {match_list}")
+    dic["elt_name"] = match_list[0][0]
+    dic["elt_level"] = match_list[0][1]
+    dic["elt_kps"] = match_list[0][2]
+    dic["invalid_flag"] = 1 if match_list[0][3] == "*" else 0
+    return dic
+
+
+def _parse_old_lifts(match_list, dic):
+    logger.debug(f"Match list is {match_list}")
+    dic["elt_name"] = match_list[0][0]
+    dic["elt_level"] = match_list[0][1]
+    dic["invalid_flag"] = 1 if match_list[0][2] == "*" else 0
+    return dic
 
 def _parse_pattern_dance(match_list, dic):
     dic["elt_name"] = match_list[0][0]
@@ -125,23 +144,31 @@ def _parse_leveled_elts(match_list, dic):
 
 
 def _parse_old_twists(match_list, dic):
+
     dic["elt_name"] = match_list[0][0]
     dic["elt_level"] = match_list[0][2] if match_list[0][2] != "" else None
-    dic["invalid_flag"] = 1 if match_list[0][3] == "*" else 0
+    dic["invalid_flag"] = 1 if "*" in match_list[0][3] else 0
+    if "<<" in match_list[0][3]:
+        dic["downgrade_flag"] = 1
+    elif "<" in match_list[0][3]:
+        dic["ur_flag"] = 1
     return dic
 
 
 def _parse_elt_scores(clean_row):
     bv, sov_goe = dec.Decimal(clean_row[0]), dec.Decimal(clean_row[1])
-    goe = clean_row[2:-1]
     total = dec.Decimal(str(clean_row[-1]))
-    return bv, goe, sov_goe, total
+    for c in clean_row[2:-1]:
+        if c != "NS":
+            goe = clean_row[2:-1]
+            return bv, goe, sov_goe, total
+    return bv, None, sov_goe, total
 
 
 EXPECTED_PATTERNS = {"IceDance": [indiv_scored_elts, combo_nonjump_elts, spins, pattern_dance, other_leveled_elts,
-                                  old_pattern_dance_notation],
+                                  old_pattern_dance_notation, another_old_pattern_dance_notation],
                      "Singles": [jumps, spins, other_leveled_elts],
-                     "Pairs": [throw_jumps, jumps, spins, old_twists, pairs_elts, other_leveled_elts]
+                     "Pairs": [throw_jumps, jumps, spins, old_twists, pairs_elts, other_leveled_elts, old_lifts]
                      }
 
 PATTERN_PARSERS = {jumps: _parse_jumps,
@@ -150,7 +177,9 @@ PATTERN_PARSERS = {jumps: _parse_jumps,
                    pattern_dance: _parse_pattern_dance,
                    other_leveled_elts: _parse_leveled_elts,
                    old_pattern_dance_notation: _parse_old_pattern_dances,
+                   another_old_pattern_dance_notation: _parse_other_old_pattern_dances,
                    old_twists: _parse_old_twists,
+                   old_lifts: _parse_old_lifts,
                    spins: _parse_spins,
                    throw_jumps: _parse_throw_jumps,
                    pairs_elts: _parse_leveled_elts
@@ -254,8 +283,8 @@ class Element:
         self.element_type = self._classify_elt()
         self.bv = dec.Decimal(bv)
 
-        judge_keys = ["J" + str(j).zfill(2) for j in range(1, len(goe) + 1)]
-        self.goe_dic = dict(zip(["element_id"] + judge_keys, [self.id] + goe))
+        judge_keys = ["J" + str(j).zfill(2) for j in range(1, len(goe) + 1)] if goe else None
+        self.goe_dic = dict(zip(["element_id"] + judge_keys, [self.id] + goe)) if goe else None
 
         self.sov_goe = dec.Decimal(sov_goe)
         self.total = dec.Decimal(total)
@@ -275,6 +304,7 @@ class Element:
     def get_element_dic(self):
         dic = dict(vars(self))
         del dic["goe_dic"]
+        del dic["case"]
         flat_dic = person.flatten_dict(dic)
         del flat_dic["meta_discipline"]
         return flat_dic
@@ -306,6 +336,8 @@ class IceDanceElement(Element):
         self.elt_level_lady, self.elt_level_man = parsed_dic["elt_level_lady"], parsed_dic["elt_level_man"]
         self.elt_1_level, self.elt_2_level = parsed_dic["elt_1_level"], parsed_dic["elt_2_level"]
         self.elt_kps = parsed_dic["elt_kps"]
+
+        self.case = elt_row.case
 
         if calls_to_impute and "*" in calls_to_impute:
             self.invalid_flag = 1
@@ -343,6 +375,8 @@ class SinglesElement(Element):
 
         self.call_dic = _convert_call_dic(parsed_dic["call_dic"], season)
 
+        self.case = elt_row.case
+
         if calls_to_impute and "*" in calls_to_impute:
             self.invalid_flag = 1
 
@@ -353,7 +387,7 @@ class PairsElement(Element):
         parsed_dic = {"elt_name": None, "jump_list": None, "call_dic": None,
                       "elt_level": None, "no_positions": None, "failed_spin_flag": None,
                       "missed_reqs": None, "combo_flag": None, "seq_flag": None, "rep_flag": None,
-                      "invalid_flag": 0, "h2_flag": 0}
+                      "invalid_flag": 0, "h2_flag": 0, "ur_flag": 0, "downgrade_flag": 0}
 
         parsed_dic, calls_to_impute = parse_elt_name(text=elt_row.row_label, meta_disc="Pairs", parsed_dic=parsed_dic)
         bv, goe, sov_goe, total = _parse_elt_scores(elt_row.data)
@@ -375,8 +409,13 @@ class PairsElement(Element):
 
         if self.element_type == "jump" and calls_to_impute:
             parsed_dic, calls_to_impute = _impute_jump_calls(parsed_dic=parsed_dic, calls_to_impute=calls_to_impute)
+        else:
+            self.ur_flag = parsed_dic["ur_flag"]
+            self.downgrade_flag = parsed_dic["downgrade_flag"]
 
         self.call_dic = _convert_call_dic(parsed_dic["call_dic"], season)
+
+        self.case = elt_row.case
 
         if calls_to_impute and "*" in calls_to_impute:
             self.invalid_flag = 1

@@ -177,21 +177,30 @@ class Protocol:
             is_old_ded_format = True if segment.year < 2005 or (segment.year == 2005 and segment.name in event.H2_EVENTS) \
                 or (segment.year == 2006 and segment.name == "OWG") else False
 
-            ded_dic = datarow.DeductionRow(df=df, row=i, col_min=j).ded_detail
+            try:
+                ded_dic = datarow.DeductionRow(df=df, row=i, col_min=j).ded_detail
+            except ValueError as ve:
+                sys.exit(f"Encountered unknown deduction in protocol for {dict(vars(self.skater))}: {ve}")
+            print(ded_dic)
             if sum(ded_dic.values()) == int(self.deductions):
                 self.ded_detail = ded_dic
                 return
 
             row_1 = datarow.DataRow(df=df, row=i, col_min=j).raw
             row_2 = datarow.DataRow(df=df, row=i + 1, col_min=j).raw
-            ded_dic_2 = datarow.DeductionRow(raw=row_1 + row_2).ded_detail
-            logger.debug(f"what the fuuuuuuuuu {ded_dic_2.values()}")
+            try:
+                ded_dic_2 = datarow.DeductionRow(raw=row_1 + row_2).ded_detail
+            except ValueError as ve:
+                sys.exit(f"Encountered unknown deduction in protocol for {dict(vars(self.skater))}: {ve} (on case 2, prev tried {ded_dic})")
             if is_old_ded_format and sum(ded_dic_2.values()) == int(self.deductions):
                 self.ded_detail = ded_dic_2
                 return
 
             row_3 = datarow.DataRow(df=df, row=i + 2, col_min=j).raw
-            ded_dic_3 = datarow.DeductionRow(raw=row_1 + row_2 + row_3).ded_detail
+            try:
+                ded_dic_3 = datarow.DeductionRow(raw=row_1 + row_2 + row_3).ded_detail
+            except ValueError as ve:
+                sys.exit(f"Encountered unknown deduction in protocol for {dict(vars(self.skater))}: {ve} (on case 3, prev tried {ded_dic_2})")
             if is_old_ded_format and sum(ded_dic_3.values()) == int(self.deductions):
                 self.ded_detail = ded_dic_3
                 return

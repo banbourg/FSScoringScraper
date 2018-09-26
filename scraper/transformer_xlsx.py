@@ -104,7 +104,8 @@ def convert_to_dfs(segment_list, conn_dic, competitor_list, id_dic):
                 elt_dic["protocol_id"] = p.id
                 all_dics["elements"].append(elt_dic)
 
-                all_dics["goe_detail"].append(e.goe_dic)
+                if e.goe_dic:
+                    all_dics["goe_detail"].append(e.goe_dic)
 
     for c in competitor_list:
         all_dics["competitors"].append(c.get_competitor_dict())
@@ -122,8 +123,6 @@ def convert_to_dfs(segment_list, conn_dic, competitor_list, id_dic):
         crossref_id = dic[s][0] + "_id"
         all_dfs[key] = all_dfs[key].melt(id_vars=[crossref_id], var_name=dic[s][1], value_name=s + "_score")
         all_dfs[key].insert(0, "id", range(id_dic[key], id_dic[key] + len(all_dfs[key])))
-        if s in ["pcs", "goe"]:
-            all_dfs[key].fillna("NS", inplace=True)
         id_dic[key] += (len(all_dfs[key]) + 1)
         all_dfs[key] = all_dfs[key][all_dfs[key][s + "_score"].notnull()]
     #     all_dfs[key] = pd.merge(all_dfs[key], panels_df, how='left', left_on="judge_no", right_on=["official_role"])
@@ -221,7 +220,7 @@ def main():
     db_credentials = settings.DB_CREDENTIALS
     read_path = settings.READ_PATH
     write_path = settings.WRITE_PATH
-    counter = 10
+    counter = 20
     naming_schema = "_new"
 
     transform_and_load(read_path, write_path, naming_schema, counter, db_credentials)

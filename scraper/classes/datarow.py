@@ -29,7 +29,7 @@ DED_ALIGNMENT_DIC = {"fall": "falls", "late start": "time violation", "illegal e
 EXPECTED_DED_TYPES = ["total", "falls", "time violation", "costume failure", "late start", "music violation",
                       "interruption in excess", "costume & prop violation", "illegal element/movement",
                       "extended lifts", "extra element", "illegal element", "costume violation",
-                      "extra element by verif", "illegal element / movement"]
+                      "extra element by verif", "illegal element / movement", "music restriction violation"]
 
 
 class DataRow:
@@ -176,7 +176,10 @@ class NameRow(DataRow):
 class DeductionRow(DataRow):
     def __init__(self, raw=None, df=None, row=None, col_min=None):
         super().__init__(raw, df, row, col_min)
-        self.ded_detail = self.parse_deduction_dictionary()
+        try:
+            self.ded_detail = self.parse_deduction_dictionary()
+        except ValueError as ve:
+            raise ValueError(ve)
 
     def _split_on_colon(self):
         split_row = []
@@ -232,7 +235,7 @@ class DeductionRow(DataRow):
         return output_row
 
     def parse_deduction_dictionary(self):
-        logger.debug(f"Raw deductions list is {self.raw}")
+        logger.info(f"Raw deductions list is {self.raw}")
 
         split_row_1 = self._split_on_colon()
         logger.debug(f"Row after first split is {split_row_1}")
@@ -251,7 +254,7 @@ class DeductionRow(DataRow):
         ded_words = re.findall(DED_TYPE_PATTERN, row_text)
         ded_digits = re.findall(DED_POINT_PATTERN, row_text)
 
-        logger.debug(f"ded words and digits after regex {ded_words}, {ded_digits}")
+        logger.info(f"ded words and digits after regex {ded_words}, {ded_digits}")
 
         # Clean up ded types
         ded_words = [DED_ALIGNMENT_DIC[d.lower().strip()] if d.lower().strip() in DED_ALIGNMENT_DIC
@@ -260,7 +263,7 @@ class DeductionRow(DataRow):
             if d == 'total':
                 del d
             elif d not in EXPECTED_DED_TYPES:
-                sys.exit(f"Detected unexpected deduction: {d}")
+                raise ValueError(f"Detected unexpected deduction: {d}")
 
         # Remove other random numbers that might have ended up in the row, ensure all numbers negative
         ded_digits = [x for x in ded_digits if x is not None]
