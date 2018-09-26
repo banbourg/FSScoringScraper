@@ -137,7 +137,7 @@ class Team:
                                                   season_observed=season_observed,
                                                   conn_dic=conn_dic)
 
-        logger.info(f"Instantiated Team with with id {self.id}, lady id {self.lady.id}, man id {self.man.id}, name "
+        logger.debug(f"Instantiated Team with with id {self.id}, lady id {self.lady.id}, man id {self.man.id}, name "
                      f"{unicodedata.normalize('NFKD', self.team_name).encode('ascii','ignore')}, "
                      f"fed {self.fed_dic[season_observed + '_fed']}")
 
