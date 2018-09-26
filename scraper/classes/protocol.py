@@ -16,8 +16,7 @@ try:
     import datarow
     import element
 except ImportError as exc:
-    sys.stderr.write("Error: failed to import module ({})".format(exc))
-    sys.exit(1)
+    sys.exit(f"Error: failed to import module ({exc})")
 
 NAME_LIKE_PATTERN = re.compile(r"[A-Z]{2,}")
 
@@ -29,29 +28,37 @@ class Protocol:
         name_row = self._find_name_row(df=df, anchor_coords=(row_start, 0), size_of_sweep=(1, 4, 3))
         schema = self._find_name_row_schema(segment)
 
+        self.id = last_row_dic["protocols"]
+        last_row_dic["protocols"] += 1
+
         self.season = segment.season
         self.discipline = segment.discipline
         self.row_range = range(row_start, row_end + 1)
         self.col_range = range(0, df.shape[1])
         self.elt_list_ends = None
 
+        self.pcs_start_row = None
+        self.pcs_av_list = []
+        self.pcs_detail_list = []
+
         self.number_of_judges = self.count_judges(df)
         
         self.skater = CONSTRUCTOR_DIC[segment.discipline]["competitor"](name_row, skater_list, last_row_dic,
                                                                         self.season, conn_dic)
 
-        self.starting_number = int(name_row.clean[3]) if schema == "new" else None
-        self.tss_total = dec.Decimal(str(name_row.clean[4])) if schema == "new" else dec.Decimal(str(name_row.clean[3]))
-        self.tes_total = dec.Decimal(str(name_row.clean[5])) if schema == "new" else dec.Decimal(str(name_row.clean[4]))
-        self.pcs_total = dec.Decimal(str(name_row.clean[6])) if schema == "new" else dec.Decimal(str(name_row.clean[5]))
+        self.starting_number = int(name_row.data[3]) if schema == "new" else None
+        self.tss_total = dec.Decimal(str(name_row.data[4])) if schema == "new" else dec.Decimal(str(name_row.data[3]))
+        self.tes_total = dec.Decimal(str(name_row.data[5])) if schema == "new" else dec.Decimal(str(name_row.data[4]))
+        self.pcs_total = dec.Decimal(str(name_row.data[6])) if schema == "new" else dec.Decimal(str(name_row.data[5]))
         logger.debug(f"Scores are tss {self.tss_total}, tes {self.tes_total}, pcs {self.pcs_total}")
         self.deductions = dec.Decimal(self.tss_total - self.tes_total - self.pcs_total)
 
         self.elts = []
-        self.pcs_detail = None
-        self.ded_detail = []
-        logger.debug(f"Instantiated Skate object for {unicodedata.normalize('NFKD', self.skater.printout).encode('ascii','ignore')} "
-                     f"with total score {self.tss_total} and starting no. {self.starting_number}")
+
+        self.ded_detail = {}
+        name = self.skater.team_name if isinstance(self.skater, person.Team) else self.skater.full_name
+        logger.debug(f"Instantiated Skate object for {unicodedata.normalize('NFKD', name).encode('ascii','ignore')}"
+                     f" with total score {self.tss_total} and starting no. {self.starting_number}")
 
     def _find_name_row(self, df, anchor_coords, size_of_sweep):
         (row, col) = anchor_coords
@@ -106,41 +113,40 @@ class Protocol:
             for i in self.row_range:
                 if "Skating Skills" in str(df.iloc[i, j]):
                     self.pcs_start_row = i
-                    counter = datarow.PCSRow(mode="decimal", df=df, row=i, col_min=j).clean
+                    counter = datarow.PCSRow(df=df, row=i, col_min=j).data
                     break
             if counter:
                 break
-        no_judges = len(counter[1:-1])
+        no_judges = len(counter)
         logger.debug(f"Found {no_judges} judges in current protocol")
         return no_judges
 
-    def parse_pcs_table(self, df, i, j):
-        component_names, pcs_scores = [], []
-        for k in range(i, i + 6):
-            component = datarow.PCSRow(judges=self.number_of_judges, df=df, row=k, col_min=j)
-            component_names.append(component.row_label)
-            pcs_scores.append(component.clean)
+    def parse_pcs_table(self, df, i, j, last_row_dic):
+        num_components = 4 if self.discipline == "IceDance" and int(self.season[4:]) < 10 else 5
 
-            # all_cells = datarow.DataRow(df=df, row=k, col_min=j).raw
-            # scores = datarow.PCSRow(mode="decimal", raw_list=all_cells)
-            # if len(scores.clean) >= self.number_of_judges:
-            #     component_names.append(all_cells[0])
-            #     pcs_scores.append(scores.clean[1:-1])
-            # else:
-            #     break
+        for k in range(i, i + num_components):
+            component = datarow.PCSRow(elt_list=self.elts, judges=self.number_of_judges, df=df, row=k, col_min=j)
 
-        judge_col_headers = ["j" + str(j).zfill(2) for j in range(1, self.number_of_judges + 1)]
-        self.pcs_detail = pd.DataFrame(pcs_scores, index=component_names, columns=judge_col_headers)
-        self.pcs_detail.rename_axis('judge', axis='columns', inplace=True)
-        self.pcs_detail.rename_axis('component', axis='index', inplace=True)
-        logger.debug(f"Loaded pcs table for "
-                     f"{unicodedata.normalize('NFKD', self.skater.printout).encode('ascii','ignore')}")
+            component.id = last_row_dic["pcs_averages"]
+            last_row_dic["pcs_averages"] += 1
+
+            self.pcs_av_list.append({"id": component.id,
+                                     "component": component.row_label,
+                                     "component_factor": component.data[0],
+                                     "trimmed_av_cs":component.data[-1],
+                                     "protocol_id": self.id})
+
+            judge_keys = ["J" + str(j).zfill(2) for j in range(1, self.number_of_judges + 1)]
+            self.pcs_detail_list.append(dict(zip(["pcs_avg_id"] + judge_keys, [component.id] + component.data[1:-1])))
+
+        name = self.skater.team_name if isinstance(self.skater, person.Team) else self.skater.full_name
+        logger.debug(f"Loaded pcs table for {unicodedata.normalize('NFKD', name).encode('ascii','ignore')}")
 
     def parse_tes_table(self, df, i, j, last_row_dic):
         self._get_elt_list_location(df, i, j)
         for k in range(self.elt_list_starts, self.elt_list_ends):
-            elt_row = datarow.GOERow(df=df, row=k, col_min=0)
-            logger.debug(f"Elt row is {elt_row.row_label}, {elt_row.clean}")
+            elt_row = datarow.GOERow(elt_list=self.elts, judges=self.number_of_judges, df=df, row=k, col_min=0)
+            logger.debug(f"Elt row is {elt_row.row_label}, {elt_row.data}")
 
             self.elts.append(CONSTRUCTOR_DIC[self.discipline]["elt"](elt_row, self.season, last_row_dic))
             last_row_dic["elements"] += 1
@@ -155,6 +161,7 @@ class Protocol:
         :param df: Unstructured protocol data (pdf protocols converted to xlsx and loaded into df
         :param i: Dataframe row at which "Deductions" heading found
         :param j: Dataframe col at which "Deductions" heading found
+        :param segment:
         :return:
         """
         logger.debug(f"Total deductions for this skate known to be {self.deductions.quantize(dec.Decimal('0'))}. "
@@ -191,16 +198,15 @@ class Protocol:
 
             sys.exit("Some deductions are still missing")
 
-    def get_skate_dic(self, segment):
-        dic = {"segment_id": segment.id, "competitor_id": self.skater.id, "tes": self.tes_total,
+    def get_protocol_dic(self, segment):
+        dic = {"id": self.id, "segment_id": segment.id, "competitor_id": self.skater.id, "tes": self.tes_total,
                "pcs": self.pcs_total, "tss": self.tss_total, "ded": self.deductions,
                "starting_number": self.starting_number, "number_of_judges": self.number_of_judges}
         return dic
 
-    def get_pcs_df(self, segment):
-        self.pcs_detail["segment_id"] = segment.id
-        self.pcs_detail["competitor_id"] = self.skater.id
-        return self.pcs_detail
+    def get_deductions_dic(self):
+        self.ded_detail["protocol_id"] = self.id
+        return self.ded_detail
 
 
 CONSTRUCTOR_DIC = {"IceDance": {"competitor": person.Team, "elt": element.IceDanceElement},

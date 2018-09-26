@@ -15,7 +15,10 @@ logging.basicConfig(  # filename="panel_scraper" + datetime.today().strftime("%Y
 
 logger = logging.getLogger(__name__)
 
-sys.path.extend([os.path.abspath("./classes/"), os.path.abspath("..")])
+p_list = [os.path.abspath("./classes/"), os.path.abspath("..")]
+for p in p_list:
+    if p not in sys.path:
+        sys.path.append(p)
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 1900)

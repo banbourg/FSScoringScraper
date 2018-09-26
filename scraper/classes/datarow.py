@@ -43,7 +43,7 @@ class DataRow:
             self.raw = raw_list
         else:
             raise ValueError(f"Please instantiate the DataRow obj with either a raw list, or a df, row and col")
-        self.clean = []
+        self.data = []
 
 
 class ScoreRow(DataRow):
@@ -61,63 +61,82 @@ class ScoreRow(DataRow):
         return [r.strip() for r in split]
 
     def _get_data_start_index(self, mode):
+        logger.debug(f"Split list is {self.split_list}")
         check_cell = 0 if mode == "pcs" else 1
         try:
             assert not is_digit_cell(self.split_list[check_cell])
         except AssertionError:
             sys.exit(f"{mode} row is fucked, content not as expected: {self.raw}")
 
-        for i in range(0, len(self.split_list)):
+        for i in range(check_cell, len(self.split_list)):
             if is_digit_cell(self.split_list[i]):
                 return i
         sys.exit(f"Row is fucked, couldn't find any numbers in it: {self.raw}")
 
-    def _remove_dash_columns(self, mode, judges, row_list):
+    def _remove_dash_columns(self, mode, row_list, judges=None, case=0, elt_list=None):
         # Context: sometimes protocols include 1-2 random columns of dashes between the end of the goe scores and the
         # total scores. But sometimes unmarked elements are also denoted by a dash. Also I hate this.
-        offset = 3 if mode == "goe" else 2
+        if not judges:
+            dashless = [x for x in row_list if x != "-"]
+            return case, dashless[1:-1]
+        else:
+            logger.debug(f"Removing dashes: mode is {mode}, row is {row_list}, judges are {judges}")
 
-        test = [x for x in row_list if x != "-"]
-        if len(test) == (offset + judges):
-            return test
+            offset = 3 if mode == "goe" else 2
 
-        test_2 = ["NS" if x == "-" else x for x in row_list]
-        if len(test_2) == (offset + judges):
-            return test_2
-        elif (len(test_2) - offset - judges) == 1 and test_2[-2] == "NS":
-            del test_2[-2]
-            return test_2
-        elif (len(test_2) - offset - judges) == 2 and test_2[-3:-1] == ["NS", "NS"]:
-            del test_2[-3:-1]
-            return test_2
-        elif (len(test_2) - offset - judges) == 3 and test_2[-4:-1] == ["NS", "NS", "NS"]:
-            del test_2[-4:-1]
-            return test_2
-        sys.exit(f"Elt row does not have expected length: {self.raw}, {row_list}")
+            test = [x for x in row_list if x != "-"]
+            if case == 1 or len(test) == (offset + judges):
+                case = 1
+                return case, test
+
+            test_2 = ["NS" if x == "-" else x for x in row_list]
+            if case == 2 or len(test_2) == (offset + judges):
+                case = 2
+                return case, test_2
+            elif case == 3 or ((len(test_2) - offset - judges) == 1 and test_2[-2] == "NS"):
+                del test_2[-2]
+                case = 3
+                return case, test_2
+            elif case == 4 or ((len(test_2) - offset - judges) == 2 and test_2[-3:-1] == ["NS", "NS"]):
+                del test_2[-3:-1]
+                case = 4
+                return case, test_2
+            elif case == 5 or ((len(test_2) - offset - judges) == 3 and test_2[-4:-1] == ["NS", "NS", "NS"]):
+                del test_2[-4:-1]
+                case = 5
+                return case, test_2
+            elif elt_list and len(elt_list) > 0:
+                return self._infer_from_previous_element(mode, row_list, judges, elt_list)
+            sys.exit(f"Elt row does not have expected length: {self.raw}, {row_list}")
+
+    def _infer_from_previous_element(self, mode, row_list, judges, elt_list):
+        case, dashless = self._remove_dash_columns(mode=mode, row_list=row_list, judges=judges, case=elt_list[-1].case)
+        return case, dashless
 
 
 class PCSRow(ScoreRow):
-    def __init__(self, judges, raw_list=None, df=None, row=None, col_min=None):
+    def __init__(self, elt_list=None, judges=None, raw_list=None, df=None, row=None, col_min=None):
         super().__init__(mode="pcs", raw_list=raw_list, df=df, row=row, col_min=col_min)
-
+        self.id = None
         self.row_label = " ".join(self.split_list[0:self.split_index])
-        self._clean_pcs_row(judges)
+        self.case, self.data = self._clean_pcs_row(judges, elt_list)
 
-    def _clean_pcs_row(self, judges):
-        scores = self._remove_dash_columns(mode="pcs", judges=judges, row_list=self.split_list[self.split_index:])
-        self.clean = coerce_to_num_type(list_=[r.replace(",", ".") for r in scores], target_type="decimal")
-        logger.debug(f"Cleaned scores list is {self.clean}")
+    def _clean_pcs_row(self, judges, elt_list):
+        case, scores = self._remove_dash_columns(mode="pcs", judges=judges, row_list=self.split_list[self.split_index:], elt_list=elt_list)
+        clean = coerce_to_num_type(list_=[r.replace(",", ".") for r in scores], target_type="decimal")
+        logger.debug(f"Cleaned scores list is {clean}")
+        return case, clean
 
 
 class GOERow(ScoreRow):
-    def __init__(self, judges, raw_list=None, df=None, row=None, col_min=None):
+    def __init__(self, elt_list, judges, raw_list=None, df=None, row=None, col_min=None):
         super().__init__(mode="goe", raw_list=raw_list, df=df, row=row, col_min=col_min)
 
         self.row_no = int(self.split_list[0])
         self.row_label = " ".join(self.split_list[1:self.split_index])
-        self._clean_goe_row(judges)
+        self.case, self.data = self._clean_goe_row(judges, elt_list)
 
-    def _clean_goe_row(self, judges):
+    def _clean_goe_row(self, judges, elt_list):
         temp = self.split_list[self.split_index:]
         if "x" in temp:
             self.row_label += " x"
@@ -125,11 +144,15 @@ class GOERow(ScoreRow):
         elif "X" in temp:
             self.row_label += " x"
             temp.remove("X")
-        scores = [r.replace(",", ".") for r in self._remove_dash_columns(mode="pcs", judges=judges, row_list=temp)]
+
+        case, dashless = self._remove_dash_columns(mode="goe", judges=judges, row_list=temp, elt_list=elt_list)
+        scores = [r.replace(",", ".") for r in dashless]
+        logger.debug(f"After removing dashes scores are {scores}")
+
         one = coerce_to_num_type(list_=scores[0:2], target_type="decimal")
         two = coerce_to_num_type(list_=scores[2:-1], target_type="int")
-        three = coerce_to_num_type(list_=scores[-1], target_type="decimal")
-        self.clean = one + two + three
+        three = coerce_to_num_type(list_=[scores[-1]], target_type="decimal")
+        return case, one + two + three
 
 
 class NameRow(DataRow):
@@ -139,15 +162,15 @@ class NameRow(DataRow):
 
     def clean_name_row(self, mode):
         if mode == "single line":
-            self.clean = self.raw
+            self.data = self.raw
         elif mode == "multiline":
-            self.clean = [c.rpartition("\n")[2] for c in self.raw]
+            self.data = [c.rpartition("\n")[2] for c in self.raw]
         else:
             raise ValueError("Mode parameter must be set to either 'single line' or 'multiline'")
-        if re.search(NUMBER_AND_NAME_PATTERN, str(self.clean[0])):
-            split_cell = str(self.clean[0]).split(" ", 1)
-            self.clean[0] = int(split_cell[0])
-            self.clean.insert(1, split_cell[1])
+        if re.search(NUMBER_AND_NAME_PATTERN, str(self.data[0])):
+            split_cell = str(self.data[0]).split(" ", 1)
+            self.data[0] = int(split_cell[0])
+            self.data.insert(1, split_cell[1])
 
 
 class DeductionRow(DataRow):
@@ -292,3 +315,5 @@ def coerce_to_num_type(list_, target_type):
                 pass
         else:
             raise ValueError("Please set 'mode' parameter to 'float' or 'int'")
+    logger.debug(f"Coerced list is {coerced_list}")
+    return coerced_list

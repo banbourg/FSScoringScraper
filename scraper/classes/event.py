@@ -54,10 +54,13 @@ def _parse_segment(string_input, disc):
         letter_2 = "D" if disc == "Dance" else "P"
         return letter_1 + letter_2
     else:
-        raw_seg = [s for s in SEGMENT_LIST if s in string_input]
-        if not raw_seg:
-            sys.exit(f"Could not find segment pattern in {string_input}")
-        elif len(raw_seg) > 1:
+        try_1 = [s for s in SEGMENT_LIST if s in string_input]
+        if not try_1:
+            try_2 = [s for s in SEGMENT_LIST if s.lower() in string_input]
+            if not try_2:
+                sys.exit(f"Could not find segment pattern in {string_input}")
+        raw_seg = try_1 if try_1 else try_2
+        if len(raw_seg) > 1:
             if "Prelim" in raw_seg:
                 raw_seg = ["Prelim"]
             else:
@@ -72,7 +75,7 @@ def parse_discipline(string_input):
     for dic in DISC_CODES_DICS:
         for key in DISC_CODES_DICS[dic]:
             if re.search(key, string_input) and "novice" not in string_input.lower():
-                logger.info(f"Code {key} matches {string_input}")
+                logger.debug(f"Code {key} matches {string_input}")
                 return list(DISC_CODES_DICS[dic].values())[0]
     raise ValueError(f"Could not find discipline in {string_input}")
 
@@ -83,7 +86,7 @@ class Event:
         self.is_A_comp = True if self.name in ISU_A_COMPS else False
         self.is_h2_event = True if self.name in H2_EVENTS else False
         self.season = self._set_season() if self.year else None
-        self.cs_flag = "CS" if self.name not in NATIONALS and not self.is_A_comp else None
+        self.is_cs_event = True if self.name not in NATIONALS and not self.is_A_comp else False
         self.start_date = start_date
 
     def _set_season(self):
@@ -101,34 +104,30 @@ class Segment(Event):
         self.sub_event = sub_event
 
 
-class SegmentProtocols(Segment):
-    def __init__(self, filename, discipline, id_dic):
-        sd = datetime.strptime(filename.partition("_")[0], "%y%m%d").date()
+class ScoredSegment(Segment):
+    def __init__(self, name_to_parse, discipline, id_dic):
+        sd = datetime.strptime(name_to_parse.partition("_")[0], "%y%m%d").date()
         y = sd.year
-
-        super().__init__(id=id_dic["segments"], name=filename.partition("_")[2].partition("_")[0], year=y, start_date=sd,
-                         sub_event=_parse_sub_event(filename), category=_parse_category(filename),
-                         discipline=discipline, segment=_parse_segment(filename, discipline))
         self.protocol_list = []
-        logger.info(f"Instantiated SegmentProtocols object {self.name} ({self.sub_event}) {self.year} {self.category} "
-                    f"{self.discipline} {self.segment}")
+
+        super().__init__(id=id_dic["segments"],
+                         name=name_to_parse.partition("_")[2].partition("_")[0], year=y,
+                         start_date=sd,
+                         sub_event=_parse_sub_event(name_to_parse),
+                         category=_parse_category(name_to_parse),
+                         discipline=discipline,
+                         segment=_parse_segment(name_to_parse, discipline))
+        id_dic["segments"] += 1
+        logger.debug(f"Instantiated ScoredSegment object with the following attributes {self.get_segment_dic()}")
 
     def get_segment_dic(self):
-        dic = vars(self)
-        del dic["protocol_list"]
-        del dic["search_string"]
-        del dic["url"]
-        logger.debug(f"Segment dic is {dic}")
+        dic = dict(vars(self))
+        if "protocol_list" in dic:
+            del dic["protocol_list"]
         return dic
-    #
-    # def construct_elt_calls_dics(self):
-    #     for p in self.protocol_list:
-    #         for e in p.elements:
-    #             elt_dic = vars(e)
-    #             elt_dic["skate_id"] = self._generate_skate_id(protocol=p)
 
 
 if __name__ == "__main__":
     # Woot tests
-    g = SegmentProtocols("130418_4CC_LadiesJrFS", "Ladies", {"segments": 20})
+    g = ScoredSegment("130418_4CC_LadiesJrFS", "Ladies", {"segments": 20})
     print(vars(g))

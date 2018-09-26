@@ -12,17 +12,17 @@ import re
 import sys
 import logging
 
-logging.basicConfig(filename="transformer" + datetime.today().strftime("%Y-%m-%d_%H-%M-%S") + ".log",
+logging.basicConfig(#filename="transformer" + datetime.today().strftime("%Y-%m-%d_%H-%M-%S") + ".log",
                     format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
-                    level=logging.DEBUG,
+                    level=logging.INFO,
                     datefmt="%Y-%m-%d %H:%M:%S")
 
 logger = logging.getLogger(__name__)
 
-# Ensure python can find modules for import
-p = os.path.abspath("../classes/")
-if p not in sys.path:
-    sys.path.append(p)
+p_list = [os.path.abspath("./classes/"), os.path.abspath("..")]
+for p in p_list:
+    if p not in sys.path:
+        sys.path.append(p)
 
 try:
     import settings
@@ -33,16 +33,14 @@ try:
 except ImportError as exc:
     sys.exit(f"Error: failed to import module ({exc})")
 
+
+# ------------------------------------------ CHANGE RUN PARAMETERS HERE ---------------------------------------------
+ENABLE_PAUSE = True
+# ----------------------------------------------------------------------------------------------------------------------
+
 ABBREV_DIC = {'gpjpn': 'NHK', 'gpfra': 'TDF', 'gpcan': 'SC', 'gprus': 'COR', 'gpusa': 'SA', 'gpchn': 'COC',
              'gpf': 'GPF', 'wc': 'WC', 'fc': '4CC', 'owg': 'OWG', 'wtt': 'WTT', 'sc': 'SC', 'ec': 'EC', 'sa': 'SA',
              'jgpfra': 'JGPFRA', 'nhk': 'NHK'}
-calls = ['!', 'e', '<', '<<', '*', '+REP', 'V1', 'V2', 'x', 'X', 'V']
-
-key_cols = ['discipline', 'category', 'season', 'event', 'sub_event', 'skater_name', 'segment']
-
-
-# --------------------------------------- REGEX PATTERNS ---------------------------------------
-combo_pattern = re.compile(r"\+[0-9]")
 
 
 def reorder_cols(df, col_to_move, new_pos):
@@ -67,13 +65,16 @@ def scrape_sheet(df, segment, last_row_dic, skater_list, conn_dic):
     logger.debug(f"Protocol coordinates are {protocol_coords}")
 
     for c in protocol_coords:
-        prot = protocol.Protocol(df=df, protocol_coordinates=c, segment=segment, last_row_dic=last_row_dic,
-                                 skater_list=skater_list, conn_dic=conn_dic)
-
+        prot = protocol.Protocol(df=df,
+                                 protocol_coordinates=c,
+                                 segment=segment,
+                                 last_row_dic=last_row_dic,
+                                 skater_list=skater_list,
+                                 conn_dic=conn_dic)
         for i in prot.row_range:
             for j in prot.col_range:
                 if "Skating Skills" in str(df.iloc[i, j]):
-                    prot.parse_pcs_table(df, i, j)
+                    prot.parse_pcs_table(df, i, j, last_row_dic)
                 elif "Elements" in str(df.iloc[i, j]):
                     prot.parse_tes_table(df, i, j, last_row_dic)
                 elif "Deductions" in str(df.iloc[i, j]) and j < 4:
@@ -81,26 +82,51 @@ def scrape_sheet(df, segment, last_row_dic, skater_list, conn_dic):
         segment.protocol_list.append(prot)
 
 
-def convert_to_dfs(segment_list):
-    all_dics, all_dfs, pcs_list = {}, {}, []
+def convert_to_dfs(segment_list, conn_dic, competitor_list, id_dic):
+    all_dics = {"segments": [], "competitors": [], "protocols": [], "pcs_averages": [], "pcs_detail": [],
+                "deductions_detail": [], "elements": [], "goe_detail": []}
+    all_dfs = {}
+
     for s in segment_list:
-        all_dics["segments"].append(s.get_segment_dic())
+        if "segments" in all_dics:
+            all_dics["segments"].append(s.get_segment_dic())
 
         for p in s.protocol_list:
-            all_dics["competitors"].append(vars(p.skater))
+            all_dics["protocols"].append(p.get_protocol_dic(segment=s))
 
-            all_dics["skates"].append(p.get_skate_dic(segment=s))
+            all_dics["pcs_averages"].extend(p.pcs_av_list)
+            all_dics["pcs_detail"].extend(p.pcs_detail_list)
 
-            pcs_list.append(p.get_pcs_df(segment=s))
+            all_dics["deductions_detail"].append(p.get_deductions_dic())
 
-            for e in p.elements:
-                all_dics["elements"].append(vars(e))
+            for e in p.elts:
+                elt_dic = e.get_element_dic()
+                elt_dic["protocol_id"] = p.id
+                all_dics["elements"].append(elt_dic)
 
+                all_dics["goe_detail"].append(e.goe_dic)
+
+    for c in competitor_list:
+        all_dics["competitors"].append(c.get_competitor_dict())
 
     for key in all_dics:
-        all_dfs = pd.DataFrame(all_dics[key])
+        all_dfs[key] = pd.DataFrame(all_dics[key])
 
-    all_dfs["pcs"] = pd.concat(pcs_list)
+    # panels_df = pd.read_sql_query("SELECT * FROM panels", conn_dic["engine"])
+    dic = {"pcs": ["pcs_avg", "judge_no"],
+           "goe": ["element", "judge_no"],
+           "deductions": ["protocol", "deduction_type"]}
+
+    for s in dic:
+        key = s + "_detail"
+        crossref_id = dic[s][0] + "_id"
+        all_dfs[key] = all_dfs[key].melt(id_vars=[crossref_id], var_name=dic[s][1], value_name=s + "_score")
+        all_dfs[key].insert(0, "id", range(id_dic[key], id_dic[key] + len(all_dfs[key])))
+        if s in ["pcs", "goe"]:
+            all_dfs[key].fillna("NS", inplace=True)
+        id_dic[key] += (len(all_dfs[key]) + 1)
+        all_dfs[key] = all_dfs[key][all_dfs[key][s + "_score"].notnull()]
+    #     all_dfs[key] = pd.merge(all_dfs[key], panels_df, how='left', left_on="judge_no", right_on=["official_role"])
 
     return all_dfs
 
@@ -116,65 +142,63 @@ def transform_and_load(read_path, write_path, naming_schema, counter, db_credent
     conn_dic = {"conn": conn, "engine": engine, "cursor": cur}
 
     # --- 2. Get max table rows for append
-    ids, skater_list = {}, []
-    for x in ["deductions", "pcs", "goe", "elements", "segments", "competitors", "officials", "panels", "skates"]:
-        name = x + naming_schema
-        ids[x] = db_builder.get_last_row_key(table_name=name, cursor=cur) + 1
+    rows = {}
+    for x in ["deductions_detail", "pcs_averages", "pcs_detail", "goe_detail", "elements", "segments", "competitors",
+              "officials", "panels", "protocols"]:
+        rows[x] = db_builder.get_last_row_key(table_name=x, cursor=cur) + 1
 
     # --- 3. Iteratively read through converted .xlsx and populate tables
-    segment_list = []
+    segment_list, skater_list = [], []
     file_count = 0
-
     files = sorted(glob.glob(read_path + '*.xlsx'))
 
     for f in files:
         filename = f.rpartition("/")[2]
         basename = filename.rpartition(".")[0]
         logger.info(f"Attempting to read {basename}")
-
         file_count += 1
 
-        disc = event.parse_discipline(filename)
-        seg = protocol.SegmentProtocols(basename, disc, ids)
-        ids["segments"] += 1
-        segment_list.append(seg.get_segment_dic())
+        try:
+            disc = event.parse_discipline(filename)
+        except ValueError:
+            logger.error(f"Passing on file {filename}")
+            continue
+
+        seg = event.ScoredSegment(name_to_parse=basename, discipline=disc, id_dic=rows)
+        segment_list.append(seg)
 
         wb = load_workbook(f)
         for sheet in wb.sheetnames:
             raw_df = pd.DataFrame(wb[sheet].values)
-            scrape_sheet(df=raw_df, segment=seg, last_row_dic=ids, skater_list=skater_list, conn_dic=conn_dic)
-            segment_list.append(seg)
+            scrape_sheet(df=raw_df, segment=seg, last_row_dic=rows, skater_list=skater_list, conn_dic=conn_dic)
 
-        if file_count % counter == 0:
-            convert_to_dics(segment_list)
-            segments_df = write_to_staging(pd.DataFrame(segment_list), "segments" + naming_schema, conn_dic)
-            write_to_csv(segments_df, "segments" + naming_schema, write_path)
+        # if file_count % counter == file_count:
+        dfs = convert_to_dfs(segment_list=segment_list, competitor_list=skater_list, conn_dic=conn_dic, id_dic=rows)
 
-            df_dic = convert_to_dfs(seg)
-            for key in df_dic:
-                write_to_staging(df_dic[key], key, cur, conn, engine)
-                write_to_csv(df_dic[key], key, write_path)
-        #
-        # current_path = os.path.join(read_path, filename)
-        # done_path = os.path.join(done_dir_path, filename)
-        # os.rename(current_path, done_path)
+        for k in dfs:
+            db_builder.create_staging_table(df=dfs[k], conn_dic=conn_dic, table_name=k, fetch_last_row=False)
+
+        if ENABLE_PAUSE:
+            input("Hit Enter to write to main tables")
+
+        for k in dfs:
+            db_builder.write_to_final_table(df=dfs[k], conn_dic=conn_dic, table_name=k)
+            write_to_csv(df=dfs[k], table_name=k, write_path=write_path)
+
+        segment_list, skater_list = [], []
+
+        current_path = os.path.join(read_path, filename)
+        done_path = os.path.join(done_dir_path, filename)
+        os.rename(current_path, done_path)
 
 
-
-
-# def write_to_staging(df, table_name, cursor, connection, engine):
-#     keyed_df = db_builder.modify_table(cursor=cursor, connection=connection, engine=engine, df=df,
-#                                        table_name=table_name)
-#     return keyed_df
-#
-#
-# def write_to_csv(df, table_name, write_path):
-#     file_path = os.path.join(write_path, table_name + ".csv")
-#     if os.path.isfile(file_path):
-#         include_header = False
-#     else:
-#         include_header = True
-#     df.to_csv(header=include_header, index=False, mode="a", date_format="%y-%m-%d")
+def write_to_csv(df, table_name, write_path):
+    file_path = os.path.join(write_path, table_name + ".csv")
+    if os.path.isfile(file_path):
+        include_header = False
+    else:
+        include_header = True
+    df.to_csv(header=include_header, index=False, mode="a", date_format="%y-%m-%d")
 
 
 
@@ -194,10 +218,10 @@ def main():
     # except (IndexError, TypeError):
     #     counter = 10
 
-    db_credentials = settings.DB_CREDENTIALS()
+    db_credentials = settings.DB_CREDENTIALS
     read_path = settings.READ_PATH
     write_path = settings.WRITE_PATH
-    counter = 10
+    counter = 1
     naming_schema = "_new"
 
     transform_and_load(read_path, write_path, naming_schema, counter, db_credentials)

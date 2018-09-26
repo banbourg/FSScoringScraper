@@ -50,7 +50,6 @@ def get_last_row_key(table_name, cursor):
     if table_exists:
         cursor.execute(sql.SQL("SELECT MAX(id) FROM {};").format(sql.Identifier(table_name)))
         res = cursor.fetchone()
-        logger.info(res)
         if res:
             if res[0]:
                 return int(res[0])
@@ -64,7 +63,7 @@ def create_staging_table(df, conn_dic, table_name, fetch_last_row=False):
         last_row_num = get_last_row_key(table_name, conn_dic["cursor"])
         df.insert(0, "id", range(last_row_num + 1, last_row_num + 1 + len(df)))
 
-    staging_name = table_name + "_staging"
+    staging_name = "staging_" + table_name
     try:
         df.to_sql(staging_name, conn_dic["engine"], chunksize=10000, index=False)
     except ValueError:
@@ -73,7 +72,7 @@ def create_staging_table(df, conn_dic, table_name, fetch_last_row=False):
 
 
 def write_to_final_table(df, table_name, conn_dic):
-    staging_name = table_name + "_staging"
+    staging_name = "staging_" + table_name
     # Dropping staging table
     conn_dic["cursor"].execute(sql.SQL("DROP TABLE {};").format(sql.Identifier(staging_name)))
     logger.info(f"Dropped staging table {staging_name}")

@@ -274,7 +274,7 @@ class EventSearch:
                         p = person.Panel(roles_table, last_row_dic, list_of_officials, sub_event, category, discipline,
                                          segment, season, conn_dic)
 
-                        logger.debug(f"Segment judges: {vars(p)}")
+                        logger.debug(f"Segment judges: {dict(vars(p))}")
                         list_of_panels.append(p)
 
 

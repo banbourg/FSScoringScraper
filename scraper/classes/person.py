@@ -81,7 +81,7 @@ class Person:
                 return int(prev_id[0][0])
 
         for person in person_list:
-            if person.tight_full_name == self.tight_full_name:
+            if isinstance(person, Person) and person.tight_full_name == self.tight_full_name:
                 if field not in person.fed_dic or (person.fed_dic[field] == "ISU" and self.fed_dic[field] != "ISU"):
                     person.fed_dic[season_observed + "_fed"] = self.fed_dic[season_observed + "_fed"]
                 return int(person.id)
@@ -90,18 +90,25 @@ class Person:
         last_row_dic[mode] += 1
         return int(last_row_dic[mode] - 1)
 
-    def get_dict(self):
-        return flatten_dict(vars(self))
+    def get_competitor_dict(self):
+        dic = {"id": self.id,
+               "competitor_name": self.full_name,
+               "competitor_type": "person",
+               "spaced_first_name": self.first_name,
+               "spaced_last_name": self.last_name,
+               "tight_full_name": self.tight_full_name,
+               "tight_first_name": self.tight_first_name,
+               "tight_last_name": self.tight_last_name,
+               "dic": self.fed_dic}
+        return flatten_dict(dic)
 
 
 class SinglesSkater(Person):
-    def __init__(self, name_row, skater_list, last_row_dic, season_observed, conn_dic):
+    def __init__(self, name_row, competitor_list, last_row_dic, season_observed, conn_dic):
 
-        super().__init__(name_string=name_row.clean[1], person_list=skater_list, last_row_dic=last_row_dic,
-                         season_observed=season_observed, fed_observed=name_row.clean[2], mode="competitors",
+        super().__init__(name_string=name_row.data[1], person_list=competitor_list, last_row_dic=last_row_dic,
+                         season_observed=season_observed, fed_observed=name_row.data[2], mode="competitors",
                          conn_dic=conn_dic)
-
-        self.printout = self.full_name
 
         logger.debug(f"Instantiated SinglesSkater with id {self.id}, name "
                      f"{unicodedata.normalize('NFKD', self.full_name).encode('ascii','ignore')}, fed "
@@ -109,40 +116,72 @@ class SinglesSkater(Person):
 
 
 class Team:
-    def __init__(self, name_row, skater_list, last_row_dic, season_observed, conn_dic):
-        names = re.split(" / | - ", name_row.clean[1])
+    def __init__(self, name_row, competitor_list, last_row_dic, season_observed, conn_dic):
+        names = re.split(" / | - ", name_row.data[1])
         try:
-            self.lady = Person(name_string=names[0], person_list=skater_list, last_row_dic=last_row_dic,
-                               season_observed=season_observed, fed_observed=name_row.clean[2], mode="competitors",
+            self.lady = Person(name_string=names[0], person_list=competitor_list, last_row_dic=last_row_dic,
+                               season_observed=season_observed, fed_observed=name_row.data[2], mode="competitors",
                                conn_dic=conn_dic)
-            self.man = Person(name_string=names[1], person_list=skater_list, last_row_dic=last_row_dic,
-                              season_observed=season_observed, fed_observed=name_row.clean[2], mode="competitors",
+            self.man = Person(name_string=names[1], person_list=competitor_list, last_row_dic=last_row_dic,
+                              season_observed=season_observed, fed_observed=name_row.data[2], mode="competitors",
                               conn_dic=conn_dic)
         except IndexError as ie:
-            sys.exit(f"Index error on one of {names}, {name_row.clean}: {ie}")
+            sys.exit(f"Index error on one of {names}, {name_row.data}: {ie}")
 
         self.fed_dic = {season_observed + "_fed": self.lady.fed_dic[season_observed + "_fed"]}
 
         self.team_name = self.lady.tight_last_name + "/" + self.man.tight_last_name
-        self.printout = self.team_name
 
-        team_already_ided = False
-        for team in skater_list:
-            if team.printout == self.team_name:
-                team_already_ided = True
-                self.id = team.id
-                team.fed_dic[season_observed + "_fed"] = self.fed_dic[season_observed + "_fed"]
-                break
+        self.id = self._check_and_complete_record(competitor_list=competitor_list,
+                                                  last_row_dic=last_row_dic,
+                                                  season_observed=season_observed,
+                                                  conn_dic=conn_dic)
 
-        if not team_already_ided:
-            self.id = last_row_dic["competitors"]
-            last_row_dic["competitors"] += 1
-            skater_list.append(self)
-
-
-        logger.debug(f"Instantiated Team with with id {self.id}, name "
+        logger.info(f"Instantiated Team with with id {self.id}, lady id {self.lady.id}, man id {self.man.id}, name "
                      f"{unicodedata.normalize('NFKD', self.team_name).encode('ascii','ignore')}, "
                      f"fed {self.fed_dic[season_observed + '_fed']}")
+
+    def _check_and_complete_record(self, competitor_list, last_row_dic, season_observed, conn_dic):
+        field = season_observed + "_fed"
+        if db_builder.check_table_exists("competitors", conn_dic["cursor"]):
+            table = sql.Identifier("competitors")
+            conn_dic["cursor"].execute(sql.SQL("SELECT id, {} FROM {} WHERE competitor_name=%s;")
+                                       .format(sql.Identifier(field), table),
+                                       (self.team_name,))
+            prev_id = conn_dic["cursor"].fetchall()
+            try:
+                assert len(prev_id) in [0,1]
+            except AssertionError as ae:
+                logger.error(f"prev_id returned {prev_id}: {ae}")
+
+            if prev_id:
+                if prev_id[0][1] is None:
+                    query = sql.SQL("UPDATE {} SET {} = %s WHERE id = %s;").format(table, sql.Identifier(field))
+                    conn_dic["cursor"].execute(query, (self.fed_dic[field], prev_id[0][0]))
+                    conn_dic["conn"].commit()
+                return int(prev_id[0][0])
+
+        for c in competitor_list:
+            if isinstance(c, Team) and c.team_name == self.team_name:
+                self.id = c.id
+                c.fed_dic[season_observed + "_fed"] = self.fed_dic[season_observed + "_fed"]
+                if field not in c.fed_dic:
+                    c.fed_dic[season_observed + "_fed"] = self.fed_dic[season_observed + "_fed"]
+                return int(c.id)
+
+        competitor_list.append(self)
+        last_row_dic["competitors"] += 1
+        return int(last_row_dic["competitors"] - 1)
+
+
+    def get_competitor_dict(self):
+        dic = {"id": self.id,
+               "competitor_name": self.team_name,
+               "competitor_type": "team",
+               "lady_id": self.lady.id,
+               "man_id": self.man.id,
+               "dic": self.fed_dic}
+        return flatten_dict(dic)
 
 
 class Official(Person):
@@ -194,7 +233,7 @@ class Panel:
             return
 
     def get_dict(self):
-        return flatten_dict(vars(self))
+        return flatten_dict(dict(vars(self)))
 
 
 class PersonTests(unittest.TestCase):
@@ -207,7 +246,7 @@ class PersonTests(unittest.TestCase):
         o2 = Official("Mr Nobunari ODA", lr, lof, "sb2013", "JPN", {"conn": conn, "cursor": cur})
         o3 = Official("Ms Nobunari ODA", lr, lof, "sb2014", "JPN", {"conn": conn, "cursor": cur})
         logger.debug(f"Next id assigned will be {lr['officials']}", {"conn": conn, "cursor": cur})
-        logger.debug(vars(o2))
+        logger.debug(dict(vars(o2)))
         assert len(lof) == 2
         assert lr["officials"] == 36
         assert o3.full_name == "Nobunari ODA"
