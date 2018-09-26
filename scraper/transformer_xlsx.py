@@ -172,20 +172,20 @@ def transform_and_load(read_path, write_path, naming_schema, counter, db_credent
             raw_df = pd.DataFrame(wb[sheet].values)
             scrape_sheet(df=raw_df, segment=seg, last_row_dic=rows, skater_list=skater_list, conn_dic=conn_dic)
 
-        # if file_count % counter == file_count:
-        dfs = convert_to_dfs(segment_list=segment_list, competitor_list=skater_list, conn_dic=conn_dic, id_dic=rows)
+        if file_count % counter == 0:
+            dfs = convert_to_dfs(segment_list=segment_list, competitor_list=skater_list, conn_dic=conn_dic, id_dic=rows)
 
-        for k in dfs:
-            db_builder.create_staging_table(df=dfs[k], conn_dic=conn_dic, table_name=k, fetch_last_row=False)
+            for k in dfs:
+                db_builder.create_staging_table(df=dfs[k], conn_dic=conn_dic, table_name=k, fetch_last_row=False)
 
-        if ENABLE_PAUSE:
-            input("Hit Enter to write to main tables")
+            if ENABLE_PAUSE:
+                input("Hit Enter to write to main tables")
 
-        for k in dfs:
-            db_builder.write_to_final_table(df=dfs[k], conn_dic=conn_dic, table_name=k)
-            write_to_csv(df=dfs[k], table_name=k, write_path=write_path)
+            for k in dfs:
+                db_builder.write_to_final_table(df=dfs[k], conn_dic=conn_dic, table_name=k)
+                write_to_csv(df=dfs[k], table_name=k, write_path=write_path)
 
-        segment_list, skater_list = [], []
+            segment_list, skater_list = [], []
 
         current_path = os.path.join(read_path, filename)
         done_path = os.path.join(done_dir_path, filename)
@@ -221,7 +221,7 @@ def main():
     db_credentials = settings.DB_CREDENTIALS
     read_path = settings.READ_PATH
     write_path = settings.WRITE_PATH
-    counter = 1
+    counter = 10
     naming_schema = "_new"
 
     transform_and_load(read_path, write_path, naming_schema, counter, db_credentials)
