@@ -8,8 +8,7 @@ try:
     import person
     import datarow
 except ImportError as exc:
-    sys.stderr.write("Error: failed to import module ({})".format(exc))
-    sys.exit(1)
+    sys.exit("Error: failed to import module ({})".format(exc))
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
                     level=logging.DEBUG,
@@ -22,11 +21,12 @@ H2_EVENTS = ["WC", "WTT", "4CC", "OWG", "EC"]
 
 ISU_A_COMPS = ["NHK", "TDF", "SC", "COR", "SA", "COC", "GPF", "WC", "4CC", "OWG", "WTT", "EC"]
 
-DISC_CODES_DICS = {"LADIES_CODES": {re.compile(r"(?i)(lad(?:y|ies)|women).*score"): "Ladies",
+DISC_CODES_DICS = {"DANCE_CODES": {re.compile(r"(?i)danc.*score"): "IceDance", re.compile(r"data040[35]"): "IceDance"},
+                   "PAIRS_CODES": {re.compile(r"(?i)pairs.*score"): "Pairs", re.compile(r"data030[35]"): "Pairs"},
+                   "LADIES_CODES": {re.compile(r"(?i)(lad(?:y|ies)|women).*score"): "Ladies",
                                     re.compile(r"data020[35]"): "Ladies"},
                    "MEN_CODES": {re.compile(r"(?i)(?<!wo)men.*score"): "Men", re.compile(r"data010[35]"): "Men"},
-                   "PAIRS_CODES": {re.compile(r"(?i)pairs.*score"): "Pairs", re.compile(r"data030[35]"): "Pairs"},
-                   "DANCE_CODES": {re.compile(r"(?i)danc.*score"): "IceDance", re.compile(r"data040[35]"): "IceDance"}}
+                   }
 
 SEGMENT_LIST = ["SP", "FS", "SD", "FP", "FD", "OD", "CD", "RD", "QA", "QB", "Prelim"]
 SEGMENT_CORRECTIONS = {"Prelim": "QA", "FP": "FS"}
@@ -58,14 +58,18 @@ def _parse_segment(string_input, disc):
         if not try_1:
             try_2 = [s for s in SEGMENT_LIST if s.lower() in string_input]
             if not try_2:
-                sys.exit(f"Could not find segment pattern in {string_input}")
+                raise ValueError(f"Could not find segment pattern in {string_input}")
         raw_seg = try_1 if try_1 else try_2
         if len(raw_seg) > 1:
             if "Prelim" in raw_seg:
                 raw_seg = ["Prelim"]
             else:
-                logger.warning(f"Unexpectedly found multiple segment patterns in string input {string_input}. "
-                               f"Will use the first ({raw_seg[0]}).")
+                prefixed = ["_" + s for s in SEGMENT_LIST]
+                prefixed_sub = [s.replace("_", "") for s in prefixed if s in string_input]
+                if len(prefixed_sub) == 1:
+                    raw_seg = prefixed_sub
+                else:
+                    raise ValueError(f"Could not find clear segment name in filename {string_input}")
         if raw_seg[0] in SEGMENT_CORRECTIONS:
             raw_seg = [SEGMENT_CORRECTIONS[raw_seg[0]]]
         return raw_seg[0]
@@ -110,13 +114,18 @@ class ScoredSegment(Segment):
         y = sd.year
         self.protocol_list = []
 
+        try:
+            seg = _parse_segment(name_to_parse, discipline)
+        except ValueError:
+            raise
+
         super().__init__(id=id_dic["segments"],
                          name=name_to_parse.partition("_")[2].partition("_")[0], year=y,
                          start_date=sd,
                          sub_event=_parse_sub_event(name_to_parse),
                          category=_parse_category(name_to_parse),
                          discipline=discipline,
-                         segment=_parse_segment(name_to_parse, discipline))
+                         segment=seg)
         id_dic["segments"] += 1
         logger.debug(f"Instantiated ScoredSegment object with the following attributes {self.get_segment_dic()}")
 

@@ -19,17 +19,25 @@ except ImportError as exc:
 NUMBER_AND_NAME_PATTERN = re.compile(r"^\d+\s+\D+")
 DED_TYPE_PATTERN = re.compile(r"[A-Z][^:\-0-9.]*")
 DED_POINT_PATTERN = re.compile(r"(?<!\d)-*\d(?:\.00|\.0)*")
-DED_TOTAL_PATTERN = re.compile(r"(\d(?:\.0|\.00)*) -*\d+(?:\.0)*0*")
+DED_TOTAL_PATTERN = re.compile(r"(\d(?:\.0|\.00)*) {1,2}-*\d+(?:\.0)*0*")
+DED_NOT_SPLIT_PATTERN = re.compile(r"^Deductions [A-Z]")
 
-# TO DO - more efficient approach here
-DED_ALIGNMENT_DIC = {"fall": "falls", "late start": "time violation", "illegal element": "illegal element/movement",
-                     "costume violation": "costume & prop violation", "extra element by verif": "extra element",
-                     "illegal element / movement": "illegal element/movement"}
+DED_ALIGNMENT_DIC = {"fall": "falls", "late start": "time violation",
+                     "illegal element": "illegal element/movement",
+                     "costume violation": "costume/prop violation",
+                     "costume & prop violation": "costume/prop violation",
+                     "extra element by verif": "extra element",
+                     "illegal element / movement": "illegal element/movement",
+                     "music restriction violation": "music violation",
+                     "music requirements violation": "music violation"}
 
 EXPECTED_DED_TYPES = ["total", "falls", "time violation", "costume failure", "late start", "music violation",
                       "interruption in excess", "costume & prop violation", "illegal element/movement",
                       "extended lifts", "extra element", "illegal element", "costume violation",
-                      "extra element by verif", "illegal element / movement", "music restriction violation"]
+                      "extra element by verif", "illegal element / movement", "music restriction violation",
+                      "music tempo", "violation of choreography restrictions", "music requirements violation",
+                      "costume/prop violation"]
+
 
 
 class DataRow:
@@ -52,7 +60,10 @@ class ScoreRow(DataRow):
         logger.debug(f"Raw score list is {self.raw}")
 
         self.split_list = self._split_and_trim()
-        self.split_index = self._get_data_start_index(mode)
+        try:
+            self.split_index = self._get_data_start_index(mode)
+        except ValueError:
+            raise
 
     def _split_and_trim(self):
         split = []
@@ -65,17 +76,18 @@ class ScoreRow(DataRow):
         check_cell = 0 if mode == "pcs" else 1
         try:
             assert not is_digit_cell(self.split_list[check_cell])
-        except AssertionError:
-            sys.exit(f"{mode} row is fucked, content not as expected: {self.raw}")
+        except AssertionError as ae:
+            raise ValueError(f"{mode} row is fucked, content not as expected: {self.raw}, {ae}")
 
         for i in range(check_cell, len(self.split_list)):
             if is_digit_cell(self.split_list[i]):
                 return i
-        sys.exit(f"Row is fucked, couldn't find any numbers in it: {self.raw}")
+        raise ValueError(f"Row is fucked, couldn't find any numbers in it: {self.raw}")
 
     def _remove_dash_columns(self, mode, row_list, judges=None, case=0, elt_list=None):
         # Context: sometimes protocols include 1-2 random columns of dashes between the end of the goe scores and the
         # total scores. But sometimes unmarked elements are also denoted by a dash. Also I hate this.
+        logger.debug(f"Fed into dash remover: {mode}, {row_list}, {judges}, {case}, {elt_list}")
         if not judges:
             dashless = [x for x in row_list if x != "-"]
             return case, dashless[1:-1]
@@ -110,13 +122,17 @@ class ScoreRow(DataRow):
             sys.exit(f"Elt row does not have expected length: {self.raw}, {row_list}")
 
     def _infer_from_previous_element(self, mode, row_list, judges, elt_list):
+        logger.debug(f"Inferring from previous element")
         case, dashless = self._remove_dash_columns(mode=mode, row_list=row_list, judges=judges, case=elt_list[-1].case)
         return case, dashless
 
 
 class PCSRow(ScoreRow):
     def __init__(self, elt_list=None, judges=None, raw_list=None, df=None, row=None, col_min=None):
-        super().__init__(mode="pcs", raw_list=raw_list, df=df, row=row, col_min=col_min)
+        try:
+            super().__init__(mode="pcs", raw_list=raw_list, df=df, row=row, col_min=col_min)
+        except ValueError:
+            raise
         self.id = None
         self.row_label = " ".join(self.split_list[0:self.split_index])
         self.case, self.data = self._clean_pcs_row(judges, elt_list)
@@ -130,8 +146,10 @@ class PCSRow(ScoreRow):
 
 class GOERow(ScoreRow):
     def __init__(self, elt_list, judges, raw_list=None, df=None, row=None, col_min=None):
-        super().__init__(mode="goe", raw_list=raw_list, df=df, row=row, col_min=col_min)
-
+        try:
+            super().__init__(mode="goe", raw_list=raw_list, df=df, row=row, col_min=col_min)
+        except ValueError:
+            raise
         self.row_no = int(self.split_list[0])
         self.row_label = " ".join(self.split_list[1:self.split_index])
         self.case, self.data = self._clean_goe_row(judges, elt_list)
@@ -237,6 +255,11 @@ class DeductionRow(DataRow):
     def parse_deduction_dictionary(self):
         logger.info(f"Raw deductions list is {self.raw}")
 
+        deductions_not_split = True if re.search(pattern=DED_NOT_SPLIT_PATTERN, string=self.raw[0]) else False
+        if deductions_not_split:
+            self.raw[0] = self.raw[0].replace("Deductions ", "Deductions: ")
+        logger.debug(f"Row after colon insertion is {self.raw}")
+
         split_row_1 = self._split_on_colon()
         logger.debug(f"Row after first split is {split_row_1}")
 
@@ -244,7 +267,7 @@ class DeductionRow(DataRow):
         logger.debug(f"Row text after second split is {split_row_2}")
 
         row_less_falls = [re.sub(r"\(\d+\)", "", str(r)) for r in split_row_2]
-        logger.debug(f"Row text after score removal is  is {row_less_falls}")
+        logger.debug(f"Row text after parenthesis removal is {row_less_falls}")
         row_text = " ".join(row_less_falls)
         logger.debug(f"Row text after join is {row_text}")
 

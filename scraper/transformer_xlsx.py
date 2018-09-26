@@ -35,7 +35,7 @@ except ImportError as exc:
 
 
 # ------------------------------------------ CHANGE RUN PARAMETERS HERE ---------------------------------------------
-ENABLE_PAUSE = True
+ENABLE_PAUSE = False
 # ----------------------------------------------------------------------------------------------------------------------
 
 ABBREV_DIC = {'gpjpn': 'NHK', 'gpfra': 'TDF', 'gpcan': 'SC', 'gprus': 'COR', 'gpusa': 'SA', 'gpchn': 'COC',
@@ -74,9 +74,17 @@ def scrape_sheet(df, segment, last_row_dic, skater_list, conn_dic):
         for i in prot.row_range:
             for j in prot.col_range:
                 if "Skating Skills" in str(df.iloc[i, j]):
-                    prot.parse_pcs_table(df, i, j, last_row_dic)
+                    try:
+                        prot.parse_pcs_table(df, i, j, last_row_dic)
+                    except ValueError as ve:
+                        logger.error(f"Encountered error reading PCS row in {segment.name} {segment.year} "
+                                     f"{segment.discipline} {segment.segment}, {dict(vars(prot.skater))}: {ve}")
                 elif "Elements" in str(df.iloc[i, j]):
-                    prot.parse_tes_table(df, i, j, last_row_dic)
+                    try:
+                        prot.parse_tes_table(df, i, j, last_row_dic)
+                    except ValueError as ve:
+                        logger.error(f"Encountered error reading TES row in {segment.name} {segment.year} "
+                                     f"{segment.discipline} {segment.segment}, {dict(vars(prot.skater))}: {ve}")
                 elif "Deductions" in str(df.iloc[i, j]) and j < 4:
                     prot.parse_deductions(df, i, j, segment)
         segment.protocol_list.append(prot)
@@ -122,9 +130,9 @@ def convert_to_dfs(segment_list, conn_dic, competitor_list, id_dic):
         key = s + "_detail"
         crossref_id = dic[s][0] + "_id"
         all_dfs[key] = all_dfs[key].melt(id_vars=[crossref_id], var_name=dic[s][1], value_name=s + "_score")
+        all_dfs[key] = all_dfs[key][all_dfs[key][s + "_score"].notnull()]
         all_dfs[key].insert(0, "id", range(id_dic[key], id_dic[key] + len(all_dfs[key])))
         id_dic[key] += (len(all_dfs[key]) + 1)
-        all_dfs[key] = all_dfs[key][all_dfs[key][s + "_score"].notnull()]
     #     all_dfs[key] = pd.merge(all_dfs[key], panels_df, how='left', left_on="judge_no", right_on=["official_role"])
 
     return all_dfs
@@ -163,7 +171,11 @@ def transform_and_load(read_path, write_path, naming_schema, counter, db_credent
             logger.error(f"Passing on file {filename}")
             continue
 
-        seg = event.ScoredSegment(name_to_parse=basename, discipline=disc, id_dic=rows)
+        try:
+            seg = event.ScoredSegment(name_to_parse=basename, discipline=disc, id_dic=rows)
+        except ValueError as ve:
+            logger.error(f"Failed to instantiate ScoredSegment object: {ve}")
+
         segment_list.append(seg)
 
         wb = load_workbook(f)
@@ -220,7 +232,7 @@ def main():
     db_credentials = settings.DB_CREDENTIALS
     read_path = settings.READ_PATH
     write_path = settings.WRITE_PATH
-    counter = 20
+    counter = 1
     naming_schema = "_new"
 
     transform_and_load(read_path, write_path, naming_schema, counter, db_credentials)

@@ -113,7 +113,10 @@ class Protocol:
             for i in self.row_range:
                 if "Skating Skills" in str(df.iloc[i, j]):
                     self.pcs_start_row = i
-                    counter = datarow.PCSRow(df=df, row=i, col_min=j).data
+                    try:
+                        counter = datarow.PCSRow(df=df, row=i, col_min=j).data
+                    except ValueError:
+                        raise
                     break
             if counter:
                 break
@@ -145,7 +148,10 @@ class Protocol:
     def parse_tes_table(self, df, i, j, last_row_dic):
         self._get_elt_list_location(df, i, j)
         for k in range(self.elt_list_starts, self.elt_list_ends):
-            elt_row = datarow.GOERow(elt_list=self.elts, judges=self.number_of_judges, df=df, row=k, col_min=0)
+            try:
+                elt_row = datarow.GOERow(elt_list=self.elts, judges=self.number_of_judges, df=df, row=k, col_min=0)
+            except ValueError:
+                raise
             logger.debug(f"Elt row is {elt_row.row_label}, {elt_row.data}")
 
             self.elts.append(CONSTRUCTOR_DIC[self.discipline]["elt"](elt_row, self.season, last_row_dic))

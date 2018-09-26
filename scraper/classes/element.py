@@ -16,26 +16,42 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)-5s - %(message
 logger = logging.getLogger(__name__)
 
 
-old_pattern_dance_notation = re.compile(r"^(?i)([1-4]S[1-4])([B1-4])*(\**)$")
-another_old_pattern_dance_notation = re.compile(r"^(?i)((?:GW|VW|R|CC)[1-2]S(?:e|q))([B1-4])*(?:\+kp([YTN]{3,4}))*(\**)$")
+old_pattern_dance_notation = re.compile(r"^(?i)([1-4]S[1-4])([B1-4])?(\*?)$")
+another_old_pattern_dance_notation = re.compile(r"^(?i)((?:GW|VW|R|CC)[1-2]S(?:e|q))([B1-4])?(?:\+kp([YTN]{3,4}))?(\*?)$")
 indiv_scored_elts = re.compile(r"^(?i)([A-Z]{2,})L([B1-4])\+[A-Z]{2,}M([B1-4])$")
-combo_nonjump_elts = re.compile(r"^(?i)([A-Z]{2,})([B1-4])*(\**)\+([A-Z]{2,})([B1-4])*(\**)$")
-pattern_dance = re.compile(r"^(1[A-Z]{2}|2[A-Z]{2})([B1-4])\+kp([YTN]{3,4})(\**)$")
-other_leveled_elts = re.compile(r"^(?i)([a-z]{2,}(?<!Sp|Th|Eu|Lz|LZ|LO|Lo))([B1-4]?)(\**)$")
-throw_jumps = re.compile(r"^([1-4]*(Eu|T|S|Lo|F|Lz|A|LZ|LO)Th)([!e<*]{0,3})$")
-old_lifts = re.compile(r"^([1-5]*(?:Eu|T|S|Lo|F|Lz|A|LZ|LO)Li)([B1-4])([!e<*]{0,3})$")
-old_twists = re.compile(r"^([1-4]*(Eu|T|S|Lo|F|Lz|A|LZ|LO)Tw)([B1-4])*([!e<*]{0,3})$")
-jumps = re.compile(r"\b([1-4]*(Eu|T(?!w)|S|Lo|F|Lz|A|LZ|LO)(?![A-Za-z]))([<*]{0,3})\+*(COMBO|SEQ|REP)*")
-spins = re.compile(r"^([A-Za-z]*Sp)(([B1-4])p)*([1-4])*(V([1-5])|V)*(\**)$")
-pairs_elts = re.compile(r"^([1-5][A-Za-z]{2,3}(?<!Th|Eu|Lz|LZ|LO|Lo)(?<![TSFA])(?<!TTw|STw|FTw|ATw|ALi|TLi|FLi|SLi))"
-                        r"([B1-4])*(\**)$")
+combo_nonjump_elts = re.compile(r"^(?i)([A-Z]{2,})([B1-4])?(\*)?\+([A-Z]{2,})([B1-4])?(\*)?$")
+pattern_dance = re.compile(r"^(1[A-Z]{2}|2[A-Z]{2})([B1-4])?\+kp([YTN]{1,4})(\*?)$")
+other_leveled_elts = re.compile(r"^(?i)([a-z]{2,}(?<!Sp|Th|Eu|Lz|LZ|LO|Lo)(?<!SpB|SpV)(?<!SpBV))([B1-4]?)(\*?)$")
+throw_jumps = re.compile(r"^([1-4]?(Eu|T|S|Lo|F|Lz|A|LZ|LO)Th)([!e<*]{0,3})$")
+old_lifts = re.compile(r"^([1-5]?(?:Eu|T|S|Lo|F|Lz|A|LZ|LO)Li)([B1-4])?([!e<*]{0,3})$")
+old_twists = re.compile(r"^([1-4]?(Eu|T|S|Lo|F|Lz|A|LZ|LO)Tw)([B1-4])?([!e<*]{0,3})$")
+jumps = re.compile(r"\b([1-4]?(Eu|T(?!w)|S|Lo|F|Lz|A|LZ|LO)(?![A-Za-df-z]))([e<*]{0,3})\+?(COMBO|SEQ|REP)?")
+spins = re.compile(r"^([A-Za-z]*Sp)(([1-4])p)?([B1-4])?(V([1-5])|V)?(\*?)$")
+pairs_elts = re.compile(r"^([1-5][A-Za-z]{2,3}(?<!Th|Eu|Lz|LZ|LO|Lo|Fe)(?<![TSFA])"
+                        r"(?<!TTw|STw|FTw|ATw|ALi|TLi|FLi|SLi|Lze|LZe|LOe|Loe))([B1-4])?(\*?)$")
+old_single_jump = re.compile(r"\b(Eu|T(?!w)|S|Lo|F|Lz|A|LZ|LO)$")
 
-
-ELT_TYPES = {"IceDance": {"Tw": "twizzles", "St": "steps", "Li": "lift", "Sp": "spin", "RH": "pattern dance",
-                          "FS": "pattern dance", "ChSl": "slide", "1S": "pattern_dance", "2S": "pattern dance",
-                          "PiF": "pivot", "GW": "pattern dance", "CC": "pattern dance"},
+ELT_TYPES = {"IceDance": {"Tw": "twizzles",
+                          "St": "steps",
+                          "Li": "lift",
+                          "Sp": "spin",
+                          "PiF": "pivot",
+                          "ChSl": "slide",
+                          "RH": "pattern dance",
+                          "FS": "pattern dance",
+                          "1S": "pattern dance",
+                          "2S": "pattern dance",
+                          "GW": "pattern dance",
+                          "PD": "pattern dance",
+                          "CC": "pattern dance",
+                          "YP": "pattern dance",
+                          "BL": "pattern dance",
+                          "QS": "pattern dance",
+                          "RW": "pattern dance",
+                          "MB": "pattern dance"
+                          },
              "Pairs": {"Tw": "throw twist", "Th": "throw jump", "Li": "lift", "Sp": "spin", "Ds": "death spiral",
-                       "St": "steps"},
+                       "St": "steps", "ChSq": "choreo"},
              "Singles": {"St": "steps", "SpSq": "spiral", "ChSq": "choreo", "ChSp": "spiral", r"Sp": "spin"}
              }
 
@@ -87,11 +103,13 @@ def _parse_old_lifts(match_list, dic):
     dic["invalid_flag"] = 1 if match_list[0][2] == "*" else 0
     return dic
 
+
 def _parse_pattern_dance(match_list, dic):
     dic["elt_name"] = match_list[0][0]
     dic["elt_level"] = match_list[0][1]
     dic["elt_kps"] = match_list[0][2].split()
     dic["invalid_flag"] = 1 if match_list[0][3] == "*" else 0
+    return dic
 
 
 def _parse_spins(match_list, dic):
@@ -283,6 +301,9 @@ class Element:
         self.element_type = self._classify_elt()
         self.bv = dec.Decimal(bv)
 
+        if self.element_type == "jump" and re.search(old_single_jump, self.element_name):
+            self.element_name = "1" + self.element_name
+
         judge_keys = ["J" + str(j).zfill(2) for j in range(1, len(goe) + 1)] if goe else None
         self.goe_dic = dict(zip(["element_id"] + judge_keys, [self.id] + goe)) if goe else None
 
@@ -320,6 +341,8 @@ class IceDanceElement(Element):
 
         parsed_dic, calls_to_impute = parse_elt_name(text=elt_row.row_label, meta_disc="IceDance", parsed_dic=parsed_dic)
         bv, goe, sov_goe, total = _parse_elt_scores(elt_row.data)
+
+        logger.debug(f"parsed dic is {parsed_dic}")
 
         super().__init__(meta_disc="IceDance",
                          id=last_row_dic["elements"],
