@@ -33,19 +33,28 @@ range_separator = re.compile(r"(?i)(^\D*)(?:\d|[a-z])")
 
 delimiter_pattern = re.compile(r"(?i)[\da-z] *([/\-.]) *[\da-z]")
 
+
 class EventDate:
     def __init__(self, year, h2_event_flag, text_to_parse=None, date=None):
         self.expected_year = year
         self.match_string_start = None
         self.match_string_end = None
-        self.start_date = self._set_start_date(date, text_to_parse, h2_event_flag)
+        try:
+            self.start_date = self._set_start_date(date, text_to_parse, h2_event_flag)
+        except ValueError as ve:
+            logger.error(f"Couldn't find date on page {ve}")
+            manual_string = input("Please enter the start date as dd/mm/yyyy:")
+            self.start_date = self._set_start_date(text_to_parse=manual_string)
         logger.info(f"Constructed EventDate object with start date {self.start_date}")
 
-    def _set_start_date(self, date, text_to_parse, h2_event_flag):
+    def _set_start_date(self, date=None, text_to_parse=None, h2_event_flag=None):
         if date:
             return date
         elif text_to_parse:
-            return self.parse_start_date(text_to_parse, h2_event_flag)
+            try:
+                return self.parse_start_date(text_to_parse, h2_event_flag)
+            except ValueError:
+                raise
         else:
             raise ValueError("Please instantiate StartDate with either a date or a string for me to parse a date from")
 
@@ -86,8 +95,7 @@ class EventDate:
                 return date
             except ValueError:
                 pass
-        logger.error(f"Could not find date pattern to parse start date for {date_range}")
-        sys.exit(1)
+        raise ValueError(f"Could not find date pattern to parse start date for {date_range}")
 
     def _handle_unclear_format(self, date_range, h2_event_flag):
         start, end = date_range[0], date_range[1]

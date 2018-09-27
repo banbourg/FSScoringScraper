@@ -5,6 +5,8 @@ import pandas as pd
 import decimal as dec
 import unicodedata
 
+import iso3166
+
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
                     level=logging.DEBUG,
                     datefmt='%Y-%m-%d %H:%M:%S')
@@ -42,7 +44,12 @@ class Protocol:
         self.pcs_detail_list = []
 
         self.number_of_judges = self.count_judges(df)
-        
+
+        if (schema == "new" and len(name_row.data) == 7) or (schema != "new" and len(name_row.data) == 6) \
+                and name_row.data[1][-3:] in iso3166.countries_by_alpha3:
+            name_row.data = [name_row.data[0]] + name_row.data[1].rsplit(" ", 1) + name_row.data[2:]
+            logger.debug(f"After fix, name_row is {name_row.data}")
+
         self.skater = CONSTRUCTOR_DIC[segment.discipline]["competitor"](name_row, skater_list, last_row_dic,
                                                                         self.season, conn_dic)
 
@@ -50,15 +57,15 @@ class Protocol:
         self.tss_total = dec.Decimal(str(name_row.data[4])) if schema == "new" else dec.Decimal(str(name_row.data[3]))
         self.tes_total = dec.Decimal(str(name_row.data[5])) if schema == "new" else dec.Decimal(str(name_row.data[4]))
         self.pcs_total = dec.Decimal(str(name_row.data[6])) if schema == "new" else dec.Decimal(str(name_row.data[5]))
-        logger.debug(f"Scores are tss {self.tss_total}, tes {self.tes_total}, pcs {self.pcs_total}")
+        logger.log(15, f"Scores are tss {self.tss_total}, tes {self.tes_total}, pcs {self.pcs_total}")
         self.deductions = dec.Decimal(self.tss_total - self.tes_total - self.pcs_total)
 
         self.elts = []
 
         self.ded_detail = {}
         name = self.skater.team_name if isinstance(self.skater, person.Team) else self.skater.full_name
-        logger.debug(f"Instantiated Skate object for {unicodedata.normalize('NFKD', name).encode('ascii','ignore')}"
-                     f" with total score {self.tss_total} and starting no. {self.starting_number}")
+        logger.log(15, f"Instantiated Skate object for {unicodedata.normalize('NFKD', name).encode('ascii','ignore')}"
+                       f" with total score {self.tss_total} and starting no. {self.starting_number}")
 
     def _find_name_row(self, df, anchor_coords, size_of_sweep):
         (row, col) = anchor_coords
@@ -133,11 +140,10 @@ class Protocol:
             component.id = last_row_dic["pcs_averages"]
             last_row_dic["pcs_averages"] += 1
 
-            self.pcs_av_list.append({"id": component.id,
-                                     "component": component.row_label,
-                                     "component_factor": component.data[0],
-                                     "trimmed_av_cs":component.data[-1],
-                                     "protocol_id": self.id})
+            comp_dic = {"id": component.id, "component": component.row_label, "component_factor": component.data[0],
+                        "trimmed_av_cs":component.data[-1], "protocol_id": self.id}
+            logger.log(15, f"Logging component row as {comp_dic}")
+            self.pcs_av_list.append(comp_dic)
 
             judge_keys = ["J" + str(j).zfill(2) for j in range(1, self.number_of_judges + 1)]
             self.pcs_detail_list.append(dict(zip(["pcs_avg_id"] + judge_keys, [component.id] + component.data[1:-1])))
@@ -170,8 +176,8 @@ class Protocol:
         :param segment:
         :return:
         """
-        logger.debug(f"Total deductions for this skate known to be {self.deductions.quantize(dec.Decimal('0'))}. "
-                     f"Attempting to match...")
+        logger.log(15, f"Total deductions for this skate known to be {self.deductions.quantize(dec.Decimal('0'))}. "
+                       f"Attempting to match...")
 
         if self.deductions.compare(dec.Decimal('0')) == dec.Decimal('0'):
             logger.debug(f"No deductions here, move along")
@@ -197,7 +203,8 @@ class Protocol:
             try:
                 ded_dic_2 = datarow.DeductionRow(raw=row_1 + row_2).ded_detail
             except ValueError as ve:
-                sys.exit(f"Encountered unknown deduction in protocol for {dict(vars(self.skater))}: {ve} (on case 2, prev tried {ded_dic})")
+                sys.exit(f"Encountered unknown deduction in protocol for {dict(vars(self.skater))}: {ve} "
+                         f"(on case 2, prev tried {ded_dic})")
             if is_old_ded_format and sum(ded_dic_2.values()) == int(self.deductions):
                 self.ded_detail = ded_dic_2
                 return
@@ -206,7 +213,8 @@ class Protocol:
             try:
                 ded_dic_3 = datarow.DeductionRow(raw=row_1 + row_2 + row_3).ded_detail
             except ValueError as ve:
-                sys.exit(f"Encountered unknown deduction in protocol for {dict(vars(self.skater))}: {ve} (on case 3, prev tried {ded_dic_2})")
+                sys.exit(f"Encountered unknown deduction in protocol for {dict(vars(self.skater))}: {ve} "
+                         f"(on case 3, prev tried {ded_dic_2})")
             if is_old_ded_format and sum(ded_dic_3.values()) == int(self.deductions):
                 self.ded_detail = ded_dic_3
                 return

@@ -14,8 +14,10 @@ import logging
 
 logging.basicConfig(#filename="transformer" + datetime.today().strftime("%Y-%m-%d_%H-%M-%S") + ".log",
                     format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
-                    level=logging.INFO,
+                    level=15, # logging.DEBUG,
                     datefmt="%Y-%m-%d %H:%M:%S")
+
+logging.addLevelName(15, "MORE_INFO")
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,8 @@ except ImportError as exc:
 
 
 # ------------------------------------------ CHANGE RUN PARAMETERS HERE ---------------------------------------------
-ENABLE_PAUSE = False
+ENABLE_WRITE_PAUSE = False
+ENABLE_DEBUGGING_PAUSE = False
 # ----------------------------------------------------------------------------------------------------------------------
 
 ABBREV_DIC = {'gpjpn': 'NHK', 'gpfra': 'TDF', 'gpcan': 'SC', 'gprus': 'COR', 'gpusa': 'SA', 'gpchn': 'COC',
@@ -74,18 +77,24 @@ def scrape_sheet(df, segment, last_row_dic, skater_list, conn_dic):
         for i in prot.row_range:
             for j in prot.col_range:
                 if "Skating Skills" in str(df.iloc[i, j]):
+                    if ENABLE_DEBUGGING_PAUSE:
+                        input("Found pcs hit Enter to continue")
                     try:
                         prot.parse_pcs_table(df, i, j, last_row_dic)
                     except ValueError as ve:
-                        logger.error(f"Encountered error reading PCS row in {segment.name} {segment.year} "
-                                     f"{segment.discipline} {segment.segment}, {dict(vars(prot.skater))}: {ve}")
+                        sys.exit(f"Encountered error reading PCS row in {segment.name} {segment.year} "
+                                 f"{segment.discipline} {segment.segment}, {dict(vars(prot.skater))}: {ve}")
                 elif "Elements" in str(df.iloc[i, j]):
                     try:
+                        if ENABLE_DEBUGGING_PAUSE:
+                            input("Found elements hit Enter to continue")
                         prot.parse_tes_table(df, i, j, last_row_dic)
                     except ValueError as ve:
-                        logger.error(f"Encountered error reading TES row in {segment.name} {segment.year} "
-                                     f"{segment.discipline} {segment.segment}, {dict(vars(prot.skater))}: {ve}")
+                        sys.exit(f"Encountered error reading TES row in {segment.name} {segment.year} "
+                                 f"{segment.discipline} {segment.segment}, {dict(vars(prot.skater))}: {ve}")
                 elif "Deductions" in str(df.iloc[i, j]) and j < 4:
+                    if ENABLE_DEBUGGING_PAUSE:
+                        input("Found deductions hit Enter to continue")
                     prot.parse_deductions(df, i, j, segment)
         segment.protocol_list.append(prot)
 
@@ -189,7 +198,7 @@ def transform_and_load(read_path, write_path, naming_schema, counter, db_credent
             for k in dfs:
                 db_builder.create_staging_table(df=dfs[k], conn_dic=conn_dic, table_name=k, fetch_last_row=False)
 
-            if ENABLE_PAUSE:
+            if ENABLE_WRITE_PAUSE:
                 input("Hit Enter to write to main tables")
 
             for k in dfs:

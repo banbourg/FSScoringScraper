@@ -34,14 +34,14 @@ except ImportError as exc:
 
 # ------------------------------------------ CHANGE SEARCH PARAMETERS HERE ---------------------------------------------
 # POPULATE THESE WHATEVER YOU DO
-MODE = "B"  # Always try A first, then B (to insert homepage manually) or C (to enter list of links to officials tables)
+MODE = "A"  # Always try A first, then B (to insert homepage manually) or C (to enter list of links to officials tables)
 ENABLE_PAUSE = True  # If True script will pause for confirmation before writing from staging to final
 PER_DISCIPLINE_SETTINGS = {"men": True, "ladies": True, "pairs": True, "dance": True}
 SEARCH_CAT = "senior"  # Set to "junior" to search for juniors
 
 # IF MODE A ALSO POPULATE
-GOOGLE_SEARCH_TERMS = ["golden+spin+zagreb"]  # use one of the searches in SEARCHNAME_TO_DBNAME (in search.py)
-START_YEAR, END_YEAR = 2017, 2017
+GOOGLE_SEARCH_TERMS = ["nhk+trophy"]  # use one of the searches in SEARCHNAME_TO_DBNAME (in search.py)
+START_YEAR, END_YEAR = 2005, 2016
 
 # IF MODE IS EITHER B OR C ALSO POPULATE
 MANUAL_SEARCH_PHR = "golden+spin+zagreb"  # e.g. "tallinn+trophy", use one of the searches in SEARCHNAME_TO_DBNAME (in search.py)

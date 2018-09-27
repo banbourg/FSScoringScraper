@@ -21,6 +21,10 @@ DED_TYPE_PATTERN = re.compile(r"[A-Z][^:\-0-9.]*")
 DED_POINT_PATTERN = re.compile(r"(?<!\d)-*\d(?:\.00|\.0)*")
 DED_TOTAL_PATTERN = re.compile(r"(\d(?:\.0|\.00)*) {1,2}-*\d+(?:\.0)*0*")
 DED_NOT_SPLIT_PATTERN = re.compile(r"^Deductions [A-Z]")
+UNDEDUCTED_VIOLATION = re.compile(r"(?:\b|\n)[A-Z][a-z ]+: \(([1-3] of 7|[1-4] of 8|[1-4] of 9|[1-5] of 10)\)")
+MAJORITY_VIOLATION = re.compile(r"(?:\b|\n)([A-Z][a-z ]+): \(([4-7] of 7|[5-8] of 8|[5-9] of 9|[6-9] of 10)\)")
+DEDUCTION_VOTE = re.compile(r" -?[1-3][.,]0(?:0)?")
+SPLITTER = re.compile(r"(?i) (?![a-z])")
 
 DED_ALIGNMENT_DIC = {"fall": "falls", "late start": "time violation",
                      "illegal element": "illegal element/movement",
@@ -29,14 +33,16 @@ DED_ALIGNMENT_DIC = {"fall": "falls", "late start": "time violation",
                      "extra element by verif": "extra element",
                      "illegal element / movement": "illegal element/movement",
                      "music restriction violation": "music violation",
-                     "music requirements violation": "music violation"}
+                     "music requirements violation": "music violation",
+                     "music requirements": "music violation",
+                     "extended lift": "extended lifts"}
 
 EXPECTED_DED_TYPES = ["total", "falls", "time violation", "costume failure", "late start", "music violation",
                       "interruption in excess", "costume & prop violation", "illegal element/movement",
                       "extended lifts", "extra element", "illegal element", "costume violation",
                       "extra element by verif", "illegal element / movement", "music restriction violation",
                       "music tempo", "violation of choreography restrictions", "music requirements violation",
-                      "costume/prop violation"]
+                      "costume/prop violation", "music requirements", "extended lift"]
 
 
 
@@ -210,6 +216,7 @@ class DeductionRow(DataRow):
 
     def _split_on_newline(self, input_row):
         output_row, i = [], 0
+
         while i < len(input_row):
             if "\n" in str(input_row[i]):
                 # If find newline in text cell: is neighbouring cell a digit cell? if so, handle both, zip and increment
@@ -217,27 +224,30 @@ class DeductionRow(DataRow):
                 this_cell = str(input_row[i]).split("\n")
 
                 if is_text_cell(input_row[i]) and i + 1 < len(input_row) and is_digit_cell(input_row[i + 1]):
-                    logger.debug(f"For cell {input_row[i]} we are in case 1: newline")
-                    next_cell = str(input_row[i + 1]).split("\n")
-                    if len(this_cell) != len(next_cell):
-                        for i in range(0, max(len(this_cell), len(next_cell))):
-                            try:
-                                if not is_ded_type_string(this_cell[i]):
-                                    del this_cell[i]
-                            except IndexError:
-                                pass
-                            try:
-                                if not is_int(next_cell[i]):
-                                    del next_cell[i]
-                            except IndexError:
-                                pass
-                    try:
-                        assert len(this_cell) == len(next_cell)
-                    except AssertionError:
-                        sys.exit(f"Ya deductions cells still don't match girl, {this_cell} vs. {next_cell}")
-
-                    output_row.extend([item for pair in zip(this_cell, next_cell) for item in pair])
-                    i += 2
+                    if "\n" in str(input_row[i + 1]):
+                        logger.debug(f"Ded cell {input_row[i]} is case 1: newline with requirement to de-interleave")
+                        next_cell = str(input_row[i + 1]).split("\n")
+                        if len(this_cell) != len(next_cell):
+                            for i in range(0, max(len(this_cell), len(next_cell))):
+                                try:
+                                    if not is_ded_type_string(this_cell[i]):
+                                        del this_cell[i]
+                                except IndexError:
+                                    pass
+                                try:
+                                    if not is_int(next_cell[i]):
+                                        del next_cell[i]
+                                except IndexError:
+                                    pass
+                        try:
+                            assert len(this_cell) == len(next_cell)
+                        except AssertionError:
+                            sys.exit(f"Ya deductions cells still don't match girl, {this_cell} vs. {next_cell}")
+                        output_row.extend([item for pair in zip(this_cell, next_cell) for item in pair])
+                        i += 2
+                    else:
+                        logger.debug(f"Ded cell {input_row[i]} is case 2: newline without requirement to de-interleave")
+                        sys.exit(1)
                 else:
                     logger.debug(f"this cell is {this_cell}")
                     filtered_list = [i for i in this_cell if is_digit_cell(i) and is_int(i) or
@@ -260,11 +270,25 @@ class DeductionRow(DataRow):
             self.raw[0] = self.raw[0].replace("Deductions ", "Deductions: ")
         logger.debug(f"Row after colon insertion is {self.raw}")
 
+        self.raw = [re.sub(UNDEDUCTED_VIOLATION, "", str(c)) for c in self.raw]
+        logger.debug(f"Row after removing undeducted violations is {self.raw}")
+
+        str_raw = " ".join([str(x) for x in self.raw])
+        res = re.findall(MAJORITY_VIOLATION, str_raw)
+        if len(res) > 0:
+            for r in res:
+                assert str_raw.count(r[0]) == 2
+                str_raw = re.sub(MAJORITY_VIOLATION, "", str_raw)
+                votes_to_remove = int(r[1][0])
+                str_raw=re.sub(pattern=DEDUCTION_VOTE, repl="", string=str_raw, count=votes_to_remove)
+            self.raw = re.split(SPLITTER, str_raw)
+        logger.debug(f"Row after removing violation votes is {self.raw}")
+
         split_row_1 = self._split_on_colon()
-        logger.debug(f"Row after first split is {split_row_1}")
+        logger.debug(f"Row after split on colon {split_row_1}")
 
         split_row_2 = self._split_on_newline(split_row_1)
-        logger.debug(f"Row text after second split is {split_row_2}")
+        logger.debug(f"Row text split on newline is {split_row_2}")
 
         row_less_falls = [re.sub(r"\(\d+\)", "", str(r)) for r in split_row_2]
         logger.debug(f"Row text after parenthesis removal is {row_less_falls}")
@@ -277,7 +301,7 @@ class DeductionRow(DataRow):
         ded_words = re.findall(DED_TYPE_PATTERN, row_text)
         ded_digits = re.findall(DED_POINT_PATTERN, row_text)
 
-        logger.info(f"ded words and digits after regex {ded_words}, {ded_digits}")
+        logger.debug(f"ded words and digits after regex {ded_words}, {ded_digits}")
 
         # Clean up ded types
         ded_words = [DED_ALIGNMENT_DIC[d.lower().strip()] if d.lower().strip() in DED_ALIGNMENT_DIC
@@ -297,7 +321,7 @@ class DeductionRow(DataRow):
 
         ded_dic_raw = dict(zip(ded_words, ded_digits))
         ded_dic = {k: v for k, v in ded_dic_raw.items() if int(v) != 0}
-        logger.debug(f"Returning deductions dic: {ded_dic})")
+        logger.log(15, f"Returning deductions dic: {ded_dic})")
         return ded_dic
 
 
@@ -341,5 +365,5 @@ def coerce_to_num_type(list_, target_type):
                 pass
         else:
             raise ValueError("Please set 'mode' parameter to 'float' or 'int'")
-    logger.debug(f"Coerced list is {coerced_list}")
+    #logger.debug(f"Coerced list is {coerced_list}")
     return coerced_list

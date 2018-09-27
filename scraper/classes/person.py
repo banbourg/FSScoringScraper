@@ -110,9 +110,9 @@ class SinglesSkater(Person):
                          season_observed=season_observed, fed_observed=name_row.data[2], mode="competitors",
                          conn_dic=conn_dic)
 
-        logger.debug(f"Instantiated SinglesSkater with id {self.id}, name "
-                     f"{unicodedata.normalize('NFKD', self.full_name).encode('ascii','ignore')}, fed "
-                     f"{self.fed_dic[season_observed + '_fed']}")
+        logger.log(15,f"Instantiated SinglesSkater with id {self.id}, name "
+                      f"{unicodedata.normalize('NFKD', self.full_name).encode('ascii','ignore')}, fed "
+                      f"{self.fed_dic[season_observed + '_fed']}")
 
 
 class Team:
@@ -137,9 +137,9 @@ class Team:
                                                   season_observed=season_observed,
                                                   conn_dic=conn_dic)
 
-        logger.debug(f"Instantiated Team with with id {self.id}, lady id {self.lady.id}, man id {self.man.id}, name "
-                     f"{unicodedata.normalize('NFKD', self.team_name).encode('ascii','ignore')}, "
-                     f"fed {self.fed_dic[season_observed + '_fed']}")
+        logger.log(15, f"Instantiated Team with with id {self.id}, lady id {self.lady.id}, man id {self.man.id}, name "
+                       f"{unicodedata.normalize('NFKD', self.team_name).encode('ascii','ignore')}, "
+                       f"fed {self.fed_dic[season_observed + '_fed']}")
 
     def _check_and_complete_record(self, competitor_list, last_row_dic, season_observed, conn_dic):
         field = season_observed + "_fed"
@@ -194,8 +194,8 @@ class Official(Person):
         super().__init__(name_string=name, person_list=list_of_officials, last_row_dic=last_row_dic,
                          season_observed=season_observed, fed_observed=fed, mode="officials", conn_dic=conn_dic)
 
-        logger.debug(f"Instantiated official with id {self.id}, name "
-                     f"{unicodedata.normalize('NFKD', self.full_name).encode('ascii','ignore')}, fed "
+        logger.log(15, f"Instantiated official with id {self.id}, name "
+                       f"{unicodedata.normalize('NFKD', self.full_name).encode('ascii','ignore')}, fed "
                      f"{self.fed_dic[season_observed + '_fed']}")
 
 
@@ -217,7 +217,6 @@ class Panel:
             logger.debug(f"Table starts at {first_entry}, incrementing by {increment}, len {len(roles_table)}")
 
             for i in range(first_entry, len(roles_table) - (increment - 1), increment):
-                logger.debug(f"i is {i}")
                 # Align 'judge' notation with the one used in scoring tables
                 if 'Judge' in roles_table[i] or 'No.' in roles_table[i]:
                     role = "J" + str(roles_table[i].partition("No.")[2].strip()).zfill(2)
