@@ -2,38 +2,52 @@ import logging
 import re
 import sys
 import decimal as dec
+import unittest
 
 try:
     import datarow
     import person
 except ImportError as exc:
-    sys.stderr.write("Error: failed to import module ({})".format(exc))
-    sys.exit(1)
+    sys.exit("Error: failed to import module ({})".format(exc))
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
                     level=logging.DEBUG,
                     datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
+# ICE DANCE PATTERNS
+old_choreo_elts = re.compile(r"^((?:Li|Sp)\+TRANS)$")
+pattern_dance = re.compile(r"^(1[A-Z]{2}|2[A-Z]{2})([B1-4])?\+kp([YTN]{1,4})(\*?)$")
 old_pattern_dance_notation = re.compile(r"^(?i)([1-4]S[1-4])([B1-4])?(\*?)$")
 another_old_pattern_dance_notation = re.compile(r"^(?i)((?:GW|VW|R|CC)[1-2]S(?:[eq]))([B1-4])?"
                                                 r"(?:\+kp([YTN]{3,4}))?(\*?)$")
-indiv_scored_elts = re.compile(r"^(?i)([A-Z]{2,})L([B1-4])?\+[A-Z]{2,}M([B1-4])?$")
-combo_nonjump_elts = re.compile(r"^(?i)([A-Z]{2,})(?<!TwL|StL)([B1-4])?(\*)?\+([A-Z]{2,})(?<!TwM|StM)([B1-4])?(\*)?$")
-old_twizzles = re.compile(r"\b((?:Ch|S)?Tw)([B1-4])?(\*)?$")
-pattern_dance = re.compile(r"^(1[A-Z]{2}|2[A-Z]{2})([B1-4])?\+kp([YTN]{1,4})(\*?)$")
-other_leveled_elts = re.compile(r"^(?i)([a-z]{2,}(?<!Tw|Sp|Th|Eu|Lz|LZ|LO|Lo)(?<!SpB|SpV)(?<!SpBV))([B1-4]?)(\*?)$")
+old_twizzles = re.compile(r"^((?:Ch|S|NtMi|FS|BS|Sq)?Tw)([B1-4])?(\*)?$")  # used to be \b
+combo_lifts = re.compile(r"^(?i)([A-Z]{2,}Li)([B1-4])?(\*)?\+([A-Z]{2,}Li)([B1-4])?(\*)?$")
+step_twizzle_combo = re.compile(r"^([A-Za-z]{1,4}St)([B1-4])?(\*)?\+((?:Ch|S|NtMi|FS|BS)?Tw)([B1-4])?(\*)?$")
+
+# PAIRS PATTERNS
+new_twists = re.compile(r"^([1-4]?Tw)([B1-4])?([!e<*]{0,3})$")
+old_twists = re.compile(r"^([1-4]?(Eu|T|S|Lo|F|Lz|A|LZ|LO)Tw)([B1-4])?([!e<*]{0,3})$")
 throw_jumps = re.compile(r"^([1-4]?(Eu|T|S|Lo|F|Lz|A|LZ|LO)Th)([!e<*]{0,3})$")
 old_lifts = re.compile(r"^([1-5]?(?:Eu|T|S|Lo|F|Lz|A|LZ|LO)Li)([B1-4])?([!e<*]{0,3})$")
-new_twists = re.compile(r"([1-4]Tw)([B1-4])([!e<*]{0,3})")
-old_twists = re.compile(r"^([1-4]?(Eu|T|S|Lo|F|Lz|A|LZ|LO)Tw)([B1-4])?([!e<*]{0,3})$")
-jumps = re.compile(r"\b([1-4]?(Eu|T(?!w)|S|Lo|F|Lz|A|LZ|LO)(?![A-Za-df-z]))([e<*]{0,3})\+?(COMBO|SEQ|REP)?(?!eSt)(?!St)")
-spins = re.compile(r"^([A-Za-z]*Sp)(([1-4])p)?([B1-4])?(V([1-5])|V)?(\*?)$")
 other_pairs_elts = re.compile(r"^([1-5][A-Za-z]{2,3}(?<!Tw|Th|Eu|Lz|LZ|LO|Lo|Fe)(?<![TSFA])"
-                        r"(?<!TwB|TTw|STw|FTw|ATw|ALi|TLi|FLi|SLi|Lze|LZe|LOe|Loe))([B1-4])?(\*?)$")
+                              r"(?<!TwB|TTw|STw|FTw|ATw|ALi|TLi|FLi|SLi|Lze|LZe|LOe|Loe))([B1-4])?(\*?)$")
+indiv_scored_elts = re.compile(r"^(?i)([A-Z]{2,})L([B1-4])?\+[A-Z]{2,}M([B1-4])?$")
+
+# PAIRS AND SINGLES PATTERNS
+jumps = re.compile(r"\b([1-4]?(Eu|T(?!w)|S|Lo|F|Lz|A|LZ|LO)(?![A-Za-df-z]))([e<*]{0,3})\+?(COMBO|SEQ|REP)?"
+                   r"(?!eSt)(?!St)")
 old_single_jump = re.compile(r"\b(Eu|T(?!w)|S|Lo|F|Lz|A|LZ|LO)$")
 
-ELT_TYPES = {"IceDance": {"Tw": "twizzles",
+# CROSS-DISCIPLINE PATTERNS
+spins = re.compile(r"^([A-Za-z]*Sp)(([1-4])p)?([B1-4])?(V([1-5])|V)?(\*?)$")
+other_leveled_elts = re.compile(r"^(?i)([a-z]{2,}(?<!Tw|Sp|Th|Eu|Lz|LZ|LO|Lo)(?<!SpB|SpV)(?<!SpBV))([B1-4]?)(\*?)$")
+
+
+# Used this to make sure the programme would break when it encountered something it hadn't seen before - can probs
+# get rid of in refactoring
+ELT_TYPES = {"IceDance": {"NtMiSt+STw": "step twizzle combo",
+                          "Tw": "twizzles",
                           "St": "steps",
                           "Li": "lift",
                           "Sp": "spin",
@@ -43,6 +57,8 @@ ELT_TYPES = {"IceDance": {"Tw": "twizzles",
                           "FS": "pattern dance",
                           "1S": "pattern dance",
                           "2S": "pattern dance",
+                          "3S": "pattern dance",
+                          "4S": "pattern dance",
                           "GW": "pattern dance",
                           "PD": "pattern dance",
                           "CC": "pattern dance",
@@ -62,10 +78,17 @@ ELT_TYPES = {"IceDance": {"Tw": "twizzles",
 def _parse_jumps(match_list, dic):
     logger.debug(f"Match list is {match_list}")
     sorted_tuples = [list(t) for t in zip(*match_list)]
-    dic["elt_name"] = "+".join(sorted_tuples[0])
+
+    namechecked_jumps = []
+    for j in sorted_tuples[0]:
+        if re.search(old_single_jump, j):
+            namechecked_jumps.append(re.sub(old_single_jump, r"1\1", j))
+        else:
+            namechecked_jumps.append(j)
+    dic["elt_name"] = "+".join(namechecked_jumps)
 
     jump_keys = ["jump_" + str(j) for j in range(1, len(sorted_tuples[0]) + 1)]
-    dic["jump_list"] = dict(zip(jump_keys, sorted_tuples[0]))
+    dic["jump_list"] = dict(zip(jump_keys, namechecked_jumps))
 
     dic["call_dic"] = {k + 1: v[2] if v[2] != "" else None for (k, v) in dict(enumerate(match_list)).items()}
     logger.log(15, f"Unconverted call dic is {dic['call_dic']}")
@@ -81,6 +104,11 @@ def _parse_jumps(match_list, dic):
     return dic
 
 
+def _parse_unleveled_elts(match_list, dic):
+    logger.debug(f"Match list is {match_list}")
+    dic["elt_name"] = match_list[0]
+    return dic
+
 def _parse_new_twists(match_list, dic):
     logger.debug(f"Match list is {match_list}")
     dic["elt_name"] = match_list[0][0]
@@ -93,7 +121,7 @@ def _parse_new_twists(match_list, dic):
     return dic
 
 
-def _parse_old_twizzles(match_list, dic):
+def _parse_name_level_elts(match_list, dic):
     logger.debug(f"Match list is {match_list}")
     dic["elt_name"] = match_list[0][0]
     dic["elt_level"] = match_list[0][1]
@@ -101,35 +129,10 @@ def _parse_old_twizzles(match_list, dic):
     return dic
 
 
-def _parse_old_pattern_dances(match_list, dic):
-    logger.debug(f"Match list is {match_list}")
-    dic["elt_name"] = match_list[0][0]
-    dic["elt_level"] = match_list[0][1]
-    dic["invalid_flag"] = 1 if match_list[0][2] == "*" else 0
-    return dic
-
-
-def _parse_other_old_pattern_dances(match_list, dic):
-    logger.debug(f"Match list is {match_list}")
-    dic["elt_name"] = match_list[0][0]
-    dic["elt_level"] = match_list[0][1]
-    dic["elt_kps"] = match_list[0][2]
-    dic["invalid_flag"] = 1 if match_list[0][3] == "*" else 0
-    return dic
-
-
-def _parse_old_lifts(match_list, dic):
-    logger.debug(f"Match list is {match_list}")
-    dic["elt_name"] = match_list[0][0]
-    dic["elt_level"] = match_list[0][1]
-    dic["invalid_flag"] = 1 if match_list[0][2] == "*" else 0
-    return dic
-
-
 def _parse_pattern_dance(match_list, dic):
     dic["elt_name"] = match_list[0][0]
     dic["elt_level"] = match_list[0][1]
-    dic["elt_kps"] = match_list[0][2].split()
+    dic["elt_kps"] = match_list[0][2]
     dic["invalid_flag"] = 1 if match_list[0][3] == "*" else 0
     return dic
 
@@ -155,7 +158,7 @@ def _parse_indiv_scored_elts(match_list, dic):
     return dic
 
 
-def _parse_combo_nonjump_elts(match_list, dic):
+def _parse_combo_lifts(match_list, dic):
     dic["elt_1_name"] = match_list[0][0]
     dic["elt_1_level"] = match_list[0][1]
     dic["elt_1_invalid"] = 1 if match_list[0][2] == "*" else 0
@@ -173,13 +176,6 @@ def _parse_throw_jumps(match_list, dic):
     if dic["call_dic"][1] is not None and "*" in dic["call_dic"][1]:
         dic["invalid_flag"] = 1
         dic["call_dic"][1] = dic["call_dic"][1].replace("*", "")
-    return dic
-
-
-def _parse_leveled_elts(match_list, dic):
-    dic["elt_name"] = match_list[0][0]
-    dic["elt_level"] = match_list[0][1] if match_list[0][1] != "" else None
-    dic["invalid_flag"] = 1 if match_list[0][2] == "*" else 0
     return dic
 
 
@@ -205,8 +201,9 @@ def _parse_elt_scores(clean_row):
     return bv, None, sov_goe, total
 
 
-EXPECTED_PATTERNS = {"IceDance": [indiv_scored_elts, combo_nonjump_elts, spins, pattern_dance, old_twizzles, other_leveled_elts,
-                                  old_pattern_dance_notation, another_old_pattern_dance_notation],
+EXPECTED_PATTERNS = {"IceDance": [indiv_scored_elts, combo_lifts, spins, pattern_dance, old_twizzles, other_leveled_elts,
+                                  old_pattern_dance_notation, another_old_pattern_dance_notation, step_twizzle_combo,
+                                  old_choreo_elts],
                      "Singles": [jumps, spins, other_leveled_elts],
                      "Pairs": [throw_jumps, jumps, spins, new_twists, old_twists, other_pairs_elts, other_leveled_elts,
                                old_lifts]
@@ -214,18 +211,20 @@ EXPECTED_PATTERNS = {"IceDance": [indiv_scored_elts, combo_nonjump_elts, spins, 
 
 PATTERN_PARSERS = {jumps: _parse_jumps,
                    indiv_scored_elts: _parse_indiv_scored_elts,
-                   combo_nonjump_elts: _parse_combo_nonjump_elts,
+                   combo_lifts: _parse_combo_lifts,
                    pattern_dance: _parse_pattern_dance,
-                   other_leveled_elts: _parse_leveled_elts,
-                   old_pattern_dance_notation: _parse_old_pattern_dances,
-                   another_old_pattern_dance_notation: _parse_other_old_pattern_dances,
+                   other_leveled_elts: _parse_name_level_elts,
+                   old_pattern_dance_notation: _parse_name_level_elts,
+                   another_old_pattern_dance_notation: _parse_pattern_dance,
                    old_twists: _parse_old_twists,
-                   old_lifts: _parse_old_lifts,
+                   old_lifts: _parse_name_level_elts,
                    spins: _parse_spins,
                    throw_jumps: _parse_throw_jumps,
-                   other_pairs_elts: _parse_leveled_elts,
+                   other_pairs_elts: _parse_name_level_elts,
                    new_twists: _parse_new_twists,
-                   old_twizzles: _parse_old_twizzles
+                   old_twizzles: _parse_name_level_elts,
+                   step_twizzle_combo: _parse_combo_lifts,
+                   old_choreo_elts: _parse_unleveled_elts
                    }
 
 
@@ -332,9 +331,6 @@ class Element:
         self.element_no = no
         self.element_type = self._classify_elt()
         self.bv = dec.Decimal(bv)
-
-        if self.element_type == "jump" and re.search(old_single_jump, self.element_name):
-            self.element_name = "1" + self.element_name
 
         judge_keys = ["J" + str(j).zfill(2) for j in range(1, len(goe) + 1)] if goe else None
         self.goe_dic = dict(zip(["element_id"] + judge_keys, [self.id] + goe)) if goe else None
@@ -484,3 +480,27 @@ class PairsElement(Element):
             self.invalid_flag = 1
 
         logger.log(15, f"Attributes for elt {self.element_name} are {self.get_element_dic()}")
+
+
+class ElementTests(unittest.TestCase):
+    def test_adding_1(self):
+        test = "2Lz+2T+Lo"
+        match_list = re.findall(jumps, test)
+        print(f"Match list is {match_list}")
+        sorted_tuples = [list(t) for t in zip(*match_list)]
+
+        namechecked_jumps = []
+        for j in sorted_tuples[0]:
+            if re.search(old_single_jump, j):
+                namechecked_jumps.append(re.sub(old_single_jump, r"1\1", j))
+            else:
+                namechecked_jumps.append(j)
+        elt_name = "+".join(namechecked_jumps)
+
+        jump_keys = ["jump_" + str(j) for j in range(1, len(sorted_tuples[0]) + 1)]
+        jump_dic = dict(zip(jump_keys, namechecked_jumps))
+        assert elt_name == "2Lz+2T+1Lo"
+        assert jump_dic["jump_3"] == "1Lo"
+
+if __name__ == "__main__":
+    unittest.main()

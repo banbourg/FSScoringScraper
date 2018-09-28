@@ -14,10 +14,11 @@ import logging
 
 logging.basicConfig(#filename="transformer" + datetime.today().strftime("%Y-%m-%d_%H-%M-%S") + ".log",
                     format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
-                    level=15, # logging.DEBUG,
+                    level=5, # logging.DEBUG,
                     datefmt="%Y-%m-%d %H:%M:%S")
 
 logging.addLevelName(15, "MORE_INFO")
+logging.addLevelName(5, "TRACE")
 
 logger = logging.getLogger(__name__)
 
@@ -37,13 +38,13 @@ except ImportError as exc:
 
 
 # ------------------------------------------ CHANGE RUN PARAMETERS HERE ---------------------------------------------
-ENABLE_WRITE_PAUSE = False
+ENABLE_WRITE_PAUSE = True
 ENABLE_DEBUGGING_PAUSE = False
 # ----------------------------------------------------------------------------------------------------------------------
 
 ABBREV_DIC = {'gpjpn': 'NHK', 'gpfra': 'TDF', 'gpcan': 'SC', 'gprus': 'COR', 'gpusa': 'SA', 'gpchn': 'COC',
-             'gpf': 'GPF', 'wc': 'WC', 'fc': '4CC', 'owg': 'OWG', 'wtt': 'WTT', 'sc': 'SC', 'ec': 'EC', 'sa': 'SA',
-             'jgpfra': 'JGPFRA', 'nhk': 'NHK'}
+              'gpf': 'GPF', 'wc': 'WC', 'fc': '4CC', 'owg': 'OWG', 'wtt': 'WTT', 'sc': 'SC', 'ec': 'EC', 'sa': 'SA',
+              'jgpfra': 'JGPFRA', 'nhk': 'NHK'}
 
 
 def reorder_cols(df, col_to_move, new_pos):
@@ -203,22 +204,12 @@ def transform_and_load(read_path, write_path, naming_schema, counter, db_credent
 
             for k in dfs:
                 db_builder.write_to_final_table(df=dfs[k], conn_dic=conn_dic, table_name=k)
-                write_to_csv(df=dfs[k], table_name=k, write_path=write_path)
 
             segment_list, skater_list = [], []
 
         current_path = os.path.join(read_path, filename)
         done_path = os.path.join(done_dir_path, filename)
         os.rename(current_path, done_path)
-
-
-def write_to_csv(df, table_name, write_path):
-    file_path = os.path.join(write_path, table_name + ".csv")
-    if os.path.isfile(file_path):
-        include_header = False
-    else:
-        include_header = True
-    df.to_csv(header=include_header, index=False, mode="a", date_format="%y-%m-%d")
 
 
 
@@ -236,7 +227,7 @@ def main():
     # try:
     #     counter = int(sys.argv[1])
     # except (IndexError, TypeError):
-    #     counter = 10
+    #     counter = 1
 
     db_credentials = settings.DB_CREDENTIALS
     read_path = settings.READ_PATH

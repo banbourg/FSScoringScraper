@@ -47,7 +47,8 @@ class Protocol:
 
         if (schema == "new" and len(name_row.data) == 7) or (schema != "new" and len(name_row.data) == 6) \
                 and name_row.data[1][-3:] in iso3166.countries_by_alpha3:
-            name_row.data = [name_row.data[0]] + name_row.data[1].rsplit(" ", 1) + name_row.data[2:]
+            name_row.data = [name_row.data[0], name_row.data[1][:-3].strip(), name_row.data[1][-3:].strip()] \
+                            + name_row.data[2:]
             logger.debug(f"After fix, name_row is {name_row.data}")
 
         self.skater = CONSTRUCTOR_DIC[segment.discipline]["competitor"](name_row, skater_list, last_row_dic,

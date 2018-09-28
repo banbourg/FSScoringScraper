@@ -22,9 +22,11 @@ DED_POINT_PATTERN = re.compile(r"(?<!\d)-*\d(?:\.00|\.0)*")
 DED_TOTAL_PATTERN = re.compile(r"(\d(?:\.0|\.00)*) {1,2}-*\d+(?:\.0)*0*")
 DED_NOT_SPLIT_PATTERN = re.compile(r"^Deductions [A-Z]")
 UNDEDUCTED_VIOLATION = re.compile(r"(?:\b|\n)[A-Z][a-z ]+: \(([1-3] of 7|[1-4] of 8|[1-4] of 9|[1-5] of 10)\)")
+TRUNC_UNDEDUCTED_VIOLATION = re.compile(r"\n\(([1-3] of 7|[1-4] of 8|[1-4] of 9|[1-5] of 10)\)")
 MAJORITY_VIOLATION = re.compile(r"(?:\b|\n)([A-Z][a-z ]+): \(([4-7] of 7|[5-8] of 8|[5-9] of 9|[6-9] of 10)\)")
 DEDUCTION_VOTE = re.compile(r" -?[1-3][.,]0(?:0)?")
 SPLITTER = re.compile(r"(?i) (?![a-z])")
+MERGED_BONUS_FLAG = re.compile(r"^([\d., ]+) ?x$")
 
 DED_ALIGNMENT_DIC = {"fall": "falls", "late start": "time violation",
                      "illegal element": "illegal element/movement",
@@ -85,10 +87,21 @@ class ScoreRow(DataRow):
         except AssertionError as ae:
             raise ValueError(f"{mode} row is fucked, content not as expected: {self.raw}, {ae}")
 
+        self._remove_merged_h2_bonus_flag()
+
         for i in range(check_cell, len(self.split_list)):
             if is_digit_cell(self.split_list[i]):
                 return i
         raise ValueError(f"Row is fucked, couldn't find any numbers in it: {self.raw}")
+
+    def _remove_merged_h2_bonus_flag(self):
+        resplit = []
+        for c in self.split_list:
+            if re.search(pattern=MERGED_BONUS_FLAG, string=str(c)):
+                resplit.extend([re.sub(pattern=MERGED_BONUS_FLAG, repl=r"\1", string=str(c)), "x"])
+            else:
+                resplit.append(c)
+        self.split_list = resplit
 
     def _remove_dash_columns(self, mode, row_list, judges=None, case=0, elt_list=None):
         # Context: sometimes protocols include 1-2 random columns of dashes between the end of the goe scores and the
@@ -124,12 +137,19 @@ class ScoreRow(DataRow):
                 case = 5
                 return case, test_2
             elif elt_list and len(elt_list) > 0:
-                return self._infer_from_previous_element(mode, row_list, judges, elt_list)
-            sys.exit(f"Elt row does not have expected length: {self.raw}, {row_list}")
+                try:
+                    return self._infer_from_previous_element(mode, row_list, judges, elt_list)
+                except PossibleOWGException:
+                    pass
+
+            raise PossibleOWGException(self.raw, f"Elt row does not have expected length: {self.raw}, {row_list}")
 
     def _infer_from_previous_element(self, mode, row_list, judges, elt_list):
         logger.debug(f"Inferring from previous element")
-        case, dashless = self._remove_dash_columns(mode=mode, row_list=row_list, judges=judges, case=elt_list[-1].case)
+        try:
+            case, dashless = self._remove_dash_columns(mode=mode, row_list=row_list, judges=judges, case=elt_list[-1].case)
+        except PossibleOWGException:
+            raise
         return case, dashless
 
 
@@ -141,10 +161,17 @@ class PCSRow(ScoreRow):
             raise
         self.id = None
         self.row_label = " ".join(self.split_list[0:self.split_index])
-        self.case, self.data = self._clean_pcs_row(judges, elt_list)
+        try:
+            self.case, self.data = self._clean_pcs_row(judges, elt_list)
+        except PossibleOWGException:
+            raise
 
     def _clean_pcs_row(self, judges, elt_list):
-        case, scores = self._remove_dash_columns(mode="pcs", judges=judges, row_list=self.split_list[self.split_index:], elt_list=elt_list)
+        try:
+            case, scores = self._remove_dash_columns(mode="pcs", judges=judges,
+                                                     row_list=self.split_list[self.split_index:], elt_list=elt_list)
+        except PossibleOWGException:
+            raise
         clean = coerce_to_num_type(list_=[r.replace(",", ".") for r in scores], target_type="decimal")
         logger.debug(f"Cleaned scores list is {clean}")
         return case, clean
@@ -158,7 +185,15 @@ class GOERow(ScoreRow):
             raise
         self.row_no = int(self.split_list[0])
         self.row_label = " ".join(self.split_list[1:self.split_index])
-        self.case, self.data = self._clean_goe_row(judges, elt_list)
+        try:
+            self.case, self.data = self._clean_goe_row(judges, elt_list)
+        except PossibleOWGException as poe:
+            missing_data = DataRow(df=df, row=row-1, col_min=0).raw
+            if len(missing_data) == 1:
+                self.split_list.insert(3, str(missing_data[0]))
+                self.case, self.data = self._clean_goe_row(judges, elt_list)
+            else:
+                raise
 
     def _clean_goe_row(self, judges, elt_list):
         temp = self.split_list[self.split_index:]
@@ -169,7 +204,10 @@ class GOERow(ScoreRow):
             self.row_label += " x"
             temp.remove("X")
 
-        case, dashless = self._remove_dash_columns(mode="goe", judges=judges, row_list=temp, elt_list=elt_list)
+        try:
+            case, dashless = self._remove_dash_columns(mode="goe", judges=judges, row_list=temp, elt_list=elt_list)
+        except PossibleOWGException:
+            raise
         scores = [r.replace(",", ".") for r in dashless]
         logger.debug(f"After removing dashes scores are {scores}")
 
@@ -222,8 +260,10 @@ class DeductionRow(DataRow):
                 # If find newline in text cell: is neighbouring cell a digit cell? if so, handle both, zip and increment
                 # by two. If not, handle this cell only.
                 this_cell = str(input_row[i]).split("\n")
+                logger.log(5, f"Examining {this_cell}")
 
                 if is_text_cell(input_row[i]) and i + 1 < len(input_row) and is_digit_cell(input_row[i + 1]):
+                    logger.log(5, f"{this_cell} PASSED TEST 1 is text cell, >1 before end and neighbours a digit cell")
                     if "\n" in str(input_row[i + 1]):
                         logger.debug(f"Ded cell {input_row[i]} is case 1: newline with requirement to de-interleave")
                         next_cell = str(input_row[i + 1]).split("\n")
@@ -245,22 +285,34 @@ class DeductionRow(DataRow):
                             sys.exit(f"Ya deductions cells still don't match girl, {this_cell} vs. {next_cell}")
                         output_row.extend([item for pair in zip(this_cell, next_cell) for item in pair])
                         i += 2
+                        logger.log(5, f"WIP list is {output_row}")
                     else:
-                        logger.debug(f"Ded cell {input_row[i]} is case 2: newline without requirement to de-interleave")
+                        logger.log(5, f"Ded cell {input_row[i]} is case 2: newline without requirement to de-interleave")
                         sys.exit(1)
                 else:
-                    logger.debug(f"this cell is {this_cell}")
+                    logger.log(5, f"{this_cell} FAILED TEST 1: not text cell, <1 before end or not neighbours a digit cell")
                     filtered_list = [i for i in this_cell if is_digit_cell(i) and is_int(i) or
                                      is_text_cell(i) and is_ded_type_string(i)]
                     logger.debug(f"Filtered list is {filtered_list}")
                     output_row.extend(filtered_list)
                     i += 1
             elif not is_ded_type_string(input_row[i]):
+                logger.log(5, f"{input_row[i]} is not ded-type string, skipping.")
                 i += 1
             else:
+                logger.log(5, f"{input_row[i]} has no newline, not examining, straight append.")
                 output_row.append(str(input_row[i]))
                 i += 1
         return output_row
+
+    def _remove_truncated_undeducted_violations(self):
+        clean, i = self.raw, 1
+        while i < len(clean):
+            if re.search(pattern=TRUNC_UNDEDUCTED_VIOLATION, string=clean[i]):
+                clean[i] = re.sub(pattern=TRUNC_UNDEDUCTED_VIOLATION, repl="", string=clean[i])
+                clean[i-1] = clean[i-1].rpartition("\n")[0]
+            i += 1
+        self.raw = clean
 
     def parse_deduction_dictionary(self):
         logger.info(f"Raw deductions list is {self.raw}")
@@ -271,6 +323,7 @@ class DeductionRow(DataRow):
         logger.debug(f"Row after colon insertion is {self.raw}")
 
         self.raw = [re.sub(UNDEDUCTED_VIOLATION, "", str(c)) for c in self.raw]
+        self._remove_truncated_undeducted_violations()
         logger.debug(f"Row after removing undeducted violations is {self.raw}")
 
         str_raw = " ".join([str(x) for x in self.raw])
@@ -292,6 +345,7 @@ class DeductionRow(DataRow):
 
         row_less_falls = [re.sub(r"\(\d+\)", "", str(r)) for r in split_row_2]
         logger.debug(f"Row text after parenthesis removal is {row_less_falls}")
+
         row_text = " ".join(row_less_falls)
         logger.debug(f"Row text after join is {row_text}")
 
@@ -326,11 +380,11 @@ class DeductionRow(DataRow):
 
 
 def is_text_cell(x):
-    return True if re.match(r"^[A-Za-z\- \n:]+$", x) else False
+    return True if re.match(r"^[A-Za-z\- &/\n:]+$", x) else False
 
 
 def is_digit_cell(x):
-    return True if re.match(r"^[\d., \n]+$", x) else False
+    return True if re.match(r"^[-\d., \n]+$", x) else False
 
 
 def is_nan(x):
@@ -365,5 +419,10 @@ def coerce_to_num_type(list_, target_type):
                 pass
         else:
             raise ValueError("Please set 'mode' parameter to 'float' or 'int'")
-    #logger.debug(f"Coerced list is {coerced_list}")
     return coerced_list
+
+
+class PossibleOWGException(ValueError):
+    def __init__(self, row, message):
+        self.row = row
+        self.message = message
