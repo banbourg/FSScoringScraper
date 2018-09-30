@@ -1,5 +1,5 @@
 import pandas as pd
-
+import numpy as np
 import sys
 import os
 import re
@@ -133,13 +133,14 @@ def create_recap_table(disc, df):
     # Get segment rankings
     for l in dic:
         unstacked[l+" rank"] = unstacked["tss "+dic[l]].rank(axis=0, ascending=False, method="min")
-        unstacked[l] = unstacked.apply(lambda x: str(x["tss "+dic[l]]) + " (#" + str(x[l+" rank"])[:-2] + ")", axis=1)
+        unstacked[l] = unstacked.apply(lambda x: '{0:.2f}'.format((x["tss "+dic[l]])) + " (#" + str(x[l+" rank"])[:-2] + ")", axis=1)
         unstacked.drop(axis="columns", labels=[l+" rank", "tss "+dic[l]], inplace=True)
 
     unstacked = unstacked[unstacked.columns[[1, 3, 0, 4, 2]]]
     unstacked.sort_values("total", axis=0, ascending=False, inplace=True)
     unstacked = unstacked.head(5)
     print(unstacked)
+
 
 def main(name, season):
     conn, engine = db_builder.initiate_connections(db_credentials)
