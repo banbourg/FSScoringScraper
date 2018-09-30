@@ -39,7 +39,7 @@ pd.set_option("display.width", 1900)
 
 MASTER_DICT = {"IceDance": ["twizzles", "lift", "pattern dance"],
                "Men": ["jump"],
-               "Pairs": ["throw jump", "throw_twist", "jump"],
+               "Pairs": ["throw jump", "throw twist", "jump"],
                "Ladies": ["jump"]}
 
 def reconstitute_elt(row):
@@ -57,7 +57,7 @@ def reconstitute_elt(row):
     elif row["element_type"] == "twizzles":
         fields = [row["element_name"], "L", row["elt_level_lady"], "+M", row["elt_level_man"]]
 
-    elif row["element_type"] == "throw jump" or row["element_type"] == "throw twist":
+    elif row["element_type"] in ["throw jump", "throw twist"]:
         fields = [row["element_name"], row["elt_level"]]
         if row["ur_flag"] == 1:
             fields.append("<")
@@ -65,11 +65,7 @@ def reconstitute_elt(row):
             fields.append("<<")
 
     elif row["element_type"] == "jump" and row["combo_flag"] == 1 or row["seq_flag"] == 1:
-        suffix = re.search(r"(COMBO|SEQ|REP)", row["element_name"])
-        if suffix:
-            no_elements = row["element_name"].count("+")
-        else:
-            no_elements = row["element_name"].count("+") + 1
+        no_elements = row["element_name"].count("+") + 1
 
         fields = []
         for i in range(1, no_elements+1):
@@ -84,8 +80,8 @@ def reconstitute_elt(row):
                 fields.append("<<")
             fields.append("+")
 
-        if suffix:
-            fields.append(suffix.group(1))
+        if row["element_name"].count("+") == 0:
+            fields.append("COMBO")
         else:
             fields = fields[:-1]
 
@@ -154,7 +150,7 @@ def main(name, season):
         JOIN protocols on protocol_id = protocols.id
         JOIN segments on protocols.segment_id = segments.id
         JOIN competitors on protocols.competitor_id = competitors.id
-    WHERE segments.name = '{name}' AND segments.season = '{season}' AND elements.element_type IN ('jump', 'twizzles', 'pattern dance', 'lift', 'throw jump', 'throw_twist');"""
+    WHERE segments.name = '{name}' AND segments.season = '{season}' AND elements.element_type IN ('jump', 'twizzles', 'pattern dance', 'lift', 'throw jump', 'throw twist');"""
 
     df = pd.read_sql_query(query, engine)
     df["competitor"] = df.apply(lambda x: x["competitor_name"].title(), axis=1)
