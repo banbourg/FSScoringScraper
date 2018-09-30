@@ -37,8 +37,8 @@ except ImportError as exc:
     sys.exit(f"Error: failed to import module ({exc})")
 
 
-# ------------------------------------------ CHANGE RUN PARAMETERS HERE ---------------------------------------------
-ENABLE_WRITE_PAUSE = True
+# ------------------------------------------ CHANGE RUN PARAMETERS HERE ------------------------------------------------
+ENABLE_WRITE_PAUSE = False
 ENABLE_DEBUGGING_PAUSE = False
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -148,7 +148,50 @@ def convert_to_dfs(segment_list, conn_dic, competitor_list, id_dic):
     return all_dfs
 
 
-def transform_and_load(read_path, write_path, naming_schema, counter, db_credentials):
+def clean_pyeongchang_protocols(read_path):
+    done_dir_path = os.path.join(read_path, "done")
+    files = sorted(glob.glob(read_path + '*.xlsx'))
+    cells_to_rewrite = ["Rank Name", "NOC\nCode", "Starting\nNumber", "Total\nSegment\nScore",
+                        "Total\nElement\nScore", "Total Program\nComponent Score\n(factored)",
+                        "Total\nDeductions"]
+    for f in files:
+        filename = f.rpartition("/")[2]
+        dest_filename = f.rpartition(".")[0] + "_clean.xlsx"
+        logger.info(f"Reading in {f} to fix it")
+        wb = load_workbook(f)
+        ws = wb.active
+        for items in sorted(ws.merged_cell_ranges):
+            ws.unmerge_cells(str(items))
+        j = 1
+        while j < 3:
+            i = 1
+            while i < ws.max_row:
+                if "Deductions:\nRank" in str(ws.cell(row=i, column=j).value):
+                    ws.insert_rows(i, amount=2)
+                    ws.cell(row=i, column=2).value = "Deductions:"
+                    ws.cell(row=i, column=10).value = "0.00"
+                    for k in range(0, len(cells_to_rewrite)):
+                        ws.cell(row=i+1, column=k+2).value = cells_to_rewrite[k]
+                    ws.delete_rows(i+2, 1)
+                    i += 3
+                elif "Skating Skills" in str(ws.cell(row=i, column=j).value):
+                    ws.cell(row=i + 1, column=j).value = "Transitions"
+                    ws.cell(row=i + 2, column=j).value = "Performance"
+                    ws.cell(row=i + 3, column=j).value = "Composition"
+                    ws.cell(row=i + 4, column=j).value = "Interpretation of the Music"
+                    i += 1
+                else:
+                    i += 1
+            j += 1
+        wb.save(filename=dest_filename)
+        logger.info(f"Wrote cleaned protocol to {dest_filename}")
+
+        current_path = os.path.join(read_path, filename)
+        done_path = os.path.join(done_dir_path, filename)
+        os.rename(current_path, done_path)
+
+
+def transform_and_load(read_path, naming_schema, counter, db_credentials):
     done_dir_path = os.path.join(read_path, "done")
     if not os.path.exists(done_dir_path):
         os.makedirs(done_dir_path)
@@ -223,19 +266,18 @@ def main():
     #               default is every 10 files), in that order")
     #
     # read_path = sys.argv[1]
-    # write_path = sys.argv[2]
     # try:
     #     counter = int(sys.argv[1])
     # except (IndexError, TypeError):
     #     counter = 1
 
     db_credentials = settings.DB_CREDENTIALS
-    read_path = settings.READ_PATH
-    write_path = settings.WRITE_PATH
+    read_path = settings.XLSX_READ_PATH
     counter = 1
     naming_schema = "_new"
 
-    transform_and_load(read_path, write_path, naming_schema, counter, db_credentials)
+    clean_pyeongchang_protocols(read_path)
+    transform_and_load(read_path, naming_schema, counter, db_credentials)
 
 
 if __name__ == "__main__":

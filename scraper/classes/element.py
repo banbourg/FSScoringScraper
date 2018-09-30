@@ -17,12 +17,12 @@ logger = logging.getLogger(__name__)
 
 # ICE DANCE PATTERNS
 old_choreo_elts = re.compile(r"^((?:Li|Sp)\+TRANS)$")
-pattern_dance = re.compile(r"^(1[A-Z]{2}|2[A-Z]{2})([B1-4])?\+kp([YTN]{1,4})(\*?)$")
+pattern_dance = re.compile(r"^(1[A-Z]{2}|2[A-Z]{2}|PSt)([B1-4])?\+kp([YTN]{1,4})(!?\*?)$")
 old_pattern_dance_notation = re.compile(r"^(?i)([1-4]S[1-4])([B1-4])?(\*?)$")
 another_old_pattern_dance_notation = re.compile(r"^(?i)((?:GW|VW|R|CC)[1-2]S(?:[eq]))([B1-4])?"
                                                 r"(?:\+kp([YTN]{3,4}))?(\*?)$")
 old_twizzles = re.compile(r"^((?:Ch|S|NtMi|FS|BS|Sq)?Tw)([B1-4])?(\*)?$")  # used to be \b
-combo_lifts = re.compile(r"^(?i)([A-Z]{2,}Li)([B1-4])?(\*)?\+([A-Z]{2,}Li)([B1-4])?(\*)?$")
+combo_lifts = re.compile(r"^([A-Za-z]{2,}Li)([B1-4])?(\*)?\+(([A-Za-z]{2,}Li)([B1-4])?|COMBO)(\*)?$")
 step_twizzle_combo = re.compile(r"^([A-Za-z]{1,4}St)([B1-4])?(\*)?\+((?:Ch|S|NtMi|FS|BS)?Tw)([B1-4])?(\*)?$")
 
 # PAIRS PATTERNS
@@ -48,6 +48,7 @@ other_leveled_elts = re.compile(r"^(?i)([a-z]{2,}(?<!Tw|Sp|Th|Eu|Lz|LZ|LO|Lo)(?<
 # get rid of in refactoring
 ELT_TYPES = {"IceDance": {"NtMiSt+STw": "step twizzle combo",
                           "Tw": "twizzles",
+                          "StaLi": "lift",
                           "St": "steps",
                           "Li": "lift",
                           "Sp": "spin",
@@ -67,7 +68,8 @@ ELT_TYPES = {"IceDance": {"NtMiSt+STw": "step twizzle combo",
                           "QS": "pattern dance",
                           "RW": "pattern dance",
                           "MB": "pattern dance",
-                          "TR": "pattern dance"
+                          "TR": "pattern dance",
+                          "AT": "pattern dance"
                           },
              "Pairs": {"Tw": "throw twist", "Th": "throw jump", "Li": "lift", "SpSq": "spiral", "Sp": "spin",
                        "Ds": "death spiral", "St": "steps", "ChSq": "choreo"},
@@ -133,6 +135,7 @@ def _parse_pattern_dance(match_list, dic):
     dic["elt_name"] = match_list[0][0]
     dic["elt_level"] = match_list[0][1]
     dic["elt_kps"] = match_list[0][2]
+    dic["interruption_flag"] = 1 if match_list[0][3] == "!" else 0
     dic["invalid_flag"] = 1 if match_list[0][3] == "*" else 0
     return dic
 
@@ -162,10 +165,18 @@ def _parse_combo_lifts(match_list, dic):
     dic["elt_1_name"] = match_list[0][0]
     dic["elt_1_level"] = match_list[0][1]
     dic["elt_1_invalid"] = 1 if match_list[0][2] == "*" else 0
-    dic["elt_2_name"] = match_list[0][3]
-    dic["elt_2_level"] = match_list[0][4]
-    dic["elt_2_invalid"] = 1 if match_list[0][5] == "*" else 0
-    dic["elt_name"] = dic["elt_1_name"] + "+" + dic["elt_2_name"]
+
+    if match_list[0][3] == "COMBO":
+        dic["elt_name"] = dic["elt_1_name"] + "+" + match_list[0][3]
+        dic["elt_2_name"] = None
+        dic["elt_2_level"] = None
+        dic["elt_2_invalid"] = None
+    else:
+        dic["elt_2_name"] = match_list[0][4]
+        dic["elt_2_level"] = match_list[0][5]
+        dic["elt_2_invalid"] = 1 if match_list[0][6] == "*" else 0
+        dic["elt_name"] = dic["elt_1_name"] + "+" + dic["elt_2_name"]
+
     dic["invalid_flag"] = 1 if dic["elt_1_invalid"] == 1 or dic["elt_2_invalid"] == 1 else 0
     return dic
 
@@ -366,7 +377,8 @@ class IceDanceElement(Element):
         parsed_dic = {"elt_name": None, "elt_1_name": None, "elt_2_name": None,
                       "elt_level": None, "elt_level_lady": None, "elt_level_man": None,
                       "elt_1_level": None, "elt_2_level": None, "elt_kps": None,
-                      "elt_1_invalid": 0, "elt_2_invalid": 0, "invalid_flag": 0, "h2_bonus_flag": 0}
+                      "elt_1_invalid": 0, "elt_2_invalid": 0, "invalid_flag": 0, "h2_bonus_flag": 0,
+                      "interruption_flag": None}
 
         parsed_dic, calls_to_impute = parse_elt_name(text=elt_row.row_label, meta_disc="IceDance", parsed_dic=parsed_dic)
         bv, goe, sov_goe, total = _parse_elt_scores(elt_row.data)
@@ -388,6 +400,7 @@ class IceDanceElement(Element):
         self.elt_level_lady, self.elt_level_man = parsed_dic["elt_level_lady"], parsed_dic["elt_level_man"]
         self.elt_1_level, self.elt_2_level = parsed_dic["elt_1_level"], parsed_dic["elt_2_level"]
         self.elt_kps = parsed_dic["elt_kps"]
+        self.interruption_flag = parsed_dic["interruption_flag"]
 
         self.case = elt_row.case
 

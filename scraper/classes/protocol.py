@@ -5,8 +5,6 @@ import pandas as pd
 import decimal as dec
 import unicodedata
 
-import iso3166
-
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
                     level=logging.DEBUG,
                     datefmt='%Y-%m-%d %H:%M:%S')
@@ -26,9 +24,14 @@ NAME_LIKE_PATTERN = re.compile(r"[A-Z]{2,}")
 class Protocol:
     def __init__(self, df, protocol_coordinates, segment, skater_list, last_row_dic, conn_dic):
         (row_start, row_end) = protocol_coordinates
-
-        name_row = self._find_name_row(df=df, anchor_coords=(row_start, 0), size_of_sweep=(1, 4, 3))
         schema = self._find_name_row_schema(segment)
+
+        name_row = self._find_name_row(df=df,
+                                       anchor_coords=(row_start, 0),
+                                       size_of_sweep=(1, 4, 3),
+                                       schema=schema)
+        logger.debug(f"Name row is {name_row.data}")
+
 
         self.id = last_row_dic["protocols"]
         last_row_dic["protocols"] += 1
@@ -45,11 +48,7 @@ class Protocol:
 
         self.number_of_judges = self.count_judges(df)
 
-        if (schema == "new" and len(name_row.data) == 7) or (schema != "new" and len(name_row.data) == 6) \
-                and name_row.data[1][-3:] in iso3166.countries_by_alpha3:
-            name_row.data = [name_row.data[0], name_row.data[1][:-3].strip(), name_row.data[1][-3:].strip()] \
-                            + name_row.data[2:]
-            logger.debug(f"After fix, name_row is {name_row.data}")
+        logger.debug(f"name_row.data pre fix is {name_row.data}")
 
         self.skater = CONSTRUCTOR_DIC[segment.discipline]["competitor"](name_row, skater_list, last_row_dic,
                                                                         self.season, conn_dic)
@@ -68,20 +67,20 @@ class Protocol:
         logger.log(15, f"Instantiated Skate object for {unicodedata.normalize('NFKD', name).encode('ascii','ignore')}"
                        f" with total score {self.tss_total} and starting no. {self.starting_number}")
 
-    def _find_name_row(self, df, anchor_coords, size_of_sweep):
+    def _find_name_row(self, df, anchor_coords, size_of_sweep, schema):
         (row, col) = anchor_coords
         # Case 1: Field headers and values in same cell:
         anchor_row = datarow.DataRow(df=df, row=row, col_min=0)
         for cell in anchor_row.raw:
-            if "Name\n" in cell:
-                return datarow.NameRow(mode="multiline", df=df, row=row, col_min=0)
+            if "Name\n" in cell or "Name Nation\n" in cell:
+                return datarow.NameRow(mode="multiline", df=df, row=row, col_min=0, schema=schema)
 
         # Case 2: Field headers and values in separate cells, not necessarily aligned
         (first_row_to_sweep, last_row_to_sweep, last_col_to_sweep) = size_of_sweep
         for r in range(row + first_row_to_sweep, row + last_row_to_sweep + 1):
             for c in range(0, col + last_col_to_sweep + 1):
                 if re.search(NAME_LIKE_PATTERN, str(df.iloc[r, c])):
-                    return datarow.NameRow(mode="single line", df=df, row=r, col_min=0)
+                    return datarow.NameRow(mode="single line", df=df, row=r, col_min=0, schema=schema)
 
         sys.exit(f"Could not find name row that matched expected pattern in sweep from {anchor_coords}")
 

@@ -4,6 +4,8 @@ import logging
 import numpy as np
 import decimal as dec
 
+import iso3166
+
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
                     level=logging.DEBUG,
                     datefmt='%Y-%m-%d %H:%M:%S')
@@ -27,15 +29,14 @@ MAJORITY_VIOLATION = re.compile(r"(?:\b|\n)([A-Z][a-z ]+): \(([4-7] of 7|[5-8] o
 DEDUCTION_VOTE = re.compile(r" -?[1-3][.,]0(?:0)?")
 SPLITTER = re.compile(r"(?i) (?![a-z])")
 MERGED_BONUS_FLAG = re.compile(r"^([\d., ]+) ?x$")
+MERGED_DIGITS = re.compile(r"\d \d")
 
-DED_ALIGNMENT_DIC = {"fall": "falls", "late start": "time violation",
+DED_ALIGNMENT_DIC = {"fall": "falls",
                      "illegal element": "illegal element/movement",
                      "costume violation": "costume/prop violation",
                      "costume & prop violation": "costume/prop violation",
                      "extra element by verif": "extra element",
                      "illegal element / movement": "illegal element/movement",
-                     "music restriction violation": "music violation",
-                     "music requirements violation": "music violation",
                      "music requirements": "music violation",
                      "extended lift": "extended lifts"}
 
@@ -218,11 +219,11 @@ class GOERow(ScoreRow):
 
 
 class NameRow(DataRow):
-    def __init__(self, mode, raw=None, df=None, row=None, col_min=None):
+    def __init__(self, mode, schema, raw=None, df=None, row=None, col_min=None):
         super().__init__(raw, df, row, col_min)
-        self.clean_name_row(mode)
+        self.clean_name_row(mode, schema)
 
-    def clean_name_row(self, mode):
+    def clean_name_row(self, mode, schema):
         if mode == "single line":
             self.data = self.raw
         elif mode == "multiline":
@@ -234,6 +235,18 @@ class NameRow(DataRow):
             self.data[0] = int(split_cell[0])
             self.data.insert(1, split_cell[1])
 
+        self.data = [c for c in self.data if c != "Nation"]
+        clean = []
+        for c in self.data:
+            if re.search(MERGED_DIGITS, str(c)):
+                clean.extend(c.split(" "))
+            else:
+                clean.append(c)
+        self.data = clean
+
+        is_one_short = (schema == "new" and len(self.data) == 7) or (schema != "new" and len(self.data) == 6)
+        if is_one_short and self.data[1][-3:] in iso3166.countries_by_alpha3:
+            self.data = [self.data[0], self.data[1][:-3].strip(), self.data[1][-3:].strip()] + self.data[2:]
 
 class DeductionRow(DataRow):
     def __init__(self, raw=None, df=None, row=None, col_min=None):
@@ -360,6 +373,7 @@ class DeductionRow(DataRow):
         # Clean up ded types
         ded_words = [DED_ALIGNMENT_DIC[d.lower().strip()] if d.lower().strip() in DED_ALIGNMENT_DIC
                      else d.lower().strip() for d in ded_words]
+        logger.debug(f"Ded words is now {ded_words}")
         for d in ded_words:
             if d == 'total':
                 del d

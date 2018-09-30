@@ -193,7 +193,8 @@ if __name__ == '__main__':
         file_path = sys.argv[1]
         logger.debug(f"Passed in {file_path}")
     else:
-        file_path = os.path.join(Path(os.getcwd()).parent, "pdf_files")
+        #file_path = os.path.join(Path(os.getcwd()).parent, "pdf_files")
+        file_path = settings.PDF_WRITE_PATH
 
     pdfs = sorted(glob.glob(file_path + '*.pdf'))
 

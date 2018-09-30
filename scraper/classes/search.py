@@ -41,7 +41,8 @@ DBNAME_TO_URLNAME = {"NHK": "gpjpn", "TDF": "gpfra", "SC": "gpcan", "COR": "gpru
                      "GPF": "gpf", "WC": "wc", "4CC": "fc", "OWG": "owg", "WTT": "wtt", "EC": "ec", "AO": "ISUCSAO",
                      "Lombardia": "lombardia", "Nepela": "ont", "Finlandia": "CSFIN", "Nebelhorn": "nt",
                      "ACI": "CSCAN", "Warsaw": "warsawcup", "USClassic": "us_intl_classic",
-                     "GoldenSpin": "", "DenkovaStaviksi": "ISUCS", "IceStar": "Ice_Star", "MordovianOrnament": "CSRUS"}
+                     "GoldenSpin": "", "DenkovaStaviksi": "ISUCS", "IceStar": "Ice_Star", "MordovianOrnament": "CSRUS",
+                     "JGPAUT": "jgpaut", "JGPSVK": "jgpsvk", "JGPLTU": "jgpltu", "JGPCAN": "jgpcan", "JGPCZE": "fsevent"}
 
 MAX_TRIES = 10  # before timeout on .get() requests
 
@@ -54,18 +55,40 @@ ROOT_DOMAIN_PATTERN = re.compile(r"^((?:http(?:s)?://)?(www)?[A-Za-z\d\-]{3,}\.[
 JUDGE_PAGE_TITLE = re.compile(r"(Team)?(Junior)? (Men|Ladies|Ice Dance|Pairs)( Single Skating)? - (Short|Rhythm|Free) "
                               r"(Program|Dance|Skating)")
 
-SEARCHTERM_TO_DBNAME = {"nhk+trophy": "NHK", "rostelecom+cup": "COR", "france": "TDF", "canada": "SC", "russia": "COR",
-                        "skate+america": "SA", "cup+of+china": "COC", "grand+prix+final": "GPF",
-                        "world+figure+skating+championships": "WC", "four+continents+championship": "4CC",
-                        "olympic+winter+games": "OWG", "world+team+trophy": "WTT",
+SEARCHTERM_TO_DBNAME = {"nhk+trophy": "NHK",
+                        "rostelecom+cup": "COR",
+                        "france": "TDF",
+                        "canada": "SC",
+                        "russia": "COR",
+                        "skate+america": "SA",
+                        "cup+of+china": "COC",
+                        "grand+prix+final": "GPF",
+                        "world+figure+skating+championships": "WC",
+                        "four+continents+championship": "4CC",
+                        "olympic+winter+games": "OWG",
+                        "world+team+trophy": "WTT",
                         "european+figure+skating+championships": "EC",
-                        "trophee+eric+bompard": "TDF", "asian+open": "AO", "lombardia+trophy": "Lombardia",
-                        "us+figure+skating+classic": "USClassic", "ondrej+nepela+trophy": "Nepela",
-                        "autumn+classic+international": "ACI", "nebelhorn+trophy": "Nebelhorn",
-                        "finlandia+trophy": "Finlandia", "tallinn+trophy": "Tallinn", "warsaw+cup": "Warsaw",
-                        "golden+spin+zagreb": "GoldenSpin", "denkova+staviski+cup": "DenkovaStaviksi",
-                        '"ice+challenge"': "IceChallenge", '"ice+star"': "IceStar", "volvo+open+cup": "Volvo",
-                        "mordovian+ornament": "MordovianOrnament"}
+                        "trophee+eric+bompard": "TDF",
+                        "asian+open": "AO",
+                        "lombardia+trophy": "Lombardia",
+                        "us+figure+skating+classic": "USClassic",
+                        "ondrej+nepela+trophy": "Nepela",
+                        "autumn+classic+international": "ACI",
+                        "nebelhorn+trophy": "Nebelhorn",
+                        "finlandia+trophy": "Finlandia",
+                        "tallinn+trophy": "Tallinn",
+                        "warsaw+cup": "Warsaw",
+                        "golden+spin+zagreb": "GoldenSpin",
+                        "denkova+staviski+cup": "DenkovaStaviksi",
+                        '"ice+challenge"': "IceChallenge",
+                        '"ice+star"': "IceStar",
+                        "volvo+open+cup": "Volvo",
+                        "mordovian+ornament": "MordovianOrnament",
+                        "jgp+cup+of+austria": "JGPAUT",
+                        "jgp+bratislava": "JGPSVK",
+                        "jgp+amber+cup": "JGPLTU",
+                        "jgp+canada": "JGPCAN",
+                        "jgp+czech+skate": "JGPCZE"}
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -204,7 +227,7 @@ class EventSearch:
             filename = self.event.name + "_" + raw_name
         return self.event.start_date.start_date.strftime("%y%m%d") + "_" + filename
 
-    def download_pdf_protocols(self):
+    def download_pdf_protocols(self, write_path):
         """Downloads the pdf scoring protocols for the requested disciplines from the event page.
 
         Keyword arguments:
@@ -237,7 +260,7 @@ class EventSearch:
                             except urllib.error.URLError as uerr:
                                 logger.error(f"URL error opening {full_url}: {uerr.reason}")
                             else:
-                                pdf = open(settings.WRITE_PATH + filename, "wb")
+                                pdf = open(write_path + filename, "wb")
                                 pdf.write(res.read())
                                 pdf.close()
 
