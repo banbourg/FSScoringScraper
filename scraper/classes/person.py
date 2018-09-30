@@ -197,6 +197,17 @@ class Official(Person):
                        f"{unicodedata.normalize('NFKD', self.full_name).encode('ascii','ignore')}, fed "
                        f"{self.fed_dic[season_observed + '_fed']}")
 
+    def get_official_dict(self):
+        dic = {"id": self.id,
+               "official_name": self.full_name,
+               "spaced_first_name": self.first_name,
+               "spaced_last_name": self.last_name,
+               "tight_full_name": self.tight_full_name,
+               "tight_first_name": self.tight_first_name,
+               "tight_last_name": self.tight_last_name,
+               "dic": self.fed_dic}
+        return flatten_dict(dic)
+
 
 class Panel:
     def __init__(self, roles_table, last_row_dic, list_of_officials, sub_event, category, discipline, segment,
@@ -230,7 +241,7 @@ class Panel:
         else:
             return
 
-    def get_dict(self):
+    def get_panel_dict(self):
         return flatten_dict(dict(vars(self)))
 
 
