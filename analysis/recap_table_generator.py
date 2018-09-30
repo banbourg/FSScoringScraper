@@ -42,6 +42,7 @@ MASTER_DICT = {"IceDance": ["twizzles", "lift", "pattern dance"],
                "Pairs": ["throw jump", "throw twist", "jump"],
                "Ladies": ["jump"]}
 
+
 def reconstitute_elt(row):
     if row["element_type"] == "pattern dance":
         fields = [row["element_name"], row["elt_level"]]
@@ -80,9 +81,14 @@ def reconstitute_elt(row):
                 fields.append("<<")
             fields.append("+")
 
+        if row["rep_flag"] == 1:
+            fields.append("REP" if fields[-1] == "+" else "+REP")
+        if row["seq_flag"] == 1:
+            fields.append("SEQ" if fields[-1] == "+" else "+SEQ")
         if row["element_name"].count("+") == 0:
-            fields.append("COMBO")
-        else:
+            fields.append("COMBO" if fields[-1] == "+" else "+COMBO")
+
+        if fields[-1] == "+":
             fields = fields[:-1]
 
     else:
