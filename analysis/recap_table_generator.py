@@ -16,7 +16,11 @@ try:
 except ImportError as exc:
     sys.exit(f"Error: failed to import module ({exc})")
 
+# TO DOS: Enforce double decimal, sort by h2 flag before concatenating to ensure is in right order
+
 # ------------------------------------------ CHANGE RUN PARAMETERS HERE ------------------------------------------------
+name = 'JGPCZE'
+season = 'sb2018'
 db_credentials = settings.DB_CREDENTIALS
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -141,6 +145,7 @@ def create_recap_table(disc, df):
     unstacked = unstacked.head(5)
     print(unstacked)
 
+
 def main(name, season):
     conn, engine = db_builder.initiate_connections(db_credentials)
 
@@ -164,4 +169,4 @@ def main(name, season):
 
 
 if __name__ == "__main__":
-    main('JGPCZE', 'sb2018')
+    main(name, season)
