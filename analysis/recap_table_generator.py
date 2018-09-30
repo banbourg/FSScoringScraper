@@ -1,5 +1,5 @@
 import pandas as pd
-import numpy as np
+
 import sys
 import os
 import re
@@ -165,4 +165,7 @@ def main(name, season):
 
 
 if __name__ == "__main__":
-    main(name, season)
+    if len(sys.argv) == 1:
+        main(name, season)
+    else:
+        main(sys.argv[1], sys.argv[2])
