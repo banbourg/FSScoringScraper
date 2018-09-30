@@ -31,18 +31,48 @@ except ImportError as exc:
 
 # CONSTANTS AND CONVERTER DICTIONARIES, NO NEED TO AMEND THESE EXCEPT IF ADDING NEW EVENTS
 # ----------------------------------------------------------------------------------------------------------------------
-EXPECTED_DOMAIN = {"AO": "fsatresults", "Lombardia": "fisg", "USClassic": "usfigureskating", "Nepela": "kraso",
-                   "ACI": "skatecanada", "Nebelhorn": "isuresults", "Finlandia": "figureskatingresults",
-                   "Tallinn": "data.tallinntrophy", "Warsaw": "pfsa", "GoldenSpin": "netlify",
-                   "DenkovaStaviksi": "clubdenkovastaviski", "IceStar": "figure.skating.by",
-                   "MordovianOrnament": "fsrussia"}
+DBNAME_TO_URLNAME = {"NHK": "gpjpn",
+                     "TDF": "gpfra",
+                     "SC": "gpcan",
+                     "COR": "gprus",
+                     "SA": "gpusa",
+                     "COC": "gpchn",
+                     "GPF": "gpf",
+                     "WC": "wc",
+                     "4CC": "fc",
+                     "OWG": "owg",
+                     "WTT": "wtt",
+                     "EC": "ec",
+                     "AO": "ISUCSAO",
+                     "Lombardia": "lombardia",
+                     "Nepela": "ont",
+                     "Finlandia": "CSFIN",
+                     "Nebelhorn": "nt",
+                     "ACI": "CSCAN",
+                     "Warsaw": "warsawcup",
+                     "USClassic": "us_intl_classic",
+                     "GoldenSpin": "",
+                     "DenkovaStaviksi": "ISUCS",
+                     "IceStar": "Ice_Star",
+                     "MordovianOrnament": "CSRUS",
+                     "JGPAUT": "jgpaut",
+                     "JGPSVK": "jgpsvk",
+                     "JGPLTU": "jgpltu",
+                     "JGPCAN": "jgpcan",
+                     "JGPCZE": "fsevent"}
 
-DBNAME_TO_URLNAME = {"NHK": "gpjpn", "TDF": "gpfra", "SC": "gpcan", "COR": "gprus", "SA": "gpusa", "COC": "gpchn",
-                     "GPF": "gpf", "WC": "wc", "4CC": "fc", "OWG": "owg", "WTT": "wtt", "EC": "ec", "AO": "ISUCSAO",
-                     "Lombardia": "lombardia", "Nepela": "ont", "Finlandia": "CSFIN", "Nebelhorn": "nt",
-                     "ACI": "CSCAN", "Warsaw": "warsawcup", "USClassic": "us_intl_classic",
-                     "GoldenSpin": "", "DenkovaStaviksi": "ISUCS", "IceStar": "Ice_Star", "MordovianOrnament": "CSRUS",
-                     "JGPAUT": "jgpaut", "JGPSVK": "jgpsvk", "JGPLTU": "jgpltu", "JGPCAN": "jgpcan", "JGPCZE": "fsevent"}
+EXPECTED_DOMAIN = {"AO": "fsatresults",
+                   "Lombardia": "fisg",
+                   "USClassic": "usfigureskating",
+                   "Nepela": "kraso",
+                   "ACI": "skatecanada",
+                   "Nebelhorn": "isuresults",
+                   "Finlandia": "figureskatingresults",
+                   "Tallinn": "data.tallinntrophy",
+                   "Warsaw": "pfsa", "GoldenSpin": "netlify",
+                   "DenkovaStaviksi": "clubdenkovastaviski",
+                   "IceStar": "figure.skating.by",
+                   "MordovianOrnament": "fsrussia"}
 
 MAX_TRIES = 10  # before timeout on .get() requests
 
@@ -108,7 +138,7 @@ class EventSearch:
 
         if not override:
             self.homepage_url = url
-            bool, self.homepage, self.homepage_text = _get_page_content(self.homepage_url, "critical")
+            success_bool, self.homepage, self.homepage_text = _get_page_content(self.homepage_url, "critical")
 
     def _test_result(self, url):
         """Checks that a google search hit satisfies the condition that make it a likely event homepage
@@ -134,14 +164,14 @@ class EventSearch:
         else:
             gpf_pattern, name_test = False, False
 
-        season_pattern = str(self.event.year) in url or \
-                         (self.event.season[2:] in url and str(int(self.event.season[2:]) + 1) in url) or \
-                         self.event.season[4:] + str(int(self.event.season[4:]) + 1) in url
+        short_season_yrs_in_url = (self.event.season[2:] in url and str(int(self.event.season[2:]) + 1) in url)
+        full_season_yrs_in_url = self.event.season[4:] + str(int(self.event.season[4:]) + 1) in url
+        season_pattern = str(self.event.year) in url or short_season_yrs_in_url or full_season_yrs_in_url
 
         filters = all(domain not in url for domain in ["goldenskate", "wiki", "bios", "revolvy"])
         url_test = [domain_test, (gpf_pattern or season_pattern), name_test]
-        logger.debug(
-            f"domain test {domain_test}, gpf pattern {gpf_pattern}, season_pattern {season_pattern}, name test {name_test}")
+        logger.debug(f"domain test {domain_test}, gpf pattern {gpf_pattern}, season_pattern {season_pattern}, "
+                     f"name test {name_test}")
 
         success_bool, r = request_url("http://" + url if "http" not in url else url)
         if success_bool:
@@ -154,7 +184,7 @@ class EventSearch:
             logger.debug(f"sum url test {sum(url_test)} text test {text_test}")
             if filters and (sum(url_test) >= 3 or text_test):
                 logger.info(
-                    f"URL {url} passed tests for {self.event.name} {self.event.year} with {sum(url_test)}, {text_test}.")
+                    f"URL {url} passed tests for {self.event.name} {self.event.year} with {sum(url_test)}, {text_test}")
                 return True, event_page, compact_text
             else:
                 logger.info(f"URL {url} failed tests for {self.event.name} {self.event.year}.")
@@ -209,8 +239,9 @@ class EventSearch:
         """Scrapes an event page and returns its start date in datetime (extracted from a "start date - end date" range)
         """
         try:
-            self.event.start_date = start_date.EventDate(year=self.event.year, h2_event_flag=self.event.is_h2_event,
-                                                   text_to_parse=self.homepage_text)
+            self.event.start_date = start_date.EventDate(year=self.event.year,
+                                                         h2_event_flag=self.event.is_h2_event,
+                                                         text_to_parse=self.homepage_text)
         except ValueError as verr:
             sys.exit(f"Could not parse date from text for {self.event.name} {self.event.year}: {verr}")
 
@@ -264,11 +295,12 @@ class EventSearch:
                                 pdf.write(res.read())
                                 pdf.close()
 
-    def scrape_judging_panel(self, last_row_dic, list_of_panels, list_of_officials, season, conn_dic, all_sublinks=None):
+    def scrape_judging_panel(self, last_row_dic, list_of_panels, list_of_officials, season, conn_dic,
+                             all_sublinks=None):
 
         if not all_sublinks:
-            all_sublinks = sorted(list(set([a.get("href") for a in self.homepage.find_all("a") if
-                                        a.get("href") is not None])))
+            raw = [a.get("href") for a in self.homepage.find_all("a") if a.get("href") is not None]
+            all_sublinks = sorted(list(set(raw)))
 
         logger.debug(f"Found {len(all_sublinks)} sublinks: {all_sublinks}")
         for sublink in all_sublinks:
@@ -305,18 +337,17 @@ def request_url(url, url_flag=None):
     """Requests provided url up to MAX_TRIES times, and implements error handler function if provided.
 
     Requests provided url up to MAX_TRIES times, and implements error handler function if provided - e.g. to fetch
-    second page of google results in case of not correct match on first page. No default error handler function provided.
+    second page of google results in case of not correct match on first page.
     Keyword arguments:
     url -- url to request
-    on_failure -- function to handle any HTTP or
-    terms_to_search -- list of competition names
+    url_flag -- exits on failure if set to "critical" else passes
     """
     r = None
     for i in range(0, MAX_TRIES):
         try:
             r = requests.get(url, headers=HEADERS, timeout=3)
             r.raise_for_status()
-            bool = True
+            success_bool = True
         except requests.exceptions.Timeout as terr:
             logger.debug(f"Timeout error on {url} on try {i+1}: {terr}")
             continue
@@ -325,24 +356,24 @@ def request_url(url, url_flag=None):
                 sys.exit(f"HTTP error on critical url {url}, exiting: {herr}")
             else:
                 logger.debug(f"HTTP error on {url}, passed: {herr}")
-                bool = False
+                success_bool = False
                 break
         except requests.exceptions.TooManyRedirects as rerr:
             if url_flag == "critical":
                 sys.exit(f"HTTP error on critical url {url}, implementing alternative: {rerr}")
             else:
                 logger.debug(f"HTTP error on {url}, passed: {rerr}")
-                bool = False
+                success_bool = False
                 break
         except requests.exceptions.RequestException as err:
             if url_flag == "critical":
                 sys.exit(f"Failed on critical url {url}: {err}")
             else:
                 logger.debug(f"Failed on {url}, passed: {err}")
-                bool = False
+                success_bool = False
                 break
         break
-    return bool, r
+    return success_bool, r
 
 
 def _get_page_content(url=None, page_flag=None):

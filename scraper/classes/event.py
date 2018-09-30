@@ -99,9 +99,9 @@ class Event:
 
 
 class Segment(Event):
-    def __init__(self, id, name, year, start_date, sub_event, category, discipline, segment):
+    def __init__(self, seg_id, name, year, start_date, sub_event, category, discipline, segment):
         super().__init__(name=name, year=year, start_date=start_date)
-        self.id = id
+        self.id = seg_id
         self.category = category
         self.discipline = discipline
         self.segment = segment
@@ -119,7 +119,7 @@ class ScoredSegment(Segment):
         except ValueError:
             raise
 
-        super().__init__(id=id_dic["segments"],
+        super().__init__(seg_id=id_dic["segments"],
                          name=name_to_parse.partition("_")[2].partition("_")[0], year=y,
                          start_date=sd,
                          sub_event=_parse_sub_event(name_to_parse),

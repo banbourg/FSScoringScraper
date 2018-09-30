@@ -28,7 +28,7 @@ try:
     from generate_summary import trimmed_mean
 except ImportError as exc:
     sys.stderr.write("Error: failed to import module ({})".format(exc))
-    pass
+
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 1900)

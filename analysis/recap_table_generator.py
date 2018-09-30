@@ -2,8 +2,6 @@ import pandas as pd
 
 import sys
 import os
-import re
-import logging
 
 p_list = [os.path.abspath("../scraper/"), os.path.abspath("..")]
 for p in p_list:
@@ -16,23 +14,13 @@ try:
 except ImportError as exc:
     sys.exit(f"Error: failed to import module ({exc})")
 
-# TO DOS: Enforce double decimal, sort by h2 flag before concatenating to ensure is in right order
+# TO DOS: Auto-upload to gdrive
 
 # ------------------------------------------ CHANGE RUN PARAMETERS HERE ------------------------------------------------
 name = 'JGPCZE'
 season = 'sb2018'
 db_credentials = settings.DB_CREDENTIALS
 # ----------------------------------------------------------------------------------------------------------------------
-
-logging.basicConfig(#filename="transformer" + datetime.today().strftime("%Y-%m-%d_%H-%M-%S") + ".log",
-                    format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
-                    level=logging.DEBUG,
-                    datefmt="%Y-%m-%d %H:%M:%S")
-
-logging.addLevelName(15, "MORE_INFO")
-logging.addLevelName(5, "TRACE")
-
-logger = logging.getLogger(__name__)
 
 pd.set_option("display.max_columns", None)
 pd.set_option("display.width", 1900)
@@ -112,7 +100,7 @@ def reconstitute_elt(row):
 
 def create_recap_table(disc, df):
     disc_df = df[(df["discipline"] == disc) & (df["element_type"].isin(MASTER_DICT[disc]))
-               & ~(df["element"].str.contains("Ch"))]
+                 & ~(df["element"].str.contains("Ch"))]
 
     disc_df.drop(axis="columns", labels=["discipline"], inplace=True)
 

@@ -111,6 +111,7 @@ def _parse_unleveled_elts(match_list, dic):
     dic["elt_name"] = match_list[0]
     return dic
 
+
 def _parse_new_twists(match_list, dic):
     logger.debug(f"Match list is {match_list}")
     dic["elt_name"] = match_list[0][0]
@@ -212,11 +213,26 @@ def _parse_elt_scores(clean_row):
     return bv, None, sov_goe, total
 
 
-EXPECTED_PATTERNS = {"IceDance": [indiv_scored_elts, combo_lifts, spins, pattern_dance, old_twizzles, other_leveled_elts,
-                                  old_pattern_dance_notation, another_old_pattern_dance_notation, step_twizzle_combo,
+EXPECTED_PATTERNS = {"IceDance": [indiv_scored_elts,
+                                  combo_lifts,
+                                  spins,
+                                  pattern_dance,
+                                  old_twizzles,
+                                  other_leveled_elts,
+                                  old_pattern_dance_notation,
+                                  another_old_pattern_dance_notation,
+                                  step_twizzle_combo,
                                   old_choreo_elts],
-                     "Singles": [jumps, spins, other_leveled_elts],
-                     "Pairs": [throw_jumps, jumps, spins, new_twists, old_twists, other_pairs_elts, other_leveled_elts,
+                     "Singles": [jumps,
+                                 spins,
+                                 other_leveled_elts],
+                     "Pairs": [throw_jumps,
+                               jumps,
+                               spins,
+                               new_twists,
+                               old_twists,
+                               other_pairs_elts,
+                               other_leveled_elts,
                                old_lifts]
                      }
 
@@ -332,11 +348,11 @@ def _convert_call_dic(call_dic, season):
 
 
 class Element:
-    def __init__(self, meta_disc, id, no, name, bv, goe, sov_goe, total, invalid_flag):
+    def __init__(self, meta_disc, elt_id, no, name, bv, goe, sov_goe, total, invalid_flag):
         if sum([bv, sov_goe]).compare(total) != dec.Decimal("0"):
             raise ValueError(f"Instantiation of element {name} failed as bv ({bv}) and goe ({sov_goe}) did not sum to "
                              f"total ({total})")
-        self.id = id
+        self.id = elt_id
         self.meta_discipline = meta_disc
         self.element_name = name
         self.element_no = no
@@ -380,13 +396,15 @@ class IceDanceElement(Element):
                       "elt_1_invalid": 0, "elt_2_invalid": 0, "invalid_flag": 0, "h2_bonus_flag": 0,
                       "interruption_flag": None}
 
-        parsed_dic, calls_to_impute = parse_elt_name(text=elt_row.row_label, meta_disc="IceDance", parsed_dic=parsed_dic)
+        parsed_dic, calls_to_impute = parse_elt_name(text=elt_row.row_label,
+                                                     meta_disc="IceDance",
+                                                     parsed_dic=parsed_dic)
         bv, goe, sov_goe, total = _parse_elt_scores(elt_row.data)
 
         logger.debug(f"Parsed dic is {parsed_dic}")
 
         super().__init__(meta_disc="IceDance",
-                         id=last_row_dic["elements"],
+                         elt_id=last_row_dic["elements"],
                          no=elt_row.row_no,
                          name=parsed_dic["elt_name"],
                          bv=bv,
@@ -422,7 +440,7 @@ class SinglesElement(Element):
         bv, goe, sov_goe, total = _parse_elt_scores(elt_row.data)
 
         super().__init__(meta_disc="Singles",
-                         id=last_row_dic["elements"],
+                         elt_id=last_row_dic["elements"],
                          no=elt_row.row_no,
                          name=parsed_dic["elt_name"],
                          bv=bv,
@@ -463,7 +481,7 @@ class PairsElement(Element):
         bv, goe, sov_goe, total = _parse_elt_scores(elt_row.data)
 
         super().__init__(meta_disc="Pairs",
-                         id=last_row_dic["elements"],
+                         elt_id=last_row_dic["elements"],
                          no=elt_row.row_no,
                          name=parsed_dic["elt_name"],
                          bv=bv, goe=goe,
@@ -514,6 +532,7 @@ class ElementTests(unittest.TestCase):
         jump_dic = dict(zip(jump_keys, namechecked_jumps))
         assert elt_name == "2Lz+2T+1Lo"
         assert jump_dic["jump_3"] == "1Lo"
+
 
 if __name__ == "__main__":
     unittest.main()

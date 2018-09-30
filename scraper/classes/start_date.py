@@ -1,5 +1,4 @@
 import re
-import sys
 import logging
 
 from datetime import datetime
@@ -9,7 +8,7 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)-5s - %(message
 
 logger = logging.getLogger(__name__)
 
-date_pattern_1 = re.compile(r"(\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{4}).{1,6}\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}")
+date_pattern_1 = re.compile(r"(\d{1,2}[/\-.]\d{1,2}[/\-.]\d{4}).{1,6}\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4}")
 
 date_pattern_2 = re.compile(r"(\d{2,4}[/\-.]\d{2}[/\-.]\d{1,2}).{1,6}\d{2,4}[/\-.]\d{2}[/\-.]\d{1,2}")
 
@@ -26,7 +25,7 @@ date_pattern_5 = re.compile(r"(\d{1,2}[/\-.](Jan(uary)?|Feb(ruary)?|Mar(ch)?|Apr
                             r"\d{1,2}[/\-.](Jan(uary)?|Feb(ruary)?|Mar(ch)?|Apr(il)?|May|Jun(e)?|Jul(y)?|Aug(ust)?|"
                             r"Sep(tember)?|Oct(ober)?|Nov(ember)?|Dec(ember)?)[/\-.]\d{2,4}")
 
-date_pattern_6 = re.compile(r"(\d{1,2}[\/\-.] {0,1}\d{2}[\/\-.] {0,1}\d{4}) ")
+date_pattern_6 = re.compile(r"(\d{1,2}[/\-.] ?\d{2}[/\-.] ?\d{4}) ")
 
 
 range_separator = re.compile(r"(?i)(^\D*)(?:\d|[a-z])")
@@ -72,7 +71,10 @@ class EventDate:
 
         # Get start date string
         logger.debug(f"Date pattern search results are {date_searches}")
-        self.match_string_start = date_searches[0].group(1) if date_searches[0].group(1) is not None else date_searches[0].group(2)
+        if date_searches[0].group(1):
+            self.match_string_start = date_searches[0].group(1)
+        else:
+            self.match_string_start = date_searches[0].group(2)
         logger.debug(f"Setting self.match_string_start to {self.match_string_start}")
 
         # Get end date string
@@ -118,7 +120,7 @@ class EventDate:
 
         # Inferring when no end date is available -- rough proxy
         if end is None and not h2_event_flag:
-            if abs(exploded_start[0] -11) < abs(exploded_start[1] -11):
+            if abs(exploded_start[0] - 11) < abs(exploded_start[1] - 11):
                 return datetime.strptime(start, "%m/%d/%" + yr_format).date()
             else:
                 return datetime.strptime(start, "%m/%d/%" + yr_format).date()

@@ -1,7 +1,6 @@
 import sys
 import re
 import logging
-import pandas as pd
 import decimal as dec
 import unicodedata
 
@@ -31,7 +30,6 @@ class Protocol:
                                        size_of_sweep=(1, 4, 3),
                                        schema=schema)
         logger.debug(f"Name row is {name_row.data}")
-
 
         self.id = last_row_dic["protocols"]
         last_row_dic["protocols"] += 1
@@ -141,7 +139,7 @@ class Protocol:
             last_row_dic["pcs_averages"] += 1
 
             comp_dic = {"id": component.id, "component": component.row_label, "component_factor": component.data[0],
-                        "trimmed_av_cs":component.data[-1], "protocol_id": self.id}
+                        "trimmed_av_cs": component.data[-1], "protocol_id": self.id}
             logger.log(15, f"Logging component row as {comp_dic}")
             self.pcs_av_list.append(comp_dic)
 
@@ -185,9 +183,10 @@ class Protocol:
             logger.debug(f"RIP so we're doing this huh")
 
             # Older protocols present deductions over two rows, with two different models: total at end of top row or
-            # at end of bottom row (in which case
-            is_old_ded_format = True if segment.year < 2005 or (segment.year == 2005 and segment.name in event.H2_EVENTS) \
-                or (segment.year == 2006 and segment.name == "OWG") else False
+            # at end of bottom row
+            is_h2_sb2004_prot = (segment.year == 2005 and segment.name in event.H2_EVENTS)
+            is_torino_prot = (segment.year == 2006 and segment.name == "OWG")
+            is_old_ded_format = True if segment.year < 2005 or is_h2_sb2004_prot or is_torino_prot else False
 
             try:
                 ded_dic = datarow.DeductionRow(df=df, row=i, col_min=j).ded_detail

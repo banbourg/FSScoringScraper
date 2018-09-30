@@ -1,20 +1,18 @@
 # -*- coding: utf-8 -*-
 # #!/bin/env python
 
-
 import glob
 import pandas as pd
 from openpyxl import load_workbook
 from datetime import datetime
 
 import os
-import re
 import sys
 import logging
 
-logging.basicConfig(#filename="transformer" + datetime.today().strftime("%Y-%m-%d_%H-%M-%S") + ".log",
+logging.basicConfig(filename="transformer" + datetime.today().strftime("%Y-%m-%d_%H-%M-%S") + ".log",
                     format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
-                    level=5, # logging.DEBUG,
+                    level=5,  # logging.DEBUG,
                     datefmt="%Y-%m-%d %H:%M:%S")
 
 logging.addLevelName(15, "MORE_INFO")
@@ -23,9 +21,9 @@ logging.addLevelName(5, "TRACE")
 logger = logging.getLogger(__name__)
 
 p_list = [os.path.abspath("./classes/"), os.path.abspath("..")]
-for p in p_list:
-    if p not in sys.path:
-        sys.path.append(p)
+for path in p_list:
+    if path not in sys.path:
+        sys.path.append(path)
 
 try:
     import settings
@@ -56,7 +54,7 @@ def reorder_cols(df, col_to_move, new_pos):
 def find_protocol_coordinates(df):
     protocol_starts, protocol_ends = [], []
     for i in df.index:
-        for j in range(0,6):
+        for j in range(0, 6):
             if "Name" in str(df.iloc[i, j]):
                 protocol_starts.append(i)
             if "Deductions" in str(df.iloc[i, j]) and j < 4:
@@ -100,7 +98,7 @@ def scrape_sheet(df, segment, last_row_dic, skater_list, conn_dic):
         segment.protocol_list.append(prot)
 
 
-def convert_to_dfs(segment_list, conn_dic, competitor_list, id_dic):
+def convert_to_dfs(segment_list, competitor_list, id_dic):
     all_dics = {"segments": [], "competitors": [], "protocols": [], "pcs_averages": [], "pcs_detail": [],
                 "deductions_detail": [], "elements": [], "goe_detail": []}
     all_dfs = {}
@@ -111,10 +109,8 @@ def convert_to_dfs(segment_list, conn_dic, competitor_list, id_dic):
 
         for p in s.protocol_list:
             all_dics["protocols"].append(p.get_protocol_dic(segment=s))
-
             all_dics["pcs_averages"].extend(p.pcs_av_list)
             all_dics["pcs_detail"].extend(p.pcs_detail_list)
-
             all_dics["deductions_detail"].append(p.get_deductions_dic())
 
             for e in p.elts:
@@ -131,7 +127,6 @@ def convert_to_dfs(segment_list, conn_dic, competitor_list, id_dic):
     for key in all_dics:
         all_dfs[key] = pd.DataFrame(all_dics[key])
 
-    # panels_df = pd.read_sql_query("SELECT * FROM panels", conn_dic["engine"])
     dic = {"pcs": ["pcs_avg", "judge_no"],
            "goe": ["element", "judge_no"],
            "deductions": ["protocol", "deduction_type"]}
@@ -143,7 +138,6 @@ def convert_to_dfs(segment_list, conn_dic, competitor_list, id_dic):
         all_dfs[key] = all_dfs[key][all_dfs[key][s + "_score"].notnull()]
         all_dfs[key].insert(0, "id", range(id_dic[key], id_dic[key] + len(all_dfs[key])))
         id_dic[key] += (len(all_dfs[key]) + 1)
-    #     all_dfs[key] = pd.merge(all_dfs[key], panels_df, how='left', left_on="judge_no", right_on=["official_role"])
 
     return all_dfs
 
@@ -191,7 +185,7 @@ def clean_pyeongchang_protocols(read_path):
         os.rename(current_path, done_path)
 
 
-def transform_and_load(read_path, naming_schema, counter, db_credentials):
+def transform_and_load(read_path, counter, db_credentials):
     done_dir_path = os.path.join(read_path, "done")
     if not os.path.exists(done_dir_path):
         os.makedirs(done_dir_path)
@@ -237,7 +231,7 @@ def transform_and_load(read_path, naming_schema, counter, db_credentials):
             scrape_sheet(df=raw_df, segment=seg, last_row_dic=rows, skater_list=skater_list, conn_dic=conn_dic)
 
         if file_count % counter == 0:
-            dfs = convert_to_dfs(segment_list=segment_list, competitor_list=skater_list, conn_dic=conn_dic, id_dic=rows)
+            dfs = convert_to_dfs(segment_list=segment_list, competitor_list=skater_list, id_dic=rows)
 
             for k in dfs:
                 db_builder.create_staging_table(df=dfs[k], conn_dic=conn_dic, table_name=k, fetch_last_row=False)
@@ -255,30 +249,14 @@ def transform_and_load(read_path, naming_schema, counter, db_credentials):
         os.rename(current_path, done_path)
 
 
-
-def main():
-    # # FOR YOGEETA AND YOGEETA ONLY
-    # try:
-    #     assert len(sys.argv) in [3,4]
-    # except AssertionError:
-    #     sys.exit("Please pass in the path to the xlsx dir, the path to which the csv backup should be written, and
-    #               (optionally) an integer counter (for frequency at which results get written to the staging table,
-    #               default is every 10 files), in that order")
-    #
-    # read_path = sys.argv[1]
-    # try:
-    #     counter = int(sys.argv[1])
-    # except (IndexError, TypeError):
-    #     counter = 1
-
-    db_credentials = settings.DB_CREDENTIALS
-    read_path = settings.XLSX_READ_PATH
-    counter = 1
-    naming_schema = "_new"
-
-    clean_pyeongchang_protocols(read_path)
-    transform_and_load(read_path, naming_schema, counter, db_credentials)
-
-
 if __name__ == "__main__":
-    main()
+    db_credentials_dic = settings.DB_CREDENTIALS
+    read_dir_path = settings.XLSX_READ_PATH
+    file_counter = 1
+
+    if len(sys.argv) == 1:
+        # clean_pyeongchang_protocols(read_path)
+        transform_and_load(read_dir_path, file_counter, db_credentials_dic)
+    else:
+        # clean_pyeongchang_protocols(read_path)
+        transform_and_load(sys.argv[1], sys.argv[2], sys.argv[3])

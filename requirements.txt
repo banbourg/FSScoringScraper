@@ -34,14 +34,13 @@ matplotlib == 2.2.2
 # scraper/name_matcher.py: 4
 numpy == 1.14.3
 
-# scraper/transformer_xlsx.py: 7
+# scraper/transformer_xlsx.py: 6
 openpyxl == 2.5.3
 
 # analysis/impute_falls.py: 3,10
 # analysis/normality_tests.py: 3
 # analysis/recap_table_generator.py: 1
 # analysis/variance_analysis.py: 3
-# scraper/classes/protocol.py: 4
 # scraper/classes/search.py: 6
 # scraper/db_builder.py: 7
 # scraper/name_matcher.py: 5
@@ -50,7 +49,7 @@ openpyxl == 2.5.3
 # scraper/one_off_changes/one_off_missing_ded_append.py: 4
 # scraper/one_off_changes/one_off_pokemonizer.py: 3
 # scraper/panel_scraper.py: 8
-# scraper/transformer_xlsx.py: 6
+# scraper/transformer_xlsx.py: 5
 pandas == 0.23.0
 
 # scraper/pdf_converter.py: 8

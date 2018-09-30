@@ -14,9 +14,7 @@ logger = logging.getLogger(__name__)
 try:
     None
 except ImportError as exc:
-    sys.stderr.write("Error: failed to import module ({})".format(exc))
-    sys.stderr.write("Error: failed to import module ({})".format(exc))
-    sys.exit(1)
+    sys.exit("Error: failed to import module ({})".format(exc))
 
 NUMBER_AND_NAME_PATTERN = re.compile(r"^\d+\s+\D+")
 DED_TYPE_PATTERN = re.compile(r"[A-Z][^:\-0-9.]*")
@@ -46,7 +44,6 @@ EXPECTED_DED_TYPES = ["total", "falls", "time violation", "costume failure", "la
                       "extra element by verif", "illegal element / movement", "music restriction violation",
                       "music tempo", "violation of choreography restrictions", "music requirements violation",
                       "costume/prop violation", "music requirements", "extended lift"]
-
 
 
 class DataRow:
@@ -148,7 +145,10 @@ class ScoreRow(DataRow):
     def _infer_from_previous_element(self, mode, row_list, judges, elt_list):
         logger.debug(f"Inferring from previous element")
         try:
-            case, dashless = self._remove_dash_columns(mode=mode, row_list=row_list, judges=judges, case=elt_list[-1].case)
+            case, dashless = self._remove_dash_columns(mode=mode,
+                                                       row_list=row_list,
+                                                       judges=judges,
+                                                       case=elt_list[-1].case)
         except PossibleOWGException:
             raise
         return case, dashless
@@ -188,7 +188,7 @@ class GOERow(ScoreRow):
         self.row_label = " ".join(self.split_list[1:self.split_index])
         try:
             self.case, self.data = self._clean_goe_row(judges, elt_list)
-        except PossibleOWGException as poe:
+        except PossibleOWGException:
             missing_data = DataRow(df=df, row=row-1, col_min=0).raw
             if len(missing_data) == 1:
                 self.split_list.insert(3, str(missing_data[0]))
@@ -248,6 +248,7 @@ class NameRow(DataRow):
         if is_one_short and self.data[1][-3:] in iso3166.countries_by_alpha3:
             self.data = [self.data[0], self.data[1][:-3].strip(), self.data[1][-3:].strip()] + self.data[2:]
 
+
 class DeductionRow(DataRow):
     def __init__(self, raw=None, df=None, row=None, col_min=None):
         super().__init__(raw, df, row, col_min)
@@ -300,10 +301,12 @@ class DeductionRow(DataRow):
                         i += 2
                         logger.log(5, f"WIP list is {output_row}")
                     else:
-                        logger.log(5, f"Ded cell {input_row[i]} is case 2: newline without requirement to de-interleave")
+                        logger.log(5, f"Ded cell {input_row[i]} is case 2: newline without requirement to "
+                                      f"de-interleave")
                         sys.exit(1)
                 else:
-                    logger.log(5, f"{this_cell} FAILED TEST 1: not text cell, <1 before end or not neighbours a digit cell")
+                    logger.log(5, f"{this_cell} FAILED TEST 1: not text cell, <1 before end or doesn't neighbour"
+                                  f" a digit cell")
                     filtered_list = [i for i in this_cell if is_digit_cell(i) and is_int(i) or
                                      is_text_cell(i) and is_ded_type_string(i)]
                     logger.debug(f"Filtered list is {filtered_list}")
@@ -346,7 +349,7 @@ class DeductionRow(DataRow):
                 assert str_raw.count(r[0]) == 2
                 str_raw = re.sub(MAJORITY_VIOLATION, "", str_raw)
                 votes_to_remove = int(r[1][0])
-                str_raw=re.sub(pattern=DEDUCTION_VOTE, repl="", string=str_raw, count=votes_to_remove)
+                str_raw = re.sub(pattern=DEDUCTION_VOTE, repl="", string=str_raw, count=votes_to_remove)
             self.raw = re.split(SPLITTER, str_raw)
         logger.debug(f"Row after removing violation votes is {self.raw}")
 

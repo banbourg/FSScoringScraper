@@ -26,7 +26,7 @@ def _parse_name(full_name):
     first_name_list, last_name_list = [], []
     for w in [word.replace(".", "").strip() for word in exploded_name]:
         if len(w) > 1 and (w[1].isupper() or w[:2] == "Mc" or w[:2] == "O'" or (w[:3] == "Mac" and w[3].isupper())
-        or w == "van" or w == "von"):
+           or w == "van" or w == "von"):
             last_name_list.append(w.upper())
         else:
             first_name_list.append(w)
@@ -69,7 +69,7 @@ class Person:
                                        (self.tight_full_name,))
             prev_id = conn_dic["cursor"].fetchall()
             try:
-                assert len(prev_id) in [0,1]
+                assert len(prev_id) in [0, 1]
             except AssertionError as ae:
                 logger.error(f"prev_id returned {prev_id}: {ae}")
 
@@ -110,9 +110,9 @@ class SinglesSkater(Person):
                          season_observed=season_observed, fed_observed=name_row.data[2], mode="competitors",
                          conn_dic=conn_dic)
 
-        logger.log(15,f"Instantiated SinglesSkater with id {self.id}, name "
-                      f"{unicodedata.normalize('NFKD', self.full_name).encode('ascii','ignore')}, fed "
-                      f"{self.fed_dic[season_observed + '_fed']}")
+        logger.log(15, f"Instantiated SinglesSkater with id {self.id}, name "
+                       f"{unicodedata.normalize('NFKD', self.full_name).encode('ascii','ignore')}, fed "
+                       f"{self.fed_dic[season_observed + '_fed']}")
 
 
 class Team:
@@ -150,7 +150,7 @@ class Team:
                                        (self.team_name,))
             prev_id = conn_dic["cursor"].fetchall()
             try:
-                assert len(prev_id) in [0,1]
+                assert len(prev_id) in [0, 1]
             except AssertionError as ae:
                 logger.error(f"prev_id returned {prev_id}: {ae}")
 
@@ -172,7 +172,6 @@ class Team:
         competitor_list.append(self)
         last_row_dic["competitors"] += 1
         return int(last_row_dic["competitors"] - 1)
-
 
     def get_competitor_dict(self):
         dic = {"id": self.id,
@@ -196,7 +195,7 @@ class Official(Person):
 
         logger.log(15, f"Instantiated official with id {self.id}, name "
                        f"{unicodedata.normalize('NFKD', self.full_name).encode('ascii','ignore')}, fed "
-                     f"{self.fed_dic[season_observed + '_fed']}")
+                       f"{self.fed_dic[season_observed + '_fed']}")
 
 
 class Panel:
