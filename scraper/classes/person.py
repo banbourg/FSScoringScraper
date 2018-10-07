@@ -26,7 +26,7 @@ def _parse_name(full_name):
     first_name_list, last_name_list = [], []
     for w in [word.replace(".", "").strip() for word in exploded_name]:
         if len(w) > 1 and (w[1].isupper() or w[:2] == "Mc" or w[:2] == "O'" or (w[:3] == "Mac" and w[3].isupper())
-           or w == "van" or w == "von"):
+           or w == "van" or w == "von" or w == "de"):
             last_name_list.append(w.upper())
         else:
             first_name_list.append(w)
@@ -220,8 +220,11 @@ class Panel:
 
         # Find increment (sometimes country appears twice)
         if roles_table:
-            indices = [roles_table.index(r) for r in
-                       ["Referee", "Technical Controller", "Technical Controller"]]
+            try:
+                indices = [roles_table.index(r) for r in
+                       ["Referee", "Technical Controller", "Technical Specialist"]]
+            except ValueError:
+                indices = [roles_table.index("Referee")]
             first_entry = min(indices)
             increment = 4 if (roles_table[first_entry + 2] == roles_table[first_entry + 3]) else 3
             logger.debug(f"Table starts at {first_entry}, incrementing by {increment}, len {len(roles_table)}")

@@ -31,60 +31,6 @@ except ImportError as exc:
 
 # CONSTANTS AND CONVERTER DICTIONARIES, NO NEED TO AMEND THESE EXCEPT IF ADDING NEW EVENTS
 # ----------------------------------------------------------------------------------------------------------------------
-DBNAME_TO_URLNAME = {"NHK": "gpjpn",
-                     "TDF": "gpfra",
-                     "SC": "gpcan",
-                     "COR": "gprus",
-                     "SA": "gpusa",
-                     "COC": "gpchn",
-                     "GPF": "gpf",
-                     "WC": "wc",
-                     "4CC": "fc",
-                     "OWG": "owg",
-                     "WTT": "wtt",
-                     "EC": "ec",
-                     "AO": "ISUCSAO",
-                     "Lombardia": "lombardia",
-                     "Nepela": "ont",
-                     "Finlandia": "CSFIN",
-                     "Nebelhorn": "nt",
-                     "ACI": "CSCAN",
-                     "Warsaw": "warsawcup",
-                     "USClassic": "us_intl_classic",
-                     "GoldenSpin": "",
-                     "DenkovaStaviksi": "ISUCS",
-                     "IceStar": "Ice_Star",
-                     "MordovianOrnament": "CSRUS",
-                     "JGPAUT": "jgpaut",
-                     "JGPSVK": "jgpsvk",
-                     "JGPLTU": "jgpltu",
-                     "JGPCAN": "jgpcan",
-                     "JGPCZE": "fsevent"}
-
-EXPECTED_DOMAIN = {"AO": "fsatresults",
-                   "Lombardia": "fisg",
-                   "USClassic": "usfigureskating",
-                   "Nepela": "kraso",
-                   "ACI": "skatecanada",
-                   "Nebelhorn": "isuresults",
-                   "Finlandia": "figureskatingresults",
-                   "Tallinn": "data.tallinntrophy",
-                   "Warsaw": "pfsa", "GoldenSpin": "netlify",
-                   "DenkovaStaviksi": "clubdenkovastaviski",
-                   "IceStar": "figure.skating.by",
-                   "MordovianOrnament": "fsrussia"}
-
-MAX_TRIES = 10  # before timeout on .get() requests
-
-
-HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) "
-                         "Chrome/68.0.3440.106 Safari/537.36"}
-
-ROOT_DOMAIN_PATTERN = re.compile(r"^((?:http(?:s)?://)?(www)?[A-Za-z\d\-]{3,}\.[a-z.]{2,6})(?:/)")
-
-JUDGE_PAGE_TITLE = re.compile(r"(Team)?(Junior)? (Men|Ladies|Ice Dance|Pairs)( Single Skating)? - (Short|Rhythm|Free) "
-                              r"(Program|Dance|Skating)")
-
 SEARCHTERM_TO_DBNAME = {"nhk+trophy": "NHK",
                         "rostelecom+cup": "COR",
                         "france": "TDF",
@@ -118,7 +64,63 @@ SEARCHTERM_TO_DBNAME = {"nhk+trophy": "NHK",
                         "jgp+bratislava": "JGPSVK",
                         "jgp+amber+cup": "JGPLTU",
                         "jgp+canada": "JGPCAN",
-                        "jgp+czech+skate": "JGPCZE"}
+                        "jgp+czech+skate": "JGPCZE",
+                        "jgp+ljubljana": "JGPSLO"}
+
+DBNAME_TO_URLNAME = {"NHK": "gpjpn",
+                     "TDF": "gpfra",
+                     "SC": "gpcan",
+                     "COR": "gprus",
+                     "SA": "gpusa",
+                     "COC": "gpchn",
+                     "GPF": "gpf",
+                     "WC": "wc",
+                     "4CC": "fc",
+                     "OWG": "owg",
+                     "WTT": "wtt",
+                     "EC": "ec",
+                     "AO": "ISUCSAO",
+                     "Lombardia": "lombardia",
+                     "Nepela": "ont",
+                     "Finlandia": "CSFIN",
+                     "Nebelhorn": "nt",
+                     "ACI": "CSCAN",
+                     "Warsaw": "warsawcup",
+                     "USClassic": "us_intl_classic",
+                     "GoldenSpin": "",
+                     "DenkovaStaviksi": "ISUCS",
+                     "IceStar": "Ice_Star",
+                     "MordovianOrnament": "CSRUS",
+                     "JGPAUT": "jgpaut",
+                     "JGPSVK": "jgpsvk",
+                     "JGPLTU": "jgpltu",
+                     "JGPCAN": "jgpcan",
+                     "JGPCZE": "fsevent",
+                     "JGPSLO": "jgpslo"}
+
+EXPECTED_DOMAIN = {"AO": "fsatresults",
+                   "Lombardia": "fisg",
+                   "USClassic": "usfigureskating",
+                   "Nepela": "kraso",
+                   "ACI": "skatecanada",
+                   "Nebelhorn": "isuresults",
+                   "Finlandia": "figureskatingresults",
+                   "Tallinn": "data.tallinntrophy",
+                   "Warsaw": "pfsa", "GoldenSpin": "netlify",
+                   "DenkovaStaviksi": "clubdenkovastaviski",
+                   "IceStar": "figure.skating.by",
+                   "MordovianOrnament": "fsrussia"}
+
+MAX_TRIES = 10  # before timeout on .get() requests
+
+
+HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) "
+                         "Chrome/68.0.3440.106 Safari/537.36"}
+
+ROOT_DOMAIN_PATTERN = re.compile(r"^((?:http(?:s)?://)?(www)?[A-Za-z\d\-]{3,}\.[a-z.]{2,6})(?:/)")
+
+JUDGE_PAGE_TITLE = re.compile(r"(Team)? ?(Junior)? ?(Men|Ladies|Ice Dance|Pairs|Ice Dancing|Pair|Dance)(?: Single)?"
+                              r"(?: Skating)? - (Short|Rhythm|Free|Compulsory|Original) (Program|Dance|Skating)")
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -168,7 +170,7 @@ class EventSearch:
         full_season_yrs_in_url = self.event.season[4:] + str(int(self.event.season[4:]) + 1) in url
         season_pattern = str(self.event.year) in url or short_season_yrs_in_url or full_season_yrs_in_url
 
-        filters = all(domain not in url for domain in ["goldenskate", "wiki", "bios", "revolvy"])
+        filters = all(domain not in url for domain in ["goldenskate", "wiki", "bios", "revolvy", "rockerskating"])
         url_test = [domain_test, (gpf_pattern or season_pattern), name_test]
         logger.debug(f"domain test {domain_test}, gpf pattern {gpf_pattern}, season_pattern {season_pattern}, "
                      f"name test {name_test}")
@@ -316,10 +318,15 @@ class EventSearch:
                         logger.debug(f"Found required elements in page {title_search.group(0)}")
 
                         # --- Set segment, sub_event, discipline and category
-                        segment = title_search.group(5)[0] + title_search.group(6)[0]
-                        discipline = "IceDance" if title_search.group(3) == "Ice Dance" else title_search.group(3)
+                        segment = title_search.group(4)[0] + title_search.group(5)[0]
+                        if "Danc" in title_search.group(3):
+                            discipline = "IceDance"
+                        elif "Pair" in title_search.group(3):
+                            discipline = "Pairs"
+                        else:
+                            discipline = title_search.group(3)
                         category = "Jr" if title_search.group(2) == "Junior" else "Sr"
-                        sub_event = title_search.group(1)
+                        sub_event = title_search.group(1).lower() if title_search.group(1) else None
 
                         # --- Extract and clean panel data
                         roles_table = [re.sub(r"\n+", "", td.get_text()).strip() for td in page.find_all('td')]

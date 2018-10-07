@@ -23,7 +23,7 @@ except ImportError as exc:
 
 # ------------------------------------------- CHANGE SEARCH PARAMETERS HERE --------------------------------------------
 START_YEAR, END_YEAR = 2018, 2018
-GOOGLE_SEARCH_TERMS = ["nebelhorn+trophy"] # look at the dic in events for good search strings
+GOOGLE_SEARCH_TERMS = ["jgp+ljubljana"] # look at the dic in events for good search strings
 PER_DISCIPLINE_SETTINGS = {"men": True, "ladies": True, "pairs": True, "dance": True}
 SEARCH_CAT = "junior" # set to "junior" to search for juniors
 WRITE_PATH = settings.PDF_WRITE_PATH
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     for t in GOOGLE_SEARCH_TERMS:
         for y in range(START_YEAR, END_YEAR + 1):
             event_search = search.EventSearch(search_phrase=t, search_year=y, category=SEARCH_CAT,
-                                        per_disc_settings=PER_DISCIPLINE_SETTINGS)
+                                              per_disc_settings=PER_DISCIPLINE_SETTINGS)
             success = event_search.set_event_homepage()
             if not success:
                 sys.exit(f"Could not find google result that passed tests for {event_search.event.name} "

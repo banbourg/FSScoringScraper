@@ -10,7 +10,7 @@ import os
 import sys
 import logging
 
-logging.basicConfig(filename="transformer" + datetime.today().strftime("%Y-%m-%d_%H-%M-%S") + ".log",
+logging.basicConfig(#filename="transformer" + datetime.today().strftime("%Y-%m-%d_%H-%M-%S") + ".log",
                     format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
                     level=5,  # logging.DEBUG,
                     datefmt="%Y-%m-%d %H:%M:%S")

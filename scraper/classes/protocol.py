@@ -46,8 +46,6 @@ class Protocol:
 
         self.number_of_judges = self.count_judges(df)
 
-        logger.debug(f"name_row.data pre fix is {name_row.data}")
-
         self.skater = CONSTRUCTOR_DIC[segment.discipline]["competitor"](name_row, skater_list, last_row_dic,
                                                                         self.season, conn_dic)
 

@@ -8,7 +8,7 @@ import os
 import pandas as pd
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)-5s - %(message)s",
-                    level=logging.INFO,
+                    level=logging.DEBUG,
                     datefmt="%Y-%m-%d %H:%M:%S")
 
 logger = logging.getLogger(__name__)
@@ -35,22 +35,26 @@ except ImportError as exc:
 MODE = "A"  # Always try A first, then B (to insert homepage manually) or C (to enter list of links to officials tables)
 ENABLE_PAUSE = True  # If True script will pause for confirmation before writing from staging to final
 PER_DISCIPLINE_SETTINGS = {"men": True, "ladies": True, "pairs": True, "dance": True}
-SEARCH_CAT = "senior"  # Set to "junior" to search for juniors
+SEARCH_CAT = "junior"  # Set to "junior" to search for juniors
 
 # IF MODE A ALSO POPULATE
-GOOGLE_SEARCH_TERMS = ["nhk+trophy"]  # use one of the searches in SEARCHNAME_TO_DBNAME (in search.py)
-START_YEAR, END_YEAR = 2007, 2015
+GOOGLE_SEARCH_TERMS = ["jgp+ljubljana"]  # use one of the searches in SEARCHNAME_TO_DBNAME (in search.py)
+START_YEAR, END_YEAR = 2018, 2018
 
 # IF MODE IS EITHER B OR C ALSO POPULATE
-MANUAL_SEARCH_PHR = "golden+spin+zagreb"  # e.g. "tallinn+trophy", use searches in SEARCHNAME_TO_DBNAME (in search.py)
+MANUAL_SEARCH_PHR = "world+team+trophy"  # e.g. "tallinn+trophy", use searches in SEARCHNAME_TO_DBNAME (in search.py)
 MANUAL_SEARCH_YR = 2017  # e.g. 2014
 
 # IF MODE B ALSO POPULATE:
-MANUAL_HOMEPAGE = "https://sharp-jackson-2e11d8.netlify.com/"
+MANUAL_HOMEPAGE = "https://www.jsfresults.com/intl/2016-2017/wtt/"
+# "http://www.isuresults.com/results/season1718/gpjpn2017/"
+# "http://www.isuresults.com/results/season1718/gpf1718/"
+# "http://www.kraso.sk/wp-content/uploads/sutaze/2018_2019/20180920_ont/"
+# "https://sharp-jackson-2e11d8.netlify.com/"
 # e.g. "http://www.figureskatingresults.fi/results/1718/CSFIN2017/index.htm"
 
 # IF MODE C ALSO POPULATE:
-manual_list = []  # Examples below
+manual_list = ["https://data.tallinntrophy.eu/2017/Tallinn_Trophy/Challenger/SEG00" + str(x) + "OF.HTM" for x in range(1, 9)]  # Examples below
 # tt_15 = ["https://data.tallinntrophy.eu/2015/Tallinn_Trophy/CSEST2015/SEG00"+ str(x) + "OF.HTM" for x in range(1, 9)]
 # tt_16 = ["https://data.tallinntrophy.eu/2016/Tallinn_Trophy/International/SEG00"+ str(x) + "OF.HTM" for x in range(1, 9)]
 # tt_17 = ["https://data.tallinntrophy.eu/2017/Tallinn_Trophy/Challenger/SEG00" + str(x) + "OF.HTM" for x in range(1, 9)]
@@ -85,6 +89,15 @@ def convert_and_upload(search_obj, list_of_officials, list_of_panels, conn_dic, 
         # Set segment ID
         ided = pd.merge(filtered, segment_df, how="left",
                         on=["season", "name", "sub_event", "category", "discipline", "segment"])
+
+        check = ided[ided["segment_id"].isnull()]
+        try:
+            assert check.dropna().empty
+        except AssertionError:
+            logger.error("Not all segments matched:")
+            logger.error(check)
+
+        ided = ided[ided["segment_id"].notnull()]
         ided.drop(axis="columns",
                   labels=seg_columns + ["is_h2_event", "is_A_comp", "is_cs_event", "year", "start_date"],
                   inplace=True)
@@ -94,39 +107,10 @@ def convert_and_upload(search_obj, list_of_officials, list_of_panels, conn_dic, 
 
     if ENABLE_PAUSE:
         input("Hit Enter to write to main tables")
-    if not officials_df.empty:
+    if officials_df is not None and not officials_df.empty:
         db_builder.write_to_final_table(df=officials_df, conn_dic=conn_dic, table_name="officials")
-    if not ided.empty:
+    if ided is not None and not ided.empty:
         db_builder.write_to_final_table(df=ided, conn_dic=conn_dic, table_name="panels")
-
-    goe_query = """
-    UPDATE goe_detail AS g
-    SET official_id = o.id
-    FROM officials AS o, elements AS e, protocols as pr, panels as pa, segments as s
-    WHERE g.element_id = e.id AND 
-	  e.protocol_id = pr.id AND 
-	  pr.segment_id = s.id AND 
-	  s.id = pa.segment_id AND 
-	  pa.official_role = g.judge_no AND
-	  pa.official_id = o.id;"""
-
-    conn_dic["cursor"].execute(goe_query)
-    conn_dic["conn"].commit()
-    logger.info(f"Updated goe_detail")
-
-    pcs_query = """
-    UPDATE pcs_detail AS p
-    SET official_id = o.id
-    FROM officials AS o, pcs_averages as pc, protocols as pr, panels as pa, segments as s
-    WHERE p.pcs_avg_id = pc.id AND 
-      pc.protocol_id = pr.id AND 
-      pr.segment_id = s.id AND 
-      s.id = pa.segment_id AND 
-      pa.official_role = p.judge_no AND
-      pa.official_id = o.id;"""
-    conn_dic["cursor"].execute(pcs_query)
-    conn_dic["conn"].commit()
-    logger.info(f"Updated pcs_detail")
 
     return [], []
 
@@ -192,6 +176,33 @@ def main(mode):
                                       list_of_officials=loo,
                                       search_obj=s,
                                       segment_df=seg_df)
+
+    goe_query = """
+    UPDATE goe_detail AS g
+    SET official_id = o.id
+    FROM officials AS o, elements AS e, protocols as pr, panels as pa
+    WHERE g.element_id = e.id AND
+      e.protocol_id = pr.id AND
+      pr.segment_id = pa.segment_id AND
+      pa.official_role = g.judge_no AND
+      pa.official_id = o.id;"""
+
+    conn_dic["cursor"].execute(goe_query)
+    conn_dic["conn"].commit()
+    logger.info(f"Updated goe_detail")
+
+    pcs_query = """
+    UPDATE pcs_detail AS p
+    SET official_id = o.id
+    FROM officials AS o, pcs_averages as pc, protocols as pr, panels as pa
+    WHERE p.pcs_avg_id = pc.id AND
+      pc.protocol_id = pr.id AND
+      pr.segment_id = pa.segment_id AND
+      pa.official_role = p.judge_no AND
+      pa.official_id = o.id;"""
+    conn_dic["cursor"].execute(pcs_query)
+    conn_dic["conn"].commit()
+    logger.info(f"Updated pcs_detail")
 
 
 if __name__ == '__main__':

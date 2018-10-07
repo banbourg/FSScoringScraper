@@ -17,8 +17,9 @@ except ImportError as exc:
 # TO DOS: Auto-upload to gdrive
 
 # ------------------------------------------ CHANGE RUN PARAMETERS HERE ------------------------------------------------
-name = 'JGPCZE'
+name = 'JGPSLO'
 season = 'sb2018'
+target_disc_list = ["IceDance", "Men", "Ladies", "Pairs"]
 db_credentials = settings.DB_CREDENTIALS
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -133,7 +134,7 @@ def create_recap_table(disc, df):
     unstacked = unstacked[unstacked.columns[[1, 3, 0, 4, 2]]]
     unstacked.sort_values("total", axis=0, ascending=False, inplace=True)
     unstacked = unstacked.head(5)
-    print(unstacked)
+    unstacked.to_csv(path_or_buf=(settings.WRITE_PATH+name+season+disc+".csv"), header=True, mode='w')
 
 
 def main(name, season):
@@ -154,7 +155,7 @@ def main(name, season):
     clean_df = df[col_list]
     clean_df.sort_values("element_no", axis=0, ascending=True, inplace=True)
 
-    for disc in ["IceDance", "Men", "Pairs", "Ladies"]:
+    for disc in target_disc_list:
         create_recap_table(disc, clean_df)
 
 
