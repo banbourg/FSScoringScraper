@@ -185,9 +185,13 @@ class EventSearch:
 
             logger.debug(f"sum url test {sum(url_test)} text test {text_test}")
             if filters and (sum(url_test) >= 3 or text_test):
-                logger.info(
-                    f"URL {url} passed tests for {self.event.name} {self.event.year} with {sum(url_test)}, {text_test}")
-                return True, event_page, compact_text
+                logger.info(f"URL {url} passed tests for {self.event.name} {self.event.year} with {sum(url_test)}, "
+                            f"{text_test}")
+                check = input("Does this look wrong? Enter Y or N:")
+                if check == "N":
+                    return True, event_page, compact_text
+                else:
+                    return False, None, None
             else:
                 logger.info(f"URL {url} failed tests for {self.event.name} {self.event.year}.")
                 return False, None, None

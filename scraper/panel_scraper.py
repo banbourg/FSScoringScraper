@@ -35,11 +35,11 @@ except ImportError as exc:
 MODE = "A"  # Always try A first, then B (to insert homepage manually) or C (to enter list of links to officials tables)
 ENABLE_PAUSE = True  # If True script will pause for confirmation before writing from staging to final
 PER_DISCIPLINE_SETTINGS = {"men": True, "ladies": True, "pairs": True, "dance": True}
-SEARCH_CAT = "junior"  # Set to "junior" to search for juniors
+SEARCH_CAT = "senior"  # Set to "junior" to search for juniors
 
 # IF MODE A ALSO POPULATE
-GOOGLE_SEARCH_TERMS = ["jgp+ljubljana"]  # use one of the searches in SEARCHNAME_TO_DBNAME (in search.py)
-START_YEAR, END_YEAR = 2018, 2018
+GOOGLE_SEARCH_TERMS = ["finlandia+trophy"]  # use one of the searches in SEARCHNAME_TO_DBNAME (in search.py)
+START_YEAR, END_YEAR = 2017, 2017
 
 # IF MODE IS EITHER B OR C ALSO POPULATE
 MANUAL_SEARCH_PHR = "world+team+trophy"  # e.g. "tallinn+trophy", use searches in SEARCHNAME_TO_DBNAME (in search.py)
