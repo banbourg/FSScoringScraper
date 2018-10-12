@@ -19,7 +19,7 @@ beautifulsoup4 == 4.6.0
 dash == 0.25.0
 
 # analysis/impute_falls.py: 8
-dash-core-components == 0.30.2
+dash-core-components == 0.33.0
 
 # analysis/impute_falls.py: 9
 dash-html-components == 0.13.2
@@ -51,6 +51,9 @@ openpyxl == 2.5.3
 # scraper/panel_scraper.py: 8
 # scraper/transformer_xlsx.py: 5
 pandas == 0.23.0
+
+# scraper/classes/search.py: 7
+pdfkit == 0.6.1
 
 # scraper/pdf_converter.py: 8
 pdftables_api == 1.0.0

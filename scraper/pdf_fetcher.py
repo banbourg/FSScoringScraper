@@ -39,6 +39,7 @@ class HomepageNotFound(ValueError):
 
 
 def scrape_event_pdfs(search_term, start_year, end_year, category, per_disc_settings, write_path):
+
     for y in range(start_year, end_year + 1):
         event_search = search.EventSearch(search_phrase=search_term,
                                           search_year=y,
@@ -49,8 +50,12 @@ def scrape_event_pdfs(search_term, start_year, end_year, category, per_disc_sett
             raise HomepageNotFound(year=y, message=f"Could not find google result that passed tests for "
                                                    f"{event_search.event.name} {event_search.event.year}")
         else:
-            event_search.download_pdf_protocols(write_path=write_path)
-            logger.info(f"Downloaded protocols for {event_search.event.name} {event_search.event.year}")
+            if search_term != "us+figure+skating+classic":
+                event_search.download_pdf_protocols(write_path=write_path)
+                logger.info(f"Downloaded protocols for {event_search.event.name} {event_search.event.year}")
+            else:
+                event_search.download_usfed_protocols(write_path=write_path)
+                logger.info(f"Downloaded USFed protocols for {event_search.event.name} {event_search.event.year}")
 
 
 if __name__ == '__main__':

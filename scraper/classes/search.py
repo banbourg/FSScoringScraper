@@ -4,6 +4,7 @@
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+import pdfkit
 
 import unittest
 
@@ -113,7 +114,6 @@ EXPECTED_DOMAIN = {"AO": "fsatresults",
 
 MAX_TRIES = 10  # before timeout on .get() requests
 
-
 HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) "
                          "Chrome/68.0.3440.106 Safari/537.36"}
 
@@ -121,6 +121,8 @@ ROOT_DOMAIN_PATTERN = re.compile(r"^((?:http(?:s)?://)?(www)?[A-Za-z\d\-]{3,}\.[
 
 JUDGE_PAGE_TITLE = re.compile(r"(Team)? ?(Junior)? ?(Men|Ladies|Ice Dance|Pairs|Ice Dancing|Pair|Dance)(?: Single)?"
                               r"(?: Skating)? - (Short|Rhythm|Free|Compulsory|Original) (Program|Dance|Skating)")
+
+USFED_TITLE = re.compile("Senior (Ladies|Men|Pairs|Dance) / (Short|Free|Rhythm) (Program|Dance|Skat)")
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -187,7 +189,7 @@ class EventSearch:
             if filters and (sum(url_test) >= 3 or text_test):
                 logger.info(f"URL {url} passed tests for {self.event.name} {self.event.year} with {sum(url_test)}, "
                             f"{text_test}")
-                check = input("Does this look wrong? Enter Y or N:")
+                check = input("Does this look wrong? Enter Y or N: ")
                 if check == "N":
                     return True, event_page, compact_text
                 else:
@@ -210,7 +212,7 @@ class EventSearch:
         elif sublink[0] == "/":
             root = re.search(ROOT_DOMAIN_PATTERN, self.homepage_url).group(1)
         elif "index" in self.homepage_url:
-            root = re.sub(r"/index[A-Za-z\d]*\.htm[l]*$", "/", self.homepage_url)
+            root = re.sub(r"/index?[A-Za-z\d]*\.(?:htm[l]*|asp)$", "/", self.homepage_url)
         else:
             root = self.homepage_url
         temp = root + sublink
@@ -251,15 +253,17 @@ class EventSearch:
         except ValueError as verr:
             sys.exit(f"Could not parse date from text for {self.event.name} {self.event.year}: {verr}")
 
-    def generate_pdf_filename(self, pdf_link, disc_code):
+    def generate_pdf_filename(self, pdf_link, disc_code=None, disc=None, segment=None):
         """Generates the pdf filename from the sublink and other known event identifiers
         """
         raw_name = pdf_link.rpartition("/")[2]
-        if re.search(r"data[0-9]{4}", raw_name):
+        if re.search(r"data[0-9]{4}", raw_name) and disc_code:
             length = "S" if disc_code[2:] == "03" else "F"
             programme_type = "D" if event.DISC_CODES_DIC[disc_code] == "Dance" else "P"
             filename = "_".join([self.event.name + str(self.event.year), event.DISC_CODES_DIC[disc_code],
                                  length + programme_type]) + ".pdf"
+        elif disc and segment:
+            filename = "_".join([self.event.name + str(self.event.year), disc, segment]) + ".pdf"
         else:
             filename = self.event.name + "_" + raw_name
         return self.event.start_date.start_date.strftime("%y%m%d") + "_" + filename
@@ -300,6 +304,33 @@ class EventSearch:
                                 pdf = open(write_path + filename, "wb")
                                 pdf.write(res.read())
                                 pdf.close()
+
+    def download_usfed_protocols(self, write_path):
+        all_sublinks = list(set([a.get("href") for a in self.homepage.find_all("a")]))
+        for sublink in all_sublinks:
+
+            segment_url = self._construct_absolute_url(sublink)
+            logger.info(f"Examining {segment_url} for {self.event.name} {self.event.year}")
+
+            success_bool_1, page, compact_text = _get_page_content(url=segment_url, page_flag=None)
+            if not success_bool_1:
+                pass
+            else:
+                try:
+                    temp = page.find_all("a", href=True, text="Judge detail scores")[0].get("href")
+                except IndexError:
+                    return
+                protocols_url = self._construct_absolute_url(temp)
+
+                success_bool_2, prot_page, prot_text = _get_page_content(url=protocols_url, page_flag=None)
+                if not success_bool_2:
+                    pass
+                else:
+                    disc, segment = _parse_usfed_protocol_titles(prot_text)
+                    filename = self.generate_pdf_filename(pdf_link=sublink, disc=disc, segment=segment)
+                    file_path = os.path.join(write_path, filename)
+                    logger.info(file_path)
+                    pdfkit.from_url(protocols_url, file_path)
 
     def scrape_judging_panel(self, last_row_dic, list_of_panels, list_of_officials, season, conn_dic,
                              all_sublinks=None):
@@ -398,6 +429,16 @@ def _get_page_content(url=None, page_flag=None):
         return success_bool, None, None
     else:
         return False, None, None
+
+
+def _parse_usfed_protocol_titles(compact_text):
+    res = re.search(USFED_TITLE, compact_text)
+    if res:
+        disc = res.group(1) if res.group(1) != "Dance" else "IceDance"
+        segment = res.group(2)[0] + res.group(3)[0]
+        return disc, segment
+    else:
+        sys.exit("Could not find expected protocol pattern title")
 
 
 def remove_newlines(a_string):

@@ -200,7 +200,7 @@ if __name__ == '__main__':
 
     page_count = 0
     api_key = ''
-    email_count = 27
+    email_count = 0
 
     output_path = os.path.join(file_path, "converted_excels")
     if not os.path.exists(output_path):
