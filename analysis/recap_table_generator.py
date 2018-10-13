@@ -14,12 +14,10 @@ try:
 except ImportError as exc:
     sys.exit(f"Error: failed to import module ({exc})")
 
-# TO DOS: Auto-upload to gdrive
-
 # ------------------------------------------ CHANGE RUN PARAMETERS HERE ------------------------------------------------
-name = 'JGPSLO'
+name = 'JGPARM'
 season = 'sb2018'
-target_disc_list = ["IceDance", "Men", "Ladies", "Pairs"]
+target_disc_list = ["IceDance", "Men", "Ladies"]#, "Pairs"]
 db_credentials = settings.DB_CREDENTIALS
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -99,7 +97,7 @@ def reconstitute_elt(row):
     return element
 
 
-def create_recap_table(disc, df):
+def create_recap_table(disc, df, writer):
     disc_df = df[(df["discipline"] == disc) & (df["element_type"].isin(MASTER_DICT[disc]))
                  & ~(df["element"].str.contains("Ch"))]
 
@@ -121,6 +119,8 @@ def create_recap_table(disc, df):
     unstacked = grouped_df.rename(columns={0: "layout"}).unstack(level=-1)
     unstacked.columns = unstacked.columns.map(" ".join).str.strip()
 
+    unstacked.dropna(axis="index", inplace=True)
+
     # Total TSS
     dic = {"short": "RD" if disc == "IceDance" else "SP", "long": "FD" if disc == "IceDance" else "FS"}
     unstacked["total"] = unstacked["tss " + dic["short"]] + unstacked["tss " + dic["long"]]
@@ -133,8 +133,9 @@ def create_recap_table(disc, df):
 
     unstacked = unstacked[unstacked.columns[[1, 3, 0, 4, 2]]]
     unstacked.sort_values("total", axis=0, ascending=False, inplace=True)
+    unstacked.apply(lambda x: '{0:.2f}'.format(x["total"]), axis=1)
     unstacked = unstacked.head(5)
-    unstacked.to_csv(path_or_buf=(settings.WRITE_PATH+name+season+disc+".csv"), header=True, mode='w')
+    unstacked.to_excel(writer, sheet_name=disc)
 
 
 def main(name, season):
@@ -155,8 +156,10 @@ def main(name, season):
     clean_df = df[col_list]
     clean_df.sort_values("element_no", axis=0, ascending=True, inplace=True)
 
+    writer = pd.ExcelWriter(settings.WRITE_PATH+name+season+".xlsx")
+
     for disc in target_disc_list:
-        create_recap_table(disc, clean_df)
+        create_recap_table(disc, clean_df, writer)
 
 
 if __name__ == "__main__":
